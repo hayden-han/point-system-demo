@@ -6,7 +6,7 @@ import com.musinsa.pointsystem.domain.exception.InvalidCancelAmountException;
 import com.musinsa.pointsystem.domain.exception.PointTransactionNotFoundException;
 import com.musinsa.pointsystem.domain.model.*;
 import com.musinsa.pointsystem.domain.repository.*;
-import com.musinsa.pointsystem.infra.lock.DistributedLock;
+import com.musinsa.pointsystem.application.port.DistributedLock;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

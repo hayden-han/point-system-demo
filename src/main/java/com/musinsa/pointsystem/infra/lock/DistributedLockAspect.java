@@ -1,5 +1,7 @@
 package com.musinsa.pointsystem.infra.lock;
 
+import com.musinsa.pointsystem.application.exception.LockAcquisitionFailedException;
+import com.musinsa.pointsystem.application.port.DistributedLock;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -63,12 +65,12 @@ public class DistributedLockAspect {
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                throw new LockAcquisitionException("락 획득 중 인터럽트 발생", e);
+                throw new LockAcquisitionFailedException("락 획득 중 인터럽트 발생", e);
             }
         }
 
         log.error("분산락 획득 최종 실패. lockKey={}, attempts={}", lockKey, MAX_ATTEMPTS);
-        throw new LockAcquisitionException("락 획득 실패: " + lockKey);
+        throw new LockAcquisitionFailedException("락 획득 실패: " + lockKey);
     }
 
     private String parseKey(ProceedingJoinPoint joinPoint, String keyExpression) {

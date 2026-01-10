@@ -2,6 +2,7 @@ package com.musinsa.pointsystem.application.usecase;
 
 import com.musinsa.pointsystem.application.dto.UsePointCommand;
 import com.musinsa.pointsystem.application.dto.UsePointResult;
+import com.musinsa.pointsystem.application.port.DistributedLock;
 import com.musinsa.pointsystem.domain.exception.InsufficientPointException;
 import com.musinsa.pointsystem.domain.model.MemberPoint;
 import com.musinsa.pointsystem.domain.model.PointLedger;
@@ -11,12 +12,11 @@ import com.musinsa.pointsystem.domain.repository.MemberPointRepository;
 import com.musinsa.pointsystem.domain.repository.PointLedgerRepository;
 import com.musinsa.pointsystem.domain.repository.PointTransactionRepository;
 import com.musinsa.pointsystem.domain.repository.PointUsageDetailRepository;
-import com.musinsa.pointsystem.infra.lock.DistributedLock;
+import com.musinsa.pointsystem.domain.service.PointUsagePolicy;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -27,6 +27,7 @@ public class UsePointUseCase {
     private final PointLedgerRepository pointLedgerRepository;
     private final PointTransactionRepository pointTransactionRepository;
     private final PointUsageDetailRepository pointUsageDetailRepository;
+    private final PointUsagePolicy pointUsagePolicy;
 
     @DistributedLock(key = "'lock:point:member:' + #command.memberId")
     @Transactional
@@ -48,31 +49,20 @@ public class UsePointUseCase {
         );
         PointTransaction savedTransaction = pointTransactionRepository.save(transaction);
 
-        // 적립건에서 차감
-        Long remainingAmount = command.getAmount();
-        List<PointUsageDetail> usageDetails = new ArrayList<>();
-        List<PointLedger> updatedLedgers = new ArrayList<>();
+        // 도메인 서비스로 적립건에서 차감
+        PointUsagePolicy.UsageResult usageResult = pointUsagePolicy.use(availableLedgers, command.getAmount());
 
-        for (PointLedger ledger : availableLedgers) {
-            if (remainingAmount <= 0) {
-                break;
-            }
-
-            Long usedFromLedger = ledger.use(remainingAmount);
-            remainingAmount -= usedFromLedger;
-
-            updatedLedgers.add(ledger);
-
-            PointUsageDetail usageDetail = PointUsageDetail.create(
-                    savedTransaction.getId(),
-                    ledger.getId(),
-                    usedFromLedger
-            );
-            usageDetails.add(usageDetail);
-        }
+        // 사용 상세 생성
+        List<PointUsageDetail> usageDetails = usageResult.usageDetails().stream()
+                .map(detail -> PointUsageDetail.create(
+                        savedTransaction.getId(),
+                        detail.ledgerId(),
+                        detail.usedAmount()
+                ))
+                .toList();
 
         // 저장
-        pointLedgerRepository.saveAll(updatedLedgers);
+        pointLedgerRepository.saveAll(usageResult.updatedLedgers());
         pointUsageDetailRepository.saveAll(usageDetails);
 
         // 회원 잔액 업데이트

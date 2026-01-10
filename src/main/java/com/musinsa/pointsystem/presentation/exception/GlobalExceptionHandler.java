@@ -1,7 +1,7 @@
 package com.musinsa.pointsystem.presentation.exception;
 
+import com.musinsa.pointsystem.application.exception.LockAcquisitionFailedException;
 import com.musinsa.pointsystem.domain.exception.*;
-import com.musinsa.pointsystem.infra.lock.LockAcquisitionException;
 import com.musinsa.pointsystem.presentation.dto.response.ErrorResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -80,8 +80,8 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of("INVALID_CANCEL_AMOUNT", e.getMessage()));
     }
 
-    @ExceptionHandler(LockAcquisitionException.class)
-    public ResponseEntity<ErrorResponse> handleLockAcquisition(LockAcquisitionException e) {
+    @ExceptionHandler(LockAcquisitionFailedException.class)
+    public ResponseEntity<ErrorResponse> handleLockAcquisitionFailed(LockAcquisitionFailedException e) {
         log.error("분산락 획득 실패: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body(ErrorResponse.of("LOCK_ACQUISITION_FAILED", "서버가 바쁩니다. 잠시 후 다시 시도해주세요."));

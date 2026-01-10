@@ -1,4 +1,4 @@
-package com.musinsa.pointsystem.infra.lock;
+package com.musinsa.pointsystem.application.port;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

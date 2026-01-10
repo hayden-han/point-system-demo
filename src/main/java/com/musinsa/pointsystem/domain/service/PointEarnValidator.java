@@ -4,9 +4,7 @@ import com.musinsa.pointsystem.domain.exception.InvalidEarnAmountException;
 import com.musinsa.pointsystem.domain.exception.InvalidExpirationException;
 import com.musinsa.pointsystem.domain.exception.MaxBalanceExceededException;
 import com.musinsa.pointsystem.domain.model.MemberPoint;
-import org.springframework.stereotype.Component;
 
-@Component
 public class PointEarnValidator {
 
     public void validateAmount(Long amount, Long minAmount, Long maxAmount) {
