@@ -3,33 +3,43 @@ package com.musinsa.pointsystem.domain.service;
 import com.musinsa.pointsystem.domain.exception.InvalidEarnAmountException;
 import com.musinsa.pointsystem.domain.exception.InvalidExpirationException;
 import com.musinsa.pointsystem.domain.exception.MaxBalanceExceededException;
+import com.musinsa.pointsystem.domain.model.EarnPolicyConfig;
 import com.musinsa.pointsystem.domain.model.MemberPoint;
 
 public class PointEarnValidator {
 
-    public void validateAmount(Long amount, Long minAmount, Long maxAmount) {
-        if (amount < minAmount) {
-            throw InvalidEarnAmountException.belowMinimum(amount, minAmount);
+    /**
+     * 적립 요청에 대한 전체 유효성 검증
+     */
+    public void validate(Long amount, Integer expirationDays, MemberPoint memberPoint, EarnPolicyConfig policy) {
+        validateAmount(amount, policy);
+        validateExpirationDays(expirationDays, policy);
+        validateMaxBalance(memberPoint, amount, policy);
+    }
+
+    public void validateAmount(Long amount, EarnPolicyConfig policy) {
+        if (amount < policy.getMinAmount()) {
+            throw InvalidEarnAmountException.belowMinimum(amount, policy.getMinAmount());
         }
-        if (amount > maxAmount) {
-            throw InvalidEarnAmountException.aboveMaximum(amount, maxAmount);
+        if (amount > policy.getMaxAmount()) {
+            throw InvalidEarnAmountException.aboveMaximum(amount, policy.getMaxAmount());
         }
     }
 
-    public void validateMaxBalance(MemberPoint memberPoint, Long earnAmount, Long maxBalance) {
-        if (!memberPoint.canEarn(earnAmount, maxBalance)) {
+    public void validateMaxBalance(MemberPoint memberPoint, Long earnAmount, EarnPolicyConfig policy) {
+        if (!memberPoint.canEarn(earnAmount, policy.getMaxBalance())) {
             throw new MaxBalanceExceededException(
-                    memberPoint.getTotalBalance(), earnAmount, maxBalance);
+                    memberPoint.getTotalBalance(), earnAmount, policy.getMaxBalance());
         }
     }
 
-    public void validateExpirationDays(Integer expirationDays, Long minDays, Long maxDays) {
+    public void validateExpirationDays(Integer expirationDays, EarnPolicyConfig policy) {
         if (expirationDays != null) {
-            if (expirationDays < minDays) {
-                throw InvalidExpirationException.belowMinimum(expirationDays, minDays.intValue());
+            if (expirationDays < policy.getMinExpirationDays()) {
+                throw InvalidExpirationException.belowMinimum(expirationDays, policy.getMinExpirationDays());
             }
-            if (expirationDays > maxDays) {
-                throw InvalidExpirationException.aboveMaximum(expirationDays, maxDays.intValue());
+            if (expirationDays > policy.getMaxExpirationDays()) {
+                throw InvalidExpirationException.aboveMaximum(expirationDays, policy.getMaxExpirationDays());
             }
         }
     }

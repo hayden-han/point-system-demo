@@ -8,6 +8,7 @@ import java.util.Optional;
 public interface PointLedgerRepository {
     PointLedger save(PointLedger pointLedger);
     Optional<PointLedger> findById(Long id);
+    List<PointLedger> findAllById(List<Long> ids);
     List<PointLedger> findAvailableByMemberId(Long memberId);
     List<PointLedger> saveAll(List<PointLedger> pointLedgers);
 }

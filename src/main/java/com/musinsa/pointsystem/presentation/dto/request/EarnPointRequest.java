@@ -3,11 +3,15 @@ package com.musinsa.pointsystem.presentation.dto.request;
 import com.musinsa.pointsystem.domain.model.EarnType;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class EarnPointRequest {
 
     @NotNull(message = "적립 금액은 필수입니다.")
