@@ -72,6 +72,10 @@ public class PointLedgerEntity {
         this.availableAmount = 0L;
     }
 
+    public void setExpiredAt(LocalDateTime expiredAt) {
+        this.expiredAt = expiredAt;
+    }
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

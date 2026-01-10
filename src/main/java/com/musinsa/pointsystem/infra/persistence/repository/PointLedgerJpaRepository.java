@@ -14,6 +14,6 @@ public interface PointLedgerJpaRepository extends JpaRepository<PointLedgerEntit
            "AND pl.availableAmount > 0 " +
            "AND pl.expiredAt > CURRENT_TIMESTAMP " +
            "AND pl.isCanceled = false " +
-           "ORDER BY pl.earnType DESC, pl.expiredAt ASC")
+           "ORDER BY CASE pl.earnType WHEN 'MANUAL' THEN 0 ELSE 1 END, pl.expiredAt ASC")
     List<PointLedgerEntity> findAvailableByMemberId(@Param("memberId") Long memberId);
 }

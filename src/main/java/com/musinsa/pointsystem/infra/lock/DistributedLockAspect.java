@@ -17,7 +17,6 @@ import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.stereotype.Component;
 
-import java.lang.reflect.Method;
 import java.util.concurrent.TimeUnit;
 
 @Aspect
@@ -33,8 +32,10 @@ public class DistributedLockAspect {
     private final RedissonClient redissonClient;
     private final ExpressionParser parser = new SpelExpressionParser();
 
-    @Around("@annotation(distributedLock)")
-    public Object around(ProceedingJoinPoint joinPoint, DistributedLock distributedLock) throws Throwable {
+    @Around("@annotation(com.musinsa.pointsystem.application.port.DistributedLock)")
+    public Object around(ProceedingJoinPoint joinPoint) throws Throwable {
+        MethodSignature signature = (MethodSignature) joinPoint.getSignature();
+        DistributedLock distributedLock = signature.getMethod().getAnnotation(DistributedLock.class);
         String lockKey = parseKey(joinPoint, distributedLock.key());
         long waitTime = distributedLock.waitTime();
         long leaseTime = distributedLock.leaseTime();
@@ -75,7 +76,6 @@ public class DistributedLockAspect {
 
     private String parseKey(ProceedingJoinPoint joinPoint, String keyExpression) {
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
-        Method method = signature.getMethod();
         String[] parameterNames = signature.getParameterNames();
         Object[] args = joinPoint.getArgs();
 

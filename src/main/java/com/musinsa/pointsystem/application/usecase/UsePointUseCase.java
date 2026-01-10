@@ -4,6 +4,7 @@ import com.musinsa.pointsystem.application.dto.UsePointCommand;
 import com.musinsa.pointsystem.application.dto.UsePointResult;
 import com.musinsa.pointsystem.application.port.DistributedLock;
 import com.musinsa.pointsystem.domain.exception.InsufficientPointException;
+import com.musinsa.pointsystem.domain.exception.InvalidOrderIdException;
 import com.musinsa.pointsystem.domain.model.MemberPoint;
 import com.musinsa.pointsystem.domain.model.PointLedger;
 import com.musinsa.pointsystem.domain.model.PointTransaction;
@@ -32,6 +33,10 @@ public class UsePointUseCase {
     @DistributedLock(key = "'lock:point:member:' + #command.memberId")
     @Transactional
     public UsePointResult execute(UsePointCommand command) {
+        if (command.getOrderId() == null || command.getOrderId().isBlank()) {
+            throw new InvalidOrderIdException();
+        }
+
         MemberPoint memberPoint = memberPointRepository.getOrCreate(command.getMemberId());
 
         if (!memberPoint.hasEnoughBalance(command.getAmount())) {

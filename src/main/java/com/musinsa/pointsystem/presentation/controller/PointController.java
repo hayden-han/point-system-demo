@@ -4,14 +4,15 @@ import com.musinsa.pointsystem.application.dto.*;
 import com.musinsa.pointsystem.application.usecase.*;
 import com.musinsa.pointsystem.domain.model.MemberPoint;
 import com.musinsa.pointsystem.domain.model.PointTransaction;
-import com.musinsa.pointsystem.presentation.dto.request.*;
+import com.musinsa.pointsystem.presentation.dto.request.CancelUsePointRequest;
+import com.musinsa.pointsystem.presentation.dto.request.EarnPointRequest;
+import com.musinsa.pointsystem.presentation.dto.request.UsePointRequest;
 import com.musinsa.pointsystem.presentation.dto.response.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -27,21 +28,21 @@ public class PointController {
     private final GetPointHistoryUseCase getPointHistoryUseCase;
 
     @GetMapping
-    public ResponseEntity<PointBalanceResponse> getBalance(@PathVariable Long memberId) {
+    public PointBalanceResponse getBalance(@PathVariable Long memberId) {
         MemberPoint memberPoint = getPointBalanceUseCase.execute(memberId);
-        return ResponseEntity.ok(PointBalanceResponse.from(memberPoint));
+        return PointBalanceResponse.from(memberPoint);
     }
 
     @GetMapping("/history")
-    public ResponseEntity<Page<PointTransactionResponse>> getHistory(
+    public Page<PointTransactionResponse> getHistory(
             @PathVariable Long memberId,
             @PageableDefault(size = 20) Pageable pageable) {
         Page<PointTransaction> transactions = getPointHistoryUseCase.execute(memberId, pageable);
-        return ResponseEntity.ok(transactions.map(PointTransactionResponse::from));
+        return transactions.map(PointTransactionResponse::from);
     }
 
     @PostMapping("/earn")
-    public ResponseEntity<EarnPointResponse> earn(
+    public EarnPointResponse earn(
             @PathVariable Long memberId,
             @Valid @RequestBody EarnPointRequest request) {
         EarnPointCommand command = EarnPointCommand.builder()
@@ -52,11 +53,11 @@ public class PointController {
                 .build();
 
         EarnPointResult result = earnPointUseCase.execute(command);
-        return ResponseEntity.ok(EarnPointResponse.from(result));
+        return EarnPointResponse.from(result);
     }
 
     @PostMapping("/earn/{ledgerId}/cancel")
-    public ResponseEntity<CancelEarnPointResponse> cancelEarn(
+    public CancelEarnPointResponse cancelEarn(
             @PathVariable Long memberId,
             @PathVariable Long ledgerId) {
         CancelEarnPointCommand command = CancelEarnPointCommand.builder()
@@ -65,11 +66,11 @@ public class PointController {
                 .build();
 
         CancelEarnPointResult result = cancelEarnPointUseCase.execute(command);
-        return ResponseEntity.ok(CancelEarnPointResponse.from(result));
+        return CancelEarnPointResponse.from(result);
     }
 
     @PostMapping("/use")
-    public ResponseEntity<UsePointResponse> use(
+    public UsePointResponse use(
             @PathVariable Long memberId,
             @Valid @RequestBody UsePointRequest request) {
         UsePointCommand command = UsePointCommand.builder()
@@ -79,11 +80,11 @@ public class PointController {
                 .build();
 
         UsePointResult result = usePointUseCase.execute(command);
-        return ResponseEntity.ok(UsePointResponse.from(result));
+        return UsePointResponse.from(result);
     }
 
     @PostMapping("/use/cancel")
-    public ResponseEntity<CancelUsePointResponse> cancelUse(
+    public CancelUsePointResponse cancelUse(
             @PathVariable Long memberId,
             @Valid @RequestBody CancelUsePointRequest request) {
         CancelUsePointCommand command = CancelUsePointCommand.builder()
@@ -93,6 +94,6 @@ public class PointController {
                 .build();
 
         CancelUsePointResult result = cancelUsePointUseCase.execute(command);
-        return ResponseEntity.ok(CancelUsePointResponse.from(result));
+        return CancelUsePointResponse.from(result);
     }
 }
