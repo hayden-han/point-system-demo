@@ -1,0 +1,20 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+
+  jpa:
+    show-sql: false
+
+  sql:
+    init:
+      mode: always
+
+# Embedded Redis for test
+redis:
+  embedded:
+    enabled: true
+    port: 6371
+
+logging:
+  level:
+    com.musinsa: INFO
