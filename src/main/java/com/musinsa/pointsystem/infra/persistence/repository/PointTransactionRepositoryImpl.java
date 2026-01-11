@@ -10,6 +10,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
 @RequiredArgsConstructor
@@ -25,13 +26,13 @@ public class PointTransactionRepositoryImpl implements PointTransactionRepositor
     }
 
     @Override
-    public Optional<PointTransaction> findById(Long id) {
+    public Optional<PointTransaction> findById(UUID id) {
         return jpaRepository.findById(id)
                 .map(mapper::toDomain);
     }
 
     @Override
-    public Page<PointTransaction> findByMemberId(Long memberId, Pageable pageable) {
+    public Page<PointTransaction> findByMemberId(UUID memberId, Pageable pageable) {
         return jpaRepository.findByMemberIdOrderByCreatedAtDesc(memberId, pageable)
                 .map(mapper::toDomain);
     }

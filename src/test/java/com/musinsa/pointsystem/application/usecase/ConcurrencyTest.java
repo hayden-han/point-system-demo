@@ -18,6 +18,7 @@ import org.springframework.test.context.jdbc.SqlGroup;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -50,7 +51,7 @@ class ConcurrencyTest extends IntegrationTestBase {
         @DisplayName("C-T01: 동시 적립 정합성")
         void concurrentEarn_shouldMaintainConsistency() throws InterruptedException {
             // GIVEN
-            Long memberId = 5001L;
+            UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000005001");
             int threadCount = 10;
             Long amountPerEarn = 100L;
             ExecutorService executor = Executors.newFixedThreadPool(threadCount);
@@ -89,7 +90,7 @@ class ConcurrencyTest extends IntegrationTestBase {
         @DisplayName("C-T02: 동시 사용 정합성")
         void concurrentUse_shouldMaintainConsistency() throws InterruptedException {
             // GIVEN
-            Long memberId = 5002L;
+            UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000005002");
             int threadCount = 10;
             Long amountPerUse = 500L;
             Long initialBalance = 10000L;
@@ -131,7 +132,7 @@ class ConcurrencyTest extends IntegrationTestBase {
         @DisplayName("C-T03: 적립+사용 동시 정합성")
         void concurrentEarnAndUse_shouldMaintainConsistency() throws InterruptedException {
             // GIVEN
-            Long memberId = 5003L;
+            UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000005003");
             Long initialBalance = 5000L;
             int earnThreadCount = 5;
             int useThreadCount = 5;
@@ -195,7 +196,7 @@ class ConcurrencyTest extends IntegrationTestBase {
         @DisplayName("C-T04: 락 획득 실패 재시도 성공")
         void lockRetry_shouldSucceedEventually() throws InterruptedException, ExecutionException {
             // GIVEN
-            Long memberId = 5004L;
+            UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000005004");
             ExecutorService executor = Executors.newFixedThreadPool(2);
             List<Future<Boolean>> futures = new ArrayList<>();
 
@@ -236,7 +237,7 @@ class ConcurrencyTest extends IntegrationTestBase {
         @DisplayName("C-T05: 락 획득 최종 실패")
         void lockAcquisitionFailed_shouldThrowException() throws InterruptedException {
             // GIVEN
-            Long memberId = 5004L;
+            UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000005004");
             String lockKey = "lock:point:member:" + memberId;
             RLock lock = redissonClient.getLock(lockKey);
             AtomicReference<Exception> caughtException = new AtomicReference<>();

@@ -4,10 +4,12 @@ import com.musinsa.pointsystem.domain.model.MemberPoint;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.util.UUID;
+
 @Getter
 @Builder
 public class PointBalanceResponse {
-    private final Long memberId;
+    private final UUID memberId;
     private final Long totalBalance;
 
     public static PointBalanceResponse from(MemberPoint memberPoint) {

@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -60,11 +61,11 @@ public class CancelUsePointUseCase {
         PointTransaction savedCancelTransaction = pointTransactionRepository.save(cancelTransaction);
 
         // 관련 적립건 조회
-        List<Long> ledgerIds = usageDetails.stream()
+        List<UUID> ledgerIds = usageDetails.stream()
                 .map(PointUsageDetail::getLedgerId)
                 .distinct()
                 .toList();
-        Map<Long, PointLedger> ledgerMap = pointLedgerRepository.findAllById(ledgerIds).stream()
+        Map<UUID, PointLedger> ledgerMap = pointLedgerRepository.findAllById(ledgerIds).stream()
                 .collect(Collectors.toMap(PointLedger::getId, ledger -> ledger));
 
         // 도메인 서비스로 복구 처리

@@ -15,6 +15,7 @@ import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.jdbc.SqlGroup;
 
 import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -41,7 +42,7 @@ class DataConsistencyTest extends IntegrationTestBase {
         @DisplayName("V-T01: 잔액 정합성 - member_point.total_balance == SUM(valid ledger.available_amount)")
         void balanceConsistency_shouldMatch() {
             // GIVEN
-            Long memberId = 7001L;
+            UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000007001");
 
             // WHEN
             MemberPoint memberPoint = memberPointRepository.findByMemberId(memberId).orElseThrow();
@@ -61,7 +62,7 @@ class DataConsistencyTest extends IntegrationTestBase {
         @DisplayName("V-T02: 적립건 정합성 - earned_amount == available_amount + used_amount")
         void ledgerConsistency_shouldMatch() {
             // GIVEN
-            Long ledgerId = 7005L;
+            UUID ledgerId = UUID.fromString("00000000-0000-0000-0000-000000007005");
 
             // WHEN
             PointLedger ledger = pointLedgerRepository.findById(ledgerId).orElseThrow();
@@ -78,7 +79,7 @@ class DataConsistencyTest extends IntegrationTestBase {
         @DisplayName("V-T03: 사용상세 정합성 - SUM(usage_detail.used_amount - canceled_amount) == 실제 사용금액")
         void usageDetailConsistency_shouldMatch() {
             // GIVEN
-            Long transactionId = 7006L;
+            UUID transactionId = UUID.fromString("00000000-0000-0000-0000-000000007006");
 
             // WHEN
             List<PointUsageDetail> usageDetails = pointUsageDetailRepository.findByTransactionId(transactionId);
@@ -103,7 +104,7 @@ class DataConsistencyTest extends IntegrationTestBase {
         @DisplayName("V-T04: 취소 정합성 - canceled_amount <= used_amount")
         void cancelConsistency_shouldBeValid() {
             // GIVEN
-            Long transactionId = 7008L;
+            UUID transactionId = UUID.fromString("00000000-0000-0000-0000-000000007008");
 
             // WHEN
             List<PointUsageDetail> usageDetails = pointUsageDetailRepository.findByTransactionId(transactionId);

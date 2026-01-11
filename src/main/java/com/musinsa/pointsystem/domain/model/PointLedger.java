@@ -1,26 +1,28 @@
 package com.musinsa.pointsystem.domain.model;
 
+import com.musinsa.pointsystem.common.util.UuidGenerator;
 import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Getter
 public class PointLedger {
-    private final Long id;
-    private final Long memberId;
+    private final UUID id;
+    private final UUID memberId;
     private final Long earnedAmount;
     private Long availableAmount;
     private Long usedAmount;
     private final EarnType earnType;
-    private final Long sourceTransactionId;
+    private final UUID sourceTransactionId;
     private final LocalDateTime expiredAt;
     private boolean isCanceled;
     private final LocalDateTime createdAt;
 
     @Builder
-    public PointLedger(Long id, Long memberId, Long earnedAmount, Long availableAmount,
-                       Long usedAmount, EarnType earnType, Long sourceTransactionId,
+    public PointLedger(UUID id, UUID memberId, Long earnedAmount, Long availableAmount,
+                       Long usedAmount, EarnType earnType, UUID sourceTransactionId,
                        LocalDateTime expiredAt, boolean isCanceled, LocalDateTime createdAt) {
         this.id = id;
         this.memberId = memberId;
@@ -34,8 +36,9 @@ public class PointLedger {
         this.createdAt = createdAt;
     }
 
-    public static PointLedger create(Long memberId, Long amount, EarnType earnType, LocalDateTime expiredAt) {
+    public static PointLedger create(UUID memberId, Long amount, EarnType earnType, LocalDateTime expiredAt) {
         return PointLedger.builder()
+                .id(UuidGenerator.generate())
                 .memberId(memberId)
                 .earnedAmount(amount)
                 .availableAmount(amount)
@@ -47,9 +50,10 @@ public class PointLedger {
                 .build();
     }
 
-    public static PointLedger createFromCancelUse(Long memberId, Long amount, EarnType earnType,
-                                                   LocalDateTime expiredAt, Long sourceTransactionId) {
+    public static PointLedger createFromCancelUse(UUID memberId, Long amount, EarnType earnType,
+                                                   LocalDateTime expiredAt, UUID sourceTransactionId) {
         return PointLedger.builder()
+                .id(UuidGenerator.generate())
                 .memberId(memberId)
                 .earnedAmount(amount)
                 .availableAmount(amount)

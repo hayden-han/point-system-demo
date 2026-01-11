@@ -1,9 +1,12 @@
 package com.musinsa.pointsystem.domain.model;
 
+import com.musinsa.pointsystem.common.util.UuidGenerator;
 import com.musinsa.pointsystem.fixture.MemberPointFixture;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -19,9 +22,10 @@ class MemberPointTest {
         @Test
         @DisplayName("기본 생성 시 잔액이 0")
         void create_shouldHaveZeroBalance() {
-            MemberPoint memberPoint = MemberPoint.create(1L);
+            UUID memberId = UuidGenerator.generate();
+            MemberPoint memberPoint = MemberPoint.create(memberId);
 
-            assertThat(memberPoint.getMemberId()).isEqualTo(1L);
+            assertThat(memberPoint.getMemberId()).isEqualTo(memberId);
             assertThat(memberPoint.getTotalBalance()).isEqualTo(0L);
         }
     }
@@ -34,7 +38,8 @@ class MemberPointTest {
         @DisplayName("잔액 증가 성공")
         void increaseBalance_shouldAddAmount() {
             // GIVEN
-            MemberPoint memberPoint = MemberPointFixture.createWithBalance(1L, 1000L);
+            UUID memberId = UuidGenerator.generate();
+            MemberPoint memberPoint = MemberPointFixture.createWithBalance(memberId, 1000L);
 
             // WHEN
             memberPoint.increaseBalance(500L);
@@ -47,7 +52,8 @@ class MemberPointTest {
         @DisplayName("여러 번 증가 가능")
         void multipleIncrease_shouldAccumulate() {
             // GIVEN
-            MemberPoint memberPoint = MemberPointFixture.create(1L);
+            UUID memberId = UuidGenerator.generate();
+            MemberPoint memberPoint = MemberPointFixture.create(memberId);
 
             // WHEN
             memberPoint.increaseBalance(100L);
@@ -67,7 +73,8 @@ class MemberPointTest {
         @DisplayName("잔액 감소 성공")
         void decreaseBalance_shouldSubtractAmount() {
             // GIVEN
-            MemberPoint memberPoint = MemberPointFixture.createWithBalance(1L, 1000L);
+            UUID memberId = UuidGenerator.generate();
+            MemberPoint memberPoint = MemberPointFixture.createWithBalance(memberId, 1000L);
 
             // WHEN
             memberPoint.decreaseBalance(300L);
@@ -80,7 +87,8 @@ class MemberPointTest {
         @DisplayName("잔액보다 많이 감소하면 예외 발생")
         void decreaseMoreThanBalance_shouldThrowException() {
             // GIVEN
-            MemberPoint memberPoint = MemberPointFixture.createWithBalance(1L, 500L);
+            UUID memberId = UuidGenerator.generate();
+            MemberPoint memberPoint = MemberPointFixture.createWithBalance(memberId, 500L);
 
             // WHEN & THEN
             assertThatThrownBy(() -> memberPoint.decreaseBalance(600L))
@@ -92,7 +100,8 @@ class MemberPointTest {
         @DisplayName("정확히 잔액만큼 감소하면 0이 됨")
         void decreaseExactBalance_shouldBecomeZero() {
             // GIVEN
-            MemberPoint memberPoint = MemberPointFixture.createWithBalance(1L, 1000L);
+            UUID memberId = UuidGenerator.generate();
+            MemberPoint memberPoint = MemberPointFixture.createWithBalance(memberId, 1000L);
 
             // WHEN
             memberPoint.decreaseBalance(1000L);
@@ -109,7 +118,8 @@ class MemberPointTest {
         @Test
         @DisplayName("적립 후에도 최대 보유금액 이하면 true")
         void withinMaxBalance_canEarn() {
-            MemberPoint memberPoint = MemberPointFixture.createWithBalance(1L, 5000000L);
+            UUID memberId = UuidGenerator.generate();
+            MemberPoint memberPoint = MemberPointFixture.createWithBalance(memberId, 5000000L);
 
             assertThat(memberPoint.canEarn(4000000L, MAX_BALANCE)).isTrue();
         }
@@ -117,7 +127,8 @@ class MemberPointTest {
         @Test
         @DisplayName("적립 후 최대 보유금액 초과하면 false")
         void exceedsMaxBalance_cannotEarn() {
-            MemberPoint memberPoint = MemberPointFixture.createWithBalance(1L, 9500000L);
+            UUID memberId = UuidGenerator.generate();
+            MemberPoint memberPoint = MemberPointFixture.createWithBalance(memberId, 9500000L);
 
             assertThat(memberPoint.canEarn(600000L, MAX_BALANCE)).isFalse();
         }
@@ -125,7 +136,8 @@ class MemberPointTest {
         @Test
         @DisplayName("적립 후 정확히 최대 보유금액이면 true")
         void exactlyMaxBalance_canEarn() {
-            MemberPoint memberPoint = MemberPointFixture.createWithBalance(1L, 9000000L);
+            UUID memberId = UuidGenerator.generate();
+            MemberPoint memberPoint = MemberPointFixture.createWithBalance(memberId, 9000000L);
 
             assertThat(memberPoint.canEarn(1000000L, MAX_BALANCE)).isTrue();
         }
@@ -133,7 +145,8 @@ class MemberPointTest {
         @Test
         @DisplayName("이미 최대 보유금액이면 적립 불가")
         void alreadyMaxBalance_cannotEarn() {
-            MemberPoint memberPoint = MemberPointFixture.createAtMaxBalance(1L, MAX_BALANCE);
+            UUID memberId = UuidGenerator.generate();
+            MemberPoint memberPoint = MemberPointFixture.createAtMaxBalance(memberId, MAX_BALANCE);
 
             assertThat(memberPoint.canEarn(1L, MAX_BALANCE)).isFalse();
         }
@@ -146,7 +159,8 @@ class MemberPointTest {
         @Test
         @DisplayName("잔액이 충분하면 true")
         void enoughBalance_returnsTrue() {
-            MemberPoint memberPoint = MemberPointFixture.createWithBalance(1L, 1000L);
+            UUID memberId = UuidGenerator.generate();
+            MemberPoint memberPoint = MemberPointFixture.createWithBalance(memberId, 1000L);
 
             assertThat(memberPoint.hasEnoughBalance(500L)).isTrue();
         }
@@ -154,7 +168,8 @@ class MemberPointTest {
         @Test
         @DisplayName("잔액이 정확히 같으면 true")
         void exactBalance_returnsTrue() {
-            MemberPoint memberPoint = MemberPointFixture.createWithBalance(1L, 1000L);
+            UUID memberId = UuidGenerator.generate();
+            MemberPoint memberPoint = MemberPointFixture.createWithBalance(memberId, 1000L);
 
             assertThat(memberPoint.hasEnoughBalance(1000L)).isTrue();
         }
@@ -162,7 +177,8 @@ class MemberPointTest {
         @Test
         @DisplayName("잔액이 부족하면 false")
         void insufficientBalance_returnsFalse() {
-            MemberPoint memberPoint = MemberPointFixture.createWithBalance(1L, 500L);
+            UUID memberId = UuidGenerator.generate();
+            MemberPoint memberPoint = MemberPointFixture.createWithBalance(memberId, 500L);
 
             assertThat(memberPoint.hasEnoughBalance(1000L)).isFalse();
         }
@@ -170,7 +186,8 @@ class MemberPointTest {
         @Test
         @DisplayName("잔액이 0이면 false")
         void zeroBalance_returnsFalse() {
-            MemberPoint memberPoint = MemberPointFixture.create(1L);
+            UUID memberId = UuidGenerator.generate();
+            MemberPoint memberPoint = MemberPointFixture.create(memberId);
 
             assertThat(memberPoint.hasEnoughBalance(1L)).isFalse();
         }

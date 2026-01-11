@@ -1,21 +1,23 @@
 package com.musinsa.pointsystem.domain.model;
 
+import com.musinsa.pointsystem.common.util.UuidGenerator;
 import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Getter
 public class PointUsageDetail {
-    private final Long id;
-    private final Long transactionId;
-    private final Long ledgerId;
+    private final UUID id;
+    private final UUID transactionId;
+    private final UUID ledgerId;
     private final Long usedAmount;
     private Long canceledAmount;
     private final LocalDateTime createdAt;
 
     @Builder
-    public PointUsageDetail(Long id, Long transactionId, Long ledgerId,
+    public PointUsageDetail(UUID id, UUID transactionId, UUID ledgerId,
                             Long usedAmount, Long canceledAmount, LocalDateTime createdAt) {
         this.id = id;
         this.transactionId = transactionId;
@@ -25,8 +27,9 @@ public class PointUsageDetail {
         this.createdAt = createdAt;
     }
 
-    public static PointUsageDetail create(Long transactionId, Long ledgerId, Long usedAmount) {
+    public static PointUsageDetail create(UUID transactionId, UUID ledgerId, Long usedAmount) {
         return PointUsageDetail.builder()
+                .id(UuidGenerator.generate())
                 .transactionId(transactionId)
                 .ledgerId(ledgerId)
                 .usedAmount(usedAmount)

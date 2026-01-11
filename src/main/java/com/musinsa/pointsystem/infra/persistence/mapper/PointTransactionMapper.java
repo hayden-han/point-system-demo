@@ -23,6 +23,7 @@ public class PointTransactionMapper {
 
     public PointTransactionEntity toEntity(PointTransaction domain) {
         return PointTransactionEntity.builder()
+                .id(domain.getId())
                 .memberId(domain.getMemberId())
                 .type(domain.getType().name())
                 .amount(domain.getAmount())

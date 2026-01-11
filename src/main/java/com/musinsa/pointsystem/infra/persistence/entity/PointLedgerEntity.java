@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "point_ledger")
@@ -15,11 +16,11 @@ import java.time.LocalDateTime;
 public class PointLedgerEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(columnDefinition = "BINARY(16)")
+    private UUID id;
 
-    @Column(name = "member_id", nullable = false)
-    private Long memberId;
+    @Column(name = "member_id", nullable = false, columnDefinition = "BINARY(16)")
+    private UUID memberId;
 
     @Column(name = "earned_amount", nullable = false)
     private Long earnedAmount;
@@ -33,8 +34,8 @@ public class PointLedgerEntity {
     @Column(name = "earn_type", nullable = false, length = 20)
     private String earnType;
 
-    @Column(name = "source_transaction_id")
-    private Long sourceTransactionId;
+    @Column(name = "source_transaction_id", columnDefinition = "BINARY(16)")
+    private UUID sourceTransactionId;
 
     @Column(name = "expired_at", nullable = false)
     private LocalDateTime expiredAt;
@@ -49,9 +50,10 @@ public class PointLedgerEntity {
     private LocalDateTime updatedAt;
 
     @Builder
-    public PointLedgerEntity(Long memberId, Long earnedAmount, Long availableAmount,
-                             Long usedAmount, String earnType, Long sourceTransactionId,
+    public PointLedgerEntity(UUID id, UUID memberId, Long earnedAmount, Long availableAmount,
+                             Long usedAmount, String earnType, UUID sourceTransactionId,
                              LocalDateTime expiredAt, Boolean isCanceled) {
+        this.id = id;
         this.memberId = memberId;
         this.earnedAmount = earnedAmount;
         this.availableAmount = availableAmount;

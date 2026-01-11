@@ -2,6 +2,7 @@ package com.musinsa.pointsystem.presentation.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.musinsa.pointsystem.IntegrationTestBase;
+import com.musinsa.pointsystem.common.util.UuidGenerator;
 import com.musinsa.pointsystem.presentation.dto.request.CancelUsePointRequest;
 import com.musinsa.pointsystem.presentation.dto.request.UsePointRequest;
 import org.junit.jupiter.api.DisplayName;
@@ -13,6 +14,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.jdbc.SqlGroup;
 import org.springframework.test.web.servlet.MockMvc;
+
+import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -41,7 +44,7 @@ class PointUseControllerTest extends IntegrationTestBase {
         @DisplayName("포인트를 사용한다")
         void shouldUsePoints() throws Exception {
             // GIVEN
-            Long memberId = 8304L;
+            UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000008304");
             UsePointRequest request = UsePointRequest.builder()
                     .amount(1000L)
                     .orderId("ORDER-TEST-001")
@@ -52,7 +55,7 @@ class PointUseControllerTest extends IntegrationTestBase {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.memberId").value(memberId))
+                    .andExpect(jsonPath("$.memberId").value(memberId.toString()))
                     .andExpect(jsonPath("$.usedAmount").value(1000))
                     .andExpect(jsonPath("$.totalBalance").value(2000));
         }
@@ -61,7 +64,7 @@ class PointUseControllerTest extends IntegrationTestBase {
         @DisplayName("잔액 전체를 사용한다")
         void shouldUseAllBalance() throws Exception {
             // GIVEN
-            Long memberId = 8304L;
+            UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000008304");
             UsePointRequest request = UsePointRequest.builder()
                     .amount(3000L)
                     .orderId("ORDER-TEST-002")
@@ -72,7 +75,7 @@ class PointUseControllerTest extends IntegrationTestBase {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.memberId").value(memberId))
+                    .andExpect(jsonPath("$.memberId").value(memberId.toString()))
                     .andExpect(jsonPath("$.usedAmount").value(3000))
                     .andExpect(jsonPath("$.totalBalance").value(0));
         }
@@ -81,7 +84,7 @@ class PointUseControllerTest extends IntegrationTestBase {
         @DisplayName("잔액 초과 사용 시 400을 반환한다")
         void shouldReturn400ForInsufficientBalance() throws Exception {
             // GIVEN
-            Long memberId = 8304L;
+            UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000008304");
             UsePointRequest request = UsePointRequest.builder()
                     .amount(5000L)
                     .orderId("ORDER-TEST-003")
@@ -98,7 +101,7 @@ class PointUseControllerTest extends IntegrationTestBase {
         @DisplayName("사용 금액이 0 이하이면 400을 반환한다")
         void shouldReturn400ForZeroOrNegativeAmount() throws Exception {
             // GIVEN
-            Long memberId = 8304L;
+            UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000008304");
             UsePointRequest request = UsePointRequest.builder()
                     .amount(0L)
                     .orderId("ORDER-TEST-004")
@@ -115,7 +118,7 @@ class PointUseControllerTest extends IntegrationTestBase {
         @DisplayName("주문번호가 없으면 400을 반환한다")
         void shouldReturn400ForMissingOrderId() throws Exception {
             // GIVEN
-            Long memberId = 8304L;
+            UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000008304");
             UsePointRequest request = UsePointRequest.builder()
                     .amount(1000L)
                     .build();
@@ -136,9 +139,10 @@ class PointUseControllerTest extends IntegrationTestBase {
         @DisplayName("포인트 사용을 전액 취소한다")
         void shouldCancelFullUsage() throws Exception {
             // GIVEN
-            Long memberId = 8305L;
+            UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000008305");
+            UUID transactionId = UUID.fromString("00000000-0000-0000-0000-000000008305");
             CancelUsePointRequest request = CancelUsePointRequest.builder()
-                    .transactionId(8305L)
+                    .transactionId(transactionId)
                     .cancelAmount(2000L)
                     .build();
 
@@ -147,7 +151,7 @@ class PointUseControllerTest extends IntegrationTestBase {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.memberId").value(memberId))
+                    .andExpect(jsonPath("$.memberId").value(memberId.toString()))
                     .andExpect(jsonPath("$.canceledAmount").value(2000))
                     .andExpect(jsonPath("$.totalBalance").value(2000));
         }
@@ -156,9 +160,10 @@ class PointUseControllerTest extends IntegrationTestBase {
         @DisplayName("포인트 사용을 부분 취소한다")
         void shouldCancelPartialUsage() throws Exception {
             // GIVEN
-            Long memberId = 8305L;
+            UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000008305");
+            UUID transactionId = UUID.fromString("00000000-0000-0000-0000-000000008305");
             CancelUsePointRequest request = CancelUsePointRequest.builder()
-                    .transactionId(8305L)
+                    .transactionId(transactionId)
                     .cancelAmount(1000L)
                     .build();
 
@@ -167,7 +172,7 @@ class PointUseControllerTest extends IntegrationTestBase {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.memberId").value(memberId))
+                    .andExpect(jsonPath("$.memberId").value(memberId.toString()))
                     .andExpect(jsonPath("$.canceledAmount").value(1000))
                     .andExpect(jsonPath("$.totalBalance").value(1000));
         }
@@ -176,9 +181,10 @@ class PointUseControllerTest extends IntegrationTestBase {
         @DisplayName("존재하지 않는 거래 취소 시 404를 반환한다")
         void shouldReturn404ForNonExistentTransaction() throws Exception {
             // GIVEN
-            Long memberId = 8305L;
+            UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000008305");
+            UUID transactionId = UuidGenerator.generate();
             CancelUsePointRequest request = CancelUsePointRequest.builder()
-                    .transactionId(99999L)
+                    .transactionId(transactionId)
                     .cancelAmount(1000L)
                     .build();
 
@@ -193,9 +199,10 @@ class PointUseControllerTest extends IntegrationTestBase {
         @DisplayName("취소 금액이 0 이하이면 400을 반환한다")
         void shouldReturn400ForZeroOrNegativeCancelAmount() throws Exception {
             // GIVEN
-            Long memberId = 8305L;
+            UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000008305");
+            UUID transactionId = UUID.fromString("00000000-0000-0000-0000-000000008305");
             CancelUsePointRequest request = CancelUsePointRequest.builder()
-                    .transactionId(8305L)
+                    .transactionId(transactionId)
                     .cancelAmount(0L)
                     .build();
 

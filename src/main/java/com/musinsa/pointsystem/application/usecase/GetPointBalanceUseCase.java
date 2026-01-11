@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.UUID;
+
 @Service
 @RequiredArgsConstructor
 public class GetPointBalanceUseCase {
@@ -13,7 +15,7 @@ public class GetPointBalanceUseCase {
     private final MemberPointRepository memberPointRepository;
 
     @Transactional(readOnly = true)
-    public MemberPoint execute(Long memberId) {
+    public MemberPoint execute(UUID memberId) {
         return memberPointRepository.getOrCreate(memberId);
     }
 }

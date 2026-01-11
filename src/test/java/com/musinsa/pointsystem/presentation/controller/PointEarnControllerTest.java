@@ -2,6 +2,7 @@ package com.musinsa.pointsystem.presentation.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.musinsa.pointsystem.IntegrationTestBase;
+import com.musinsa.pointsystem.common.util.UuidGenerator;
 import com.musinsa.pointsystem.domain.model.EarnType;
 import com.musinsa.pointsystem.presentation.dto.request.EarnPointRequest;
 import org.junit.jupiter.api.DisplayName;
@@ -13,6 +14,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.jdbc.SqlGroup;
 import org.springframework.test.web.servlet.MockMvc;
+
+import java.util.UUID;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -41,7 +44,7 @@ class PointEarnControllerTest extends IntegrationTestBase {
         @DisplayName("포인트를 적립한다")
         void shouldEarnPoints() throws Exception {
             // GIVEN
-            Long memberId = 8202L;
+            UUID memberId = UuidGenerator.generate();
             EarnPointRequest request = EarnPointRequest.builder()
                     .amount(1000L)
                     .earnType(EarnType.SYSTEM)
@@ -53,16 +56,16 @@ class PointEarnControllerTest extends IntegrationTestBase {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.memberId").value(memberId))
+                    .andExpect(jsonPath("$.memberId").value(memberId.toString()))
                     .andExpect(jsonPath("$.earnedAmount").value(1000))
-                    .andExpect(jsonPath("$.ledgerId").isNumber());
+                    .andExpect(jsonPath("$.ledgerId").isNotEmpty());
         }
 
         @Test
         @DisplayName("수동 적립을 수행한다")
         void shouldEarnManualPoints() throws Exception {
             // GIVEN
-            Long memberId = 8202L;
+            UUID memberId = UuidGenerator.generate();
             EarnPointRequest request = EarnPointRequest.builder()
                     .amount(500L)
                     .earnType(EarnType.MANUAL)
@@ -74,7 +77,7 @@ class PointEarnControllerTest extends IntegrationTestBase {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.memberId").value(memberId))
+                    .andExpect(jsonPath("$.memberId").value(memberId.toString()))
                     .andExpect(jsonPath("$.earnedAmount").value(500));
         }
 
@@ -82,7 +85,7 @@ class PointEarnControllerTest extends IntegrationTestBase {
         @DisplayName("적립 금액이 0 이하이면 400을 반환한다")
         void shouldReturn400ForZeroOrNegativeAmount() throws Exception {
             // GIVEN
-            Long memberId = 8202L;
+            UUID memberId = UuidGenerator.generate();
             EarnPointRequest request = EarnPointRequest.builder()
                     .amount(0L)
                     .earnType(EarnType.SYSTEM)
@@ -105,13 +108,13 @@ class PointEarnControllerTest extends IntegrationTestBase {
         @DisplayName("미사용 적립건을 취소한다")
         void shouldCancelUnusedEarn() throws Exception {
             // GIVEN
-            Long memberId = 8203L;
-            Long ledgerId = 8202L;
+            UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000008203");
+            UUID ledgerId = UUID.fromString("00000000-0000-0000-0000-000000008202");
 
             // WHEN & THEN
             mockMvc.perform(post("/api/v1/members/{memberId}/points/earn/{ledgerId}/cancel", memberId, ledgerId))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.memberId").value(memberId))
+                    .andExpect(jsonPath("$.memberId").value(memberId.toString()))
                     .andExpect(jsonPath("$.canceledAmount").value(1000));
         }
 
@@ -119,8 +122,8 @@ class PointEarnControllerTest extends IntegrationTestBase {
         @DisplayName("존재하지 않는 적립건 취소 시 404를 반환한다")
         void shouldReturn404ForNonExistentLedger() throws Exception {
             // GIVEN
-            Long memberId = 8203L;
-            Long ledgerId = 99999L;
+            UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000008203");
+            UUID ledgerId = UuidGenerator.generate();
 
             // WHEN & THEN
             mockMvc.perform(post("/api/v1/members/{memberId}/points/earn/{ledgerId}/cancel", memberId, ledgerId))
@@ -131,8 +134,8 @@ class PointEarnControllerTest extends IntegrationTestBase {
         @DisplayName("이미 취소된 적립건 취소 시 400을 반환한다")
         void shouldReturn400ForAlreadyCanceledLedger() throws Exception {
             // GIVEN
-            Long memberId = 8203L;
-            Long ledgerId = 8202L;
+            UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000008203");
+            UUID ledgerId = UUID.fromString("00000000-0000-0000-0000-000000008202");
 
             // 첫 번째 취소
             mockMvc.perform(post("/api/v1/members/{memberId}/points/earn/{ledgerId}/cancel", memberId, ledgerId))

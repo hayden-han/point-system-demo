@@ -1,5 +1,6 @@
 package com.musinsa.pointsystem.domain.service;
 
+import com.musinsa.pointsystem.common.util.UuidGenerator;
 import com.musinsa.pointsystem.domain.exception.InvalidEarnAmountException;
 import com.musinsa.pointsystem.domain.exception.InvalidExpirationException;
 import com.musinsa.pointsystem.domain.exception.MaxBalanceExceededException;
@@ -10,6 +11,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -72,7 +75,8 @@ class PointEarnValidatorTest {
         @Test
         @DisplayName("적립 후에도 최대 보유금액 이하면 통과")
         void withinMaxBalance_shouldPass() {
-            MemberPoint memberPoint = MemberPointFixture.createWithBalance(1L, 5000000L);
+            UUID memberId = UuidGenerator.generate();
+            MemberPoint memberPoint = MemberPointFixture.createWithBalance(memberId, 5000000L);
 
             assertThatCode(() -> validator.validateMaxBalance(memberPoint, 4000000L, policy))
                     .doesNotThrowAnyException();
@@ -81,7 +85,8 @@ class PointEarnValidatorTest {
         @Test
         @DisplayName("적립 후 최대 보유금액 초과시 예외 발생")
         void exceedsMaxBalance_shouldThrowException() {
-            MemberPoint memberPoint = MemberPointFixture.createWithBalance(1L, 9500000L);
+            UUID memberId = UuidGenerator.generate();
+            MemberPoint memberPoint = MemberPointFixture.createWithBalance(memberId, 9500000L);
 
             assertThatThrownBy(() -> validator.validateMaxBalance(memberPoint, 600000L, policy))
                     .isInstanceOf(MaxBalanceExceededException.class);
@@ -90,7 +95,8 @@ class PointEarnValidatorTest {
         @Test
         @DisplayName("적립 후 정확히 최대 보유금액이면 통과")
         void exactlyMaxBalance_shouldPass() {
-            MemberPoint memberPoint = MemberPointFixture.createWithBalance(1L, 9000000L);
+            UUID memberId = UuidGenerator.generate();
+            MemberPoint memberPoint = MemberPointFixture.createWithBalance(memberId, 9000000L);
 
             assertThatCode(() -> validator.validateMaxBalance(memberPoint, 1000000L, policy))
                     .doesNotThrowAnyException();

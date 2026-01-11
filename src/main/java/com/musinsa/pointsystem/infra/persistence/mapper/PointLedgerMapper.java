@@ -25,6 +25,7 @@ public class PointLedgerMapper {
 
     public PointLedgerEntity toEntity(PointLedger domain) {
         return PointLedgerEntity.builder()
+                .id(domain.getId())
                 .memberId(domain.getMemberId())
                 .earnedAmount(domain.getEarnedAmount())
                 .availableAmount(domain.getAvailableAmount())

@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "point_usage_detail")
@@ -15,14 +16,14 @@ import java.time.LocalDateTime;
 public class PointUsageDetailEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(columnDefinition = "BINARY(16)")
+    private UUID id;
 
-    @Column(name = "transaction_id", nullable = false)
-    private Long transactionId;
+    @Column(name = "transaction_id", nullable = false, columnDefinition = "BINARY(16)")
+    private UUID transactionId;
 
-    @Column(name = "ledger_id", nullable = false)
-    private Long ledgerId;
+    @Column(name = "ledger_id", nullable = false, columnDefinition = "BINARY(16)")
+    private UUID ledgerId;
 
     @Column(name = "used_amount", nullable = false)
     private Long usedAmount;
@@ -37,7 +38,8 @@ public class PointUsageDetailEntity {
     private LocalDateTime updatedAt;
 
     @Builder
-    public PointUsageDetailEntity(Long transactionId, Long ledgerId, Long usedAmount, Long canceledAmount) {
+    public PointUsageDetailEntity(UUID id, UUID transactionId, UUID ledgerId, Long usedAmount, Long canceledAmount) {
+        this.id = id;
         this.transactionId = transactionId;
         this.ledgerId = ledgerId;
         this.usedAmount = usedAmount;

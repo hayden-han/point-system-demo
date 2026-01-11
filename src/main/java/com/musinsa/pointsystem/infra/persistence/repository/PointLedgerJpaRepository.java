@@ -6,8 +6,9 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.UUID;
 
-public interface PointLedgerJpaRepository extends JpaRepository<PointLedgerEntity, Long> {
+public interface PointLedgerJpaRepository extends JpaRepository<PointLedgerEntity, UUID> {
 
     @Query("SELECT pl FROM PointLedgerEntity pl " +
            "WHERE pl.memberId = :memberId " +
@@ -15,5 +16,5 @@ public interface PointLedgerJpaRepository extends JpaRepository<PointLedgerEntit
            "AND pl.expiredAt > CURRENT_TIMESTAMP " +
            "AND pl.isCanceled = false " +
            "ORDER BY CASE pl.earnType WHEN 'MANUAL' THEN 0 ELSE 1 END, pl.expiredAt ASC")
-    List<PointLedgerEntity> findAvailableByMemberId(@Param("memberId") Long memberId);
+    List<PointLedgerEntity> findAvailableByMemberId(@Param("memberId") UUID memberId);
 }

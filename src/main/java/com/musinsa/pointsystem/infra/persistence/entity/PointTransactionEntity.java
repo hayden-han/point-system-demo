@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "point_transaction")
@@ -15,11 +16,11 @@ import java.time.LocalDateTime;
 public class PointTransactionEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(columnDefinition = "BINARY(16)")
+    private UUID id;
 
-    @Column(name = "member_id", nullable = false)
-    private Long memberId;
+    @Column(name = "member_id", nullable = false, columnDefinition = "BINARY(16)")
+    private UUID memberId;
 
     @Column(name = "type", nullable = false, length = 20)
     private String type;
@@ -30,18 +31,19 @@ public class PointTransactionEntity {
     @Column(name = "order_id", length = 100)
     private String orderId;
 
-    @Column(name = "related_transaction_id")
-    private Long relatedTransactionId;
+    @Column(name = "related_transaction_id", columnDefinition = "BINARY(16)")
+    private UUID relatedTransactionId;
 
-    @Column(name = "ledger_id")
-    private Long ledgerId;
+    @Column(name = "ledger_id", columnDefinition = "BINARY(16)")
+    private UUID ledgerId;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @Builder
-    public PointTransactionEntity(Long memberId, String type, Long amount,
-                                   String orderId, Long relatedTransactionId, Long ledgerId) {
+    public PointTransactionEntity(UUID id, UUID memberId, String type, Long amount,
+                                   String orderId, UUID relatedTransactionId, UUID ledgerId) {
+        this.id = id;
         this.memberId = memberId;
         this.type = type;
         this.amount = amount;

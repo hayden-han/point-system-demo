@@ -7,6 +7,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.UUID;
+
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
@@ -14,7 +16,7 @@ import lombok.NoArgsConstructor;
 public class CancelUsePointRequest {
 
     @NotNull(message = "원본 트랜잭션 ID는 필수입니다.")
-    private Long transactionId;
+    private UUID transactionId;
 
     @NotNull(message = "취소 금액은 필수입니다.")
     @Positive(message = "취소 금액은 양수여야 합니다.")

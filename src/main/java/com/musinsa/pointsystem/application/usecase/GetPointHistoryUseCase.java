@@ -8,6 +8,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.UUID;
+
 @Service
 @RequiredArgsConstructor
 public class GetPointHistoryUseCase {
@@ -15,7 +17,7 @@ public class GetPointHistoryUseCase {
     private final PointTransactionRepository pointTransactionRepository;
 
     @Transactional(readOnly = true)
-    public Page<PointTransaction> execute(Long memberId, Pageable pageable) {
+    public Page<PointTransaction> execute(UUID memberId, Pageable pageable) {
         return pointTransactionRepository.findByMemberId(memberId, pageable);
     }
 }

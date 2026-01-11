@@ -3,6 +3,7 @@ package com.musinsa.pointsystem.application.usecase;
 import com.musinsa.pointsystem.IntegrationTestBase;
 import com.musinsa.pointsystem.application.dto.CancelEarnPointCommand;
 import com.musinsa.pointsystem.application.dto.CancelEarnPointResult;
+import com.musinsa.pointsystem.common.util.UuidGenerator;
 import com.musinsa.pointsystem.domain.exception.PointLedgerAlreadyCanceledException;
 import com.musinsa.pointsystem.domain.exception.PointLedgerAlreadyUsedException;
 import com.musinsa.pointsystem.domain.exception.PointLedgerNotFoundException;
@@ -12,6 +13,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.jdbc.SqlGroup;
+
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -32,17 +35,19 @@ class CancelEarnPointUseCaseTest extends IntegrationTestBase {
         @Test
         @DisplayName("CE-T01: 미사용 적립건 취소 성공")
         void cancelUnusedEarn_success() {
-            // GIVEN - SQL로 member_id=2001, ledger_id=2001, 잔액 1000원 생성됨
+            // GIVEN - SQL로 member_id, ledger_id, 잔액 1000원 생성됨
+            UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000002001");
+            UUID ledgerId = UUID.fromString("00000000-0000-0000-0000-000000002001");
             CancelEarnPointCommand command = CancelEarnPointCommand.builder()
-                    .memberId(2001L)
-                    .ledgerId(2001L)
+                    .memberId(memberId)
+                    .ledgerId(ledgerId)
                     .build();
 
             // WHEN
             CancelEarnPointResult result = cancelEarnPointUseCase.execute(command);
 
             // THEN
-            assertThat(result.getLedgerId()).isEqualTo(2001L);
+            assertThat(result.getLedgerId()).isEqualTo(ledgerId);
             assertThat(result.getTransactionId()).isNotNull();
             assertThat(result.getCanceledAmount()).isEqualTo(1000L);
             assertThat(result.getTotalBalance()).isEqualTo(0L);
@@ -60,10 +65,12 @@ class CancelEarnPointUseCaseTest extends IntegrationTestBase {
         @Test
         @DisplayName("CE-T02: 일부 사용된 적립건 취소 실패")
         void cancelPartiallyUsedEarn_shouldThrowException() {
-            // GIVEN - SQL로 member_id=2002, ledger_id=2002, 500원 사용됨
+            // GIVEN - SQL로 member_id, ledger_id, 500원 사용됨
+            UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000002002");
+            UUID ledgerId = UUID.fromString("00000000-0000-0000-0000-000000002002");
             CancelEarnPointCommand command = CancelEarnPointCommand.builder()
-                    .memberId(2002L)
-                    .ledgerId(2002L)
+                    .memberId(memberId)
+                    .ledgerId(ledgerId)
                     .build();
 
             // WHEN & THEN
@@ -75,10 +82,12 @@ class CancelEarnPointUseCaseTest extends IntegrationTestBase {
         @Test
         @DisplayName("CE-T03: 전액 사용된 적립건 취소 실패")
         void cancelFullyUsedEarn_shouldThrowException() {
-            // GIVEN - SQL로 member_id=2003, ledger_id=2003, 전액 사용됨
+            // GIVEN - SQL로 member_id, ledger_id, 전액 사용됨
+            UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000002003");
+            UUID ledgerId = UUID.fromString("00000000-0000-0000-0000-000000002003");
             CancelEarnPointCommand command = CancelEarnPointCommand.builder()
-                    .memberId(2003L)
-                    .ledgerId(2003L)
+                    .memberId(memberId)
+                    .ledgerId(ledgerId)
                     .build();
 
             // WHEN & THEN
@@ -90,10 +99,12 @@ class CancelEarnPointUseCaseTest extends IntegrationTestBase {
         @Test
         @DisplayName("CE-T04: 이미 취소된 적립건 재취소 실패")
         void cancelAlreadyCanceledEarn_shouldThrowException() {
-            // GIVEN - SQL로 member_id=2004, ledger_id=2004, 이미 취소됨
+            // GIVEN - SQL로 member_id, ledger_id, 이미 취소됨
+            UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000002004");
+            UUID ledgerId = UUID.fromString("00000000-0000-0000-0000-000000002004");
             CancelEarnPointCommand command = CancelEarnPointCommand.builder()
-                    .memberId(2004L)
-                    .ledgerId(2004L)
+                    .memberId(memberId)
+                    .ledgerId(ledgerId)
                     .build();
 
             // WHEN & THEN
@@ -106,9 +117,11 @@ class CancelEarnPointUseCaseTest extends IntegrationTestBase {
         @DisplayName("CE-T05: 존재하지 않는 적립건 취소 실패")
         void cancelNonExistentEarn_shouldThrowException() {
             // GIVEN - 존재하지 않는 ledgerId
+            UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000002001");
+            UUID ledgerId = UuidGenerator.generate();
             CancelEarnPointCommand command = CancelEarnPointCommand.builder()
-                    .memberId(2001L)
-                    .ledgerId(99999L)
+                    .memberId(memberId)
+                    .ledgerId(ledgerId)
                     .build();
 
             // WHEN & THEN

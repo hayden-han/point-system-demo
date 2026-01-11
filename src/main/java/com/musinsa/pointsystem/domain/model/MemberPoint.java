@@ -3,18 +3,20 @@ package com.musinsa.pointsystem.domain.model;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.util.UUID;
+
 @Getter
 public class MemberPoint {
-    private final Long memberId;
+    private final UUID memberId;
     private Long totalBalance;
 
     @Builder
-    public MemberPoint(Long memberId, Long totalBalance) {
+    public MemberPoint(UUID memberId, Long totalBalance) {
         this.memberId = memberId;
         this.totalBalance = totalBalance;
     }
 
-    public static MemberPoint create(Long memberId) {
+    public static MemberPoint create(UUID memberId) {
         return MemberPoint.builder()
                 .memberId(memberId)
                 .totalBalance(0L)

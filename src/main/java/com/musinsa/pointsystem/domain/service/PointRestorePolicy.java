@@ -7,6 +7,7 @@ import com.musinsa.pointsystem.domain.model.PointUsageDetail;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * 포인트 복구 정책 도메인 서비스
@@ -27,11 +28,11 @@ public class PointRestorePolicy {
      * 신규 적립건 생성 정보
      */
     public record NewLedgerInfo(
-            Long memberId,
+            UUID memberId,
             Long amount,
             EarnType earnType,
             LocalDateTime expiredAt,
-            Long relatedTransactionId
+            UUID relatedTransactionId
     ) {}
 
     /**
@@ -45,11 +46,11 @@ public class PointRestorePolicy {
      */
     public RestoreResult restore(
             List<PointUsageDetail> usageDetails,
-            java.util.Map<Long, PointLedger> ledgerMap,
+            java.util.Map<UUID, PointLedger> ledgerMap,
             Long cancelAmount,
             int defaultExpirationDays,
-            Long cancelTransactionId,
-            Long memberId
+            UUID cancelTransactionId,
+            UUID memberId
     ) {
         List<PointLedger> restoredLedgers = new ArrayList<>();
         List<NewLedgerInfo> newLedgers = new ArrayList<>();

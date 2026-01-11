@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "member_point")
@@ -14,8 +15,8 @@ import java.time.LocalDateTime;
 public class MemberPointEntity {
 
     @Id
-    @Column(name = "member_id")
-    private Long memberId;
+    @Column(name = "member_id", columnDefinition = "BINARY(16)")
+    private UUID memberId;
 
     @Column(name = "total_balance", nullable = false)
     private Long totalBalance;
@@ -26,7 +27,7 @@ public class MemberPointEntity {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    public MemberPointEntity(Long memberId, Long totalBalance) {
+    public MemberPointEntity(UUID memberId, Long totalBalance) {
         this.memberId = memberId;
         this.totalBalance = totalBalance;
     }

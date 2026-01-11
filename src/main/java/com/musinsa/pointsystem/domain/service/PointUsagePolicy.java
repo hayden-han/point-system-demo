@@ -5,6 +5,7 @@ import com.musinsa.pointsystem.domain.model.PointUsageDetail;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class PointUsagePolicy {
 
@@ -14,7 +15,7 @@ public class PointUsagePolicy {
     ) {}
 
     public record UsageDetail(
-            Long ledgerId,
+            UUID ledgerId,
             Long usedAmount
     ) {}
 

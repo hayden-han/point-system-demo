@@ -3,10 +3,12 @@ package com.musinsa.pointsystem.domain.model;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.util.UUID;
+
 @Getter
 @Builder
 public class PointPolicy {
-    private final Long id;
+    private final UUID id;
     private final String policyKey;
     private final Long policyValue;
     private final String description;

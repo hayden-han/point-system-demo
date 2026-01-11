@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Repository
@@ -22,33 +23,38 @@ public class PointLedgerRepositoryImpl implements PointLedgerRepository {
     @Override
     public PointLedger save(PointLedger pointLedger) {
         if (pointLedger.getId() != null) {
-            PointLedgerEntity entity = jpaRepository.findById(pointLedger.getId())
-                    .orElseThrow(() -> new IllegalArgumentException("적립건을 찾을 수 없습니다: " + pointLedger.getId()));
-            entity.updateAvailableAmount(pointLedger.getAvailableAmount(), pointLedger.getUsedAmount());
-            if (pointLedger.isCanceled()) {
-                entity.cancel();
+            // UUIDv7을 사용하므로 ID가 항상 존재함. DB 조회로 신규/기존 구분
+            Optional<PointLedgerEntity> existingEntity = jpaRepository.findById(pointLedger.getId());
+            if (existingEntity.isPresent()) {
+                // 기존 엔티티 업데이트
+                PointLedgerEntity entity = existingEntity.get();
+                entity.updateAvailableAmount(pointLedger.getAvailableAmount(), pointLedger.getUsedAmount());
+                if (pointLedger.isCanceled()) {
+                    entity.cancel();
+                }
+                return mapper.toDomain(jpaRepository.save(entity));
             }
-            return mapper.toDomain(jpaRepository.save(entity));
         }
+        // 신규 엔티티 저장
         PointLedgerEntity entity = mapper.toEntity(pointLedger);
         return mapper.toDomain(jpaRepository.save(entity));
     }
 
     @Override
-    public Optional<PointLedger> findById(Long id) {
+    public Optional<PointLedger> findById(UUID id) {
         return jpaRepository.findById(id)
                 .map(mapper::toDomain);
     }
 
     @Override
-    public List<PointLedger> findAllById(List<Long> ids) {
+    public List<PointLedger> findAllById(List<UUID> ids) {
         return jpaRepository.findAllById(ids).stream()
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public List<PointLedger> findAvailableByMemberId(Long memberId) {
+    public List<PointLedger> findAvailableByMemberId(UUID memberId) {
         return jpaRepository.findAvailableByMemberId(memberId).stream()
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
@@ -60,50 +66,47 @@ public class PointLedgerRepositoryImpl implements PointLedgerRepository {
             return List.of();
         }
 
-        // 신규 저장과 업데이트 분리
-        List<PointLedger> newLedgers = pointLedgers.stream()
-                .filter(ledger -> ledger.getId() == null)
+        // ID가 이미 생성되어 있으므로 JPA에서 새 엔티티인지 확인하려면 영속성 컨텍스트 조회 필요
+        // 도메인 모델에서 ID가 생성되므로 모든 엔티티를 새 엔티티로 처리하거나,
+        // 별도의 신규/기존 구분 로직 필요
+
+        List<UUID> ids = pointLedgers.stream()
+                .map(PointLedger::getId)
                 .toList();
-        List<PointLedger> existingLedgers = pointLedgers.stream()
-                .filter(ledger -> ledger.getId() != null)
-                .toList();
+
+        // 기존 엔티티 조회
+        Map<UUID, PointLedgerEntity> existingEntityMap = jpaRepository.findAllById(ids).stream()
+                .collect(Collectors.toMap(PointLedgerEntity::getId, entity -> entity));
 
         List<PointLedger> result = new java.util.ArrayList<>();
 
-        // 신규 적립건 배치 저장
-        if (!newLedgers.isEmpty()) {
-            List<PointLedgerEntity> newEntities = newLedgers.stream()
-                    .map(mapper::toEntity)
-                    .toList();
+        List<PointLedgerEntity> newEntities = new java.util.ArrayList<>();
+
+        for (PointLedger ledger : pointLedgers) {
+            PointLedgerEntity existingEntity = existingEntityMap.get(ledger.getId());
+            if (existingEntity != null) {
+                // 기존 엔티티 업데이트
+                existingEntity.updateAvailableAmount(ledger.getAvailableAmount(), ledger.getUsedAmount());
+                if (ledger.isCanceled()) {
+                    existingEntity.cancel();
+                }
+            } else {
+                // 신규 엔티티
+                newEntities.add(mapper.toEntity(ledger));
+            }
+        }
+
+        // 신규 엔티티 배치 저장
+        if (!newEntities.isEmpty()) {
             List<PointLedgerEntity> savedEntities = jpaRepository.saveAll(newEntities);
             result.addAll(savedEntities.stream()
                     .map(mapper::toDomain)
                     .toList());
         }
 
-        // 기존 적립건 배치 업데이트 (한 번의 쿼리로 모든 엔티티 조회 후 업데이트)
-        if (!existingLedgers.isEmpty()) {
-            List<Long> ids = existingLedgers.stream()
-                    .map(PointLedger::getId)
-                    .toList();
-
-            // 한 번의 쿼리로 모든 기존 엔티티 조회
-            Map<Long, PointLedgerEntity> entityMap = jpaRepository.findAllById(ids).stream()
-                    .collect(Collectors.toMap(PointLedgerEntity::getId, entity -> entity));
-
-            for (PointLedger ledger : existingLedgers) {
-                PointLedgerEntity entity = entityMap.get(ledger.getId());
-                if (entity == null) {
-                    throw new IllegalArgumentException("적립건을 찾을 수 없습니다: " + ledger.getId());
-                }
-                entity.updateAvailableAmount(ledger.getAvailableAmount(), ledger.getUsedAmount());
-                if (ledger.isCanceled()) {
-                    entity.cancel();
-                }
-            }
-
-            // 변경 감지에 의해 자동으로 업데이트됨 (또는 명시적 saveAll)
-            List<PointLedgerEntity> updatedEntities = jpaRepository.saveAll(entityMap.values().stream().toList());
+        // 기존 엔티티 배치 저장 (변경감지로 업데이트됨)
+        if (!existingEntityMap.isEmpty()) {
+            List<PointLedgerEntity> updatedEntities = jpaRepository.saveAll(existingEntityMap.values().stream().toList());
             result.addAll(updatedEntities.stream()
                     .map(mapper::toDomain)
                     .toList());

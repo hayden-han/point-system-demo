@@ -14,6 +14,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/api/v1/members/{memberId}/points/use")
 @RequiredArgsConstructor
@@ -24,7 +26,7 @@ public class PointUseController {
 
     @PostMapping
     public UsePointResponse use(
-            @PathVariable Long memberId,
+            @PathVariable UUID memberId,
             @Valid @RequestBody UsePointRequest request) {
         UsePointCommand command = UsePointCommand.builder()
                 .memberId(memberId)
@@ -38,7 +40,7 @@ public class PointUseController {
 
     @PostMapping("/cancel")
     public CancelUsePointResponse cancelUse(
-            @PathVariable Long memberId,
+            @PathVariable UUID memberId,
             @Valid @RequestBody CancelUsePointRequest request) {
         CancelUsePointCommand command = CancelUsePointCommand.builder()
                 .memberId(memberId)

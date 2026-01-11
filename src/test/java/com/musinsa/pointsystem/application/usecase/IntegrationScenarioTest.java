@@ -2,6 +2,7 @@ package com.musinsa.pointsystem.application.usecase;
 
 import com.musinsa.pointsystem.IntegrationTestBase;
 import com.musinsa.pointsystem.application.dto.*;
+import com.musinsa.pointsystem.common.util.UuidGenerator;
 import com.musinsa.pointsystem.domain.model.EarnType;
 import com.musinsa.pointsystem.domain.model.MemberPoint;
 import com.musinsa.pointsystem.domain.model.PointLedger;
@@ -18,6 +19,7 @@ import org.springframework.test.context.jdbc.SqlGroup;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -53,9 +55,9 @@ class IntegrationScenarioTest extends IntegrationTestBase {
         @DisplayName("INT-T01: 요구사항 예시 전체 흐름")
         void fullScenario_success() {
             // GIVEN
-            Long memberId = 6001L;
+            UUID memberId = UuidGenerator.generate();
 
-            // ===== STEP 1: 1000원 적립 → 잔액 1000, pointKey A =====
+            // ===== STEP 1: 1000원 적립 -> 잔액 1000, pointKey A =====
             EarnPointCommand earnCommandA = EarnPointCommand.builder()
                     .memberId(memberId)
                     .amount(1000L)
@@ -67,9 +69,9 @@ class IntegrationScenarioTest extends IntegrationTestBase {
 
             // THEN
             assertThat(earnResultA.getTotalBalance()).isEqualTo(1000L);
-            Long ledgerIdA = earnResultA.getLedgerId();
+            UUID ledgerIdA = earnResultA.getLedgerId();
 
-            // ===== STEP 2: 500원 적립 → 잔액 1500, pointKey B =====
+            // ===== STEP 2: 500원 적립 -> 잔액 1500, pointKey B =====
             // GIVEN
             EarnPointCommand earnCommandB = EarnPointCommand.builder()
                     .memberId(memberId)
@@ -82,9 +84,9 @@ class IntegrationScenarioTest extends IntegrationTestBase {
 
             // THEN
             assertThat(earnResultB.getTotalBalance()).isEqualTo(1500L);
-            Long ledgerIdB = earnResultB.getLedgerId();
+            UUID ledgerIdB = earnResultB.getLedgerId();
 
-            // ===== STEP 3: 주문 A1234에서 1200원 사용 → 잔액 300 =====
+            // ===== STEP 3: 주문 A1234에서 1200원 사용 -> 잔액 300 =====
             // GIVEN
             UsePointCommand useCommand = UsePointCommand.builder()
                     .memberId(memberId)
@@ -98,7 +100,7 @@ class IntegrationScenarioTest extends IntegrationTestBase {
             // THEN
             assertThat(useResult.getUsedAmount()).isEqualTo(1200L);
             assertThat(useResult.getTotalBalance()).isEqualTo(300L);
-            Long useTransactionId = useResult.getTransactionId();
+            UUID useTransactionId = useResult.getTransactionId();
 
             // 적립건 상태 확인
             PointLedger ledgerAAfterUse = pointLedgerRepository.findById(ledgerIdA).orElseThrow();
@@ -119,7 +121,7 @@ class IntegrationScenarioTest extends IntegrationTestBase {
             PointLedger ledgerAExpired = pointLedgerRepository.findById(ledgerIdA).orElseThrow();
             assertThat(ledgerAExpired.isExpired()).isTrue();
 
-            // ===== STEP 5: 1100원 사용취소 → 잔액 1400 =====
+            // ===== STEP 5: 1100원 사용취소 -> 잔액 1400 =====
             // GIVEN
             CancelUsePointCommand cancelCommand = CancelUsePointCommand.builder()
                     .memberId(memberId)
@@ -144,8 +146,8 @@ class IntegrationScenarioTest extends IntegrationTestBase {
             // - B(미만료)에서 200원 사용된 것 중 200원 먼저 복구
             // - A(만료)에서 1000원 사용된 것 중 900원 복구 (신규 적립건)
             // 하지만 총 1100원 취소이므로:
-            // - B에서 200원 복구 → B 잔액 500
-            // - A에서 900원 복구 → 신규 적립건 900원
+            // - B에서 200원 복구 -> B 잔액 500
+            // - A에서 900원 복구 -> 신규 적립건 900원
 
             PointLedger ledgerBAfterCancel = pointLedgerRepository.findById(ledgerIdB).orElseThrow();
             assertThat(ledgerBAfterCancel.getAvailableAmount()).isEqualTo(500L);

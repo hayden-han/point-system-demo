@@ -3,6 +3,7 @@ package com.musinsa.pointsystem.application.usecase;
 import com.musinsa.pointsystem.IntegrationTestBase;
 import com.musinsa.pointsystem.application.dto.EarnPointCommand;
 import com.musinsa.pointsystem.application.dto.EarnPointResult;
+import com.musinsa.pointsystem.common.util.UuidGenerator;
 import com.musinsa.pointsystem.domain.exception.InvalidEarnAmountException;
 import com.musinsa.pointsystem.domain.exception.InvalidExpirationException;
 import com.musinsa.pointsystem.domain.exception.MaxBalanceExceededException;
@@ -15,6 +16,7 @@ import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.jdbc.SqlGroup;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -32,8 +34,9 @@ class EarnPointUseCaseTest extends IntegrationTestBase {
         @DisplayName("E-T01: 시스템 적립 성공")
         void earnSystemPoint_success() {
             // GIVEN
+            UUID memberId = UuidGenerator.generate();
             EarnPointCommand command = EarnPointCommand.builder()
-                    .memberId(1001L)
+                    .memberId(memberId)
                     .amount(1000L)
                     .earnType(EarnType.SYSTEM)
                     .build();
@@ -44,7 +47,7 @@ class EarnPointUseCaseTest extends IntegrationTestBase {
             // THEN
             assertThat(result.getLedgerId()).isNotNull();
             assertThat(result.getTransactionId()).isNotNull();
-            assertThat(result.getMemberId()).isEqualTo(1001L);
+            assertThat(result.getMemberId()).isEqualTo(memberId);
             assertThat(result.getEarnedAmount()).isEqualTo(1000L);
             assertThat(result.getTotalBalance()).isEqualTo(1000L);
             assertThat(result.getExpiredAt()).isAfter(LocalDateTime.now());
@@ -54,8 +57,9 @@ class EarnPointUseCaseTest extends IntegrationTestBase {
         @DisplayName("E-T02: 수기 적립 성공")
         void earnManualPoint_success() {
             // GIVEN
+            UUID memberId = UuidGenerator.generate();
             EarnPointCommand command = EarnPointCommand.builder()
-                    .memberId(1002L)
+                    .memberId(memberId)
                     .amount(500L)
                     .earnType(EarnType.MANUAL)
                     .build();
@@ -73,8 +77,9 @@ class EarnPointUseCaseTest extends IntegrationTestBase {
         @DisplayName("E-T03: 만료일 지정 적립")
         void earnWithCustomExpiration_success() {
             // GIVEN
+            UUID memberId = UuidGenerator.generate();
             EarnPointCommand command = EarnPointCommand.builder()
-                    .memberId(1003L)
+                    .memberId(memberId)
                     .amount(1000L)
                     .earnType(EarnType.SYSTEM)
                     .expirationDays(30)
@@ -94,8 +99,9 @@ class EarnPointUseCaseTest extends IntegrationTestBase {
         @DisplayName("E-T04: 최소 금액(1원) 적립")
         void earnMinimumAmount_success() {
             // GIVEN
+            UUID memberId = UuidGenerator.generate();
             EarnPointCommand command = EarnPointCommand.builder()
-                    .memberId(1004L)
+                    .memberId(memberId)
                     .amount(1L)
                     .earnType(EarnType.SYSTEM)
                     .build();
@@ -112,8 +118,9 @@ class EarnPointUseCaseTest extends IntegrationTestBase {
         @DisplayName("E-T05: 최대 금액(100,000원) 적립")
         void earnMaximumAmount_success() {
             // GIVEN
+            UUID memberId = UuidGenerator.generate();
             EarnPointCommand command = EarnPointCommand.builder()
-                    .memberId(1005L)
+                    .memberId(memberId)
                     .amount(100000L)
                     .earnType(EarnType.SYSTEM)
                     .build();
@@ -135,8 +142,9 @@ class EarnPointUseCaseTest extends IntegrationTestBase {
         @DisplayName("E-T06: 최소 금액 미만 실패")
         void earnBelowMinimum_shouldThrowException() {
             // GIVEN
+            UUID memberId = UuidGenerator.generate();
             EarnPointCommand command = EarnPointCommand.builder()
-                    .memberId(1006L)
+                    .memberId(memberId)
                     .amount(0L)
                     .earnType(EarnType.SYSTEM)
                     .build();
@@ -151,8 +159,9 @@ class EarnPointUseCaseTest extends IntegrationTestBase {
         @DisplayName("E-T07: 최대 금액 초과 실패")
         void earnAboveMaximum_shouldThrowException() {
             // GIVEN
+            UUID memberId = UuidGenerator.generate();
             EarnPointCommand command = EarnPointCommand.builder()
-                    .memberId(1007L)
+                    .memberId(memberId)
                     .amount(100001L)
                     .earnType(EarnType.SYSTEM)
                     .build();
@@ -170,11 +179,12 @@ class EarnPointUseCaseTest extends IntegrationTestBase {
         })
         @DisplayName("E-T08: 최대 보유금액 초과 실패")
         void earnExceedMaxBalance_shouldThrowException() {
-            // GIVEN - SQL로 이미 9,500,000원 보유한 회원 1001 생성됨
+            // GIVEN - SQL로 이미 9,500,000원 보유한 회원 생성됨
             // 100,000원 적립 6번 시도 (9,500,000 + 600,000 = 10,100,000 > 최대 10,000,000)
             // 1회 최대 적립 금액이 100,000원이므로 5번까지는 성공, 6번째에 실패
+            UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000001001");
             EarnPointCommand command = EarnPointCommand.builder()
-                    .memberId(1001L)
+                    .memberId(memberId)
                     .amount(100000L)
                     .earnType(EarnType.SYSTEM)
                     .build();
@@ -186,7 +196,7 @@ class EarnPointUseCaseTest extends IntegrationTestBase {
 
             // 6번째 (1원이라도 추가하면 실패)
             EarnPointCommand overflowCommand = EarnPointCommand.builder()
-                    .memberId(1001L)
+                    .memberId(memberId)
                     .amount(1L)
                     .earnType(EarnType.SYSTEM)
                     .build();
@@ -201,8 +211,9 @@ class EarnPointUseCaseTest extends IntegrationTestBase {
         @DisplayName("E-T09: 만료일 1일 미만 실패")
         void earnExpirationBelowMinimum_shouldThrowException() {
             // GIVEN
+            UUID memberId = UuidGenerator.generate();
             EarnPointCommand command = EarnPointCommand.builder()
-                    .memberId(1009L)
+                    .memberId(memberId)
                     .amount(1000L)
                     .earnType(EarnType.SYSTEM)
                     .expirationDays(0)
@@ -218,8 +229,9 @@ class EarnPointUseCaseTest extends IntegrationTestBase {
         @DisplayName("E-T10: 만료일 5년 초과 실패")
         void earnExpirationAboveMaximum_shouldThrowException() {
             // GIVEN - 1825일 = 5년 (1824일이 최대)
+            UUID memberId = UuidGenerator.generate();
             EarnPointCommand command = EarnPointCommand.builder()
-                    .memberId(1010L)
+                    .memberId(memberId)
                     .amount(1000L)
                     .earnType(EarnType.SYSTEM)
                     .expirationDays(1825)

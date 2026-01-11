@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Repository
 @RequiredArgsConstructor
@@ -17,7 +18,7 @@ public class MemberPointRepositoryImpl implements MemberPointRepository {
     private final MemberPointMapper mapper;
 
     @Override
-    public Optional<MemberPoint> findByMemberId(Long memberId) {
+    public Optional<MemberPoint> findByMemberId(UUID memberId) {
         return jpaRepository.findById(memberId)
                 .map(mapper::toDomain);
     }
@@ -35,7 +36,7 @@ public class MemberPointRepositoryImpl implements MemberPointRepository {
     }
 
     @Override
-    public MemberPoint getOrCreate(Long memberId) {
+    public MemberPoint getOrCreate(UUID memberId) {
         return jpaRepository.findById(memberId)
                 .map(mapper::toDomain)
                 .orElseGet(() -> {

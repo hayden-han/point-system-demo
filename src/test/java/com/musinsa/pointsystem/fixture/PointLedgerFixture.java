@@ -1,16 +1,18 @@
 package com.musinsa.pointsystem.fixture;
 
+import com.musinsa.pointsystem.common.util.UuidGenerator;
 import com.musinsa.pointsystem.domain.model.EarnType;
 import com.musinsa.pointsystem.domain.model.PointLedger;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 public class PointLedgerFixture {
 
     public static PointLedger createDefault() {
         return PointLedger.builder()
-                .id(1L)
-                .memberId(1L)
+                .id(UuidGenerator.generate())
+                .memberId(UuidGenerator.generate())
                 .earnedAmount(1000L)
                 .availableAmount(1000L)
                 .usedAmount(0L)
@@ -21,7 +23,7 @@ public class PointLedgerFixture {
                 .build();
     }
 
-    public static PointLedger create(Long id, Long memberId, Long amount, EarnType earnType) {
+    public static PointLedger create(UUID id, UUID memberId, Long amount, EarnType earnType) {
         return PointLedger.builder()
                 .id(id)
                 .memberId(memberId)
@@ -35,7 +37,7 @@ public class PointLedgerFixture {
                 .build();
     }
 
-    public static PointLedger createWithExpiration(Long id, Long memberId, Long amount,
+    public static PointLedger createWithExpiration(UUID id, UUID memberId, Long amount,
                                                     EarnType earnType, LocalDateTime expiredAt) {
         return PointLedger.builder()
                 .id(id)
@@ -50,7 +52,7 @@ public class PointLedgerFixture {
                 .build();
     }
 
-    public static PointLedger createPartiallyUsed(Long id, Long memberId, Long earnedAmount,
+    public static PointLedger createPartiallyUsed(UUID id, UUID memberId, Long earnedAmount,
                                                    Long usedAmount, EarnType earnType) {
         return PointLedger.builder()
                 .id(id)
@@ -65,7 +67,7 @@ public class PointLedgerFixture {
                 .build();
     }
 
-    public static PointLedger createFullyUsed(Long id, Long memberId, Long amount, EarnType earnType) {
+    public static PointLedger createFullyUsed(UUID id, UUID memberId, Long amount, EarnType earnType) {
         return PointLedger.builder()
                 .id(id)
                 .memberId(memberId)
@@ -79,7 +81,7 @@ public class PointLedgerFixture {
                 .build();
     }
 
-    public static PointLedger createCanceled(Long id, Long memberId, Long amount, EarnType earnType) {
+    public static PointLedger createCanceled(UUID id, UUID memberId, Long amount, EarnType earnType) {
         return PointLedger.builder()
                 .id(id)
                 .memberId(memberId)
@@ -93,7 +95,7 @@ public class PointLedgerFixture {
                 .build();
     }
 
-    public static PointLedger createExpired(Long id, Long memberId, Long amount, EarnType earnType) {
+    public static PointLedger createExpired(UUID id, UUID memberId, Long amount, EarnType earnType) {
         return PointLedger.builder()
                 .id(id)
                 .memberId(memberId)
@@ -107,11 +109,11 @@ public class PointLedgerFixture {
                 .build();
     }
 
-    public static PointLedger createManual(Long id, Long memberId, Long amount) {
+    public static PointLedger createManual(UUID id, UUID memberId, Long amount) {
         return create(id, memberId, amount, EarnType.MANUAL);
     }
 
-    public static PointLedger createSystem(Long id, Long memberId, Long amount) {
+    public static PointLedger createSystem(UUID id, UUID memberId, Long amount) {
         return create(id, memberId, amount, EarnType.SYSTEM);
     }
 }

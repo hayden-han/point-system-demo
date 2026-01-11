@@ -1,6 +1,17 @@
+-- =============================================================================
+-- 포인트 시스템 스키마
+-- =============================================================================
+-- 설계 원칙:
+--   - 논리적 FK: 물리적 FK 제약조건 없이 애플리케이션 레벨에서 참조 무결성 관리
+--   - 이유: 스키마 변경 유연성 확보, 대용량 데이터 처리 시 성능 최적화
+--   - 테이블 간 관계는 인덱스로 조회 성능 보장
+--   - UUID: 분산 시스템 대응을 위해 BINARY(16) 사용
+--   - UUIDv7: 애플리케이션에서 시간 기반 UUID 생성 (인덱스 성능 최적화)
+-- =============================================================================
+
 -- Point Policy (정책 설정)
 CREATE TABLE IF NOT EXISTS point_policy (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    id BINARY(16) PRIMARY KEY,
     policy_key VARCHAR(50) NOT NULL UNIQUE,
     policy_value BIGINT NOT NULL,
     description VARCHAR(200),
@@ -10,7 +21,7 @@ CREATE TABLE IF NOT EXISTS point_policy (
 
 -- Member Point (회원 포인트 잔액)
 CREATE TABLE IF NOT EXISTS member_point (
-    member_id BIGINT PRIMARY KEY,
+    member_id BINARY(16) PRIMARY KEY,
     total_balance BIGINT NOT NULL DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -19,13 +30,13 @@ CREATE TABLE IF NOT EXISTS member_point (
 
 -- Point Ledger (적립 원장)
 CREATE TABLE IF NOT EXISTS point_ledger (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    member_id BIGINT NOT NULL,
+    id BINARY(16) PRIMARY KEY,
+    member_id BINARY(16) NOT NULL,
     earned_amount BIGINT NOT NULL,
     available_amount BIGINT NOT NULL,
     used_amount BIGINT NOT NULL DEFAULT 0,
     earn_type VARCHAR(20) NOT NULL,
-    source_transaction_id BIGINT,
+    source_transaction_id BINARY(16),
     expired_at TIMESTAMP NOT NULL,
     is_canceled BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -39,25 +50,26 @@ CREATE INDEX IF NOT EXISTS idx_ledger_source_tx ON point_ledger (source_transact
 
 -- Point Transaction (포인트 트랜잭션)
 CREATE TABLE IF NOT EXISTS point_transaction (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    member_id BIGINT NOT NULL,
+    id BINARY(16) PRIMARY KEY,
+    member_id BINARY(16) NOT NULL,
     type VARCHAR(20) NOT NULL,
     amount BIGINT NOT NULL,
     order_id VARCHAR(100),
-    related_transaction_id BIGINT,
-    ledger_id BIGINT,
+    related_transaction_id BINARY(16),
+    ledger_id BINARY(16),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_transaction_member ON point_transaction (member_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_transaction_order ON point_transaction (order_id);
 CREATE INDEX IF NOT EXISTS idx_transaction_related ON point_transaction (related_transaction_id);
+CREATE INDEX IF NOT EXISTS idx_transaction_ledger ON point_transaction (ledger_id);
 
 -- Point Usage Detail (사용 상세)
 CREATE TABLE IF NOT EXISTS point_usage_detail (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
-    transaction_id BIGINT NOT NULL,
-    ledger_id BIGINT NOT NULL,
+    id BINARY(16) PRIMARY KEY,
+    transaction_id BINARY(16) NOT NULL,
+    ledger_id BINARY(16) NOT NULL,
     used_amount BIGINT NOT NULL,
     canceled_amount BIGINT NOT NULL DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

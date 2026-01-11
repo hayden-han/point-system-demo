@@ -4,10 +4,11 @@ import com.musinsa.pointsystem.domain.model.PointTransaction;
 import com.musinsa.pointsystem.domain.model.TransactionType;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 public class PointTransactionFixture {
 
-    public static PointTransaction createEarn(Long id, Long memberId, Long amount, Long ledgerId) {
+    public static PointTransaction createEarn(UUID id, UUID memberId, Long amount, UUID ledgerId) {
         return PointTransaction.builder()
                 .id(id)
                 .memberId(memberId)
@@ -18,7 +19,7 @@ public class PointTransactionFixture {
                 .build();
     }
 
-    public static PointTransaction createEarnCancel(Long id, Long memberId, Long amount, Long ledgerId) {
+    public static PointTransaction createEarnCancel(UUID id, UUID memberId, Long amount, UUID ledgerId) {
         return PointTransaction.builder()
                 .id(id)
                 .memberId(memberId)
@@ -29,7 +30,7 @@ public class PointTransactionFixture {
                 .build();
     }
 
-    public static PointTransaction createUse(Long id, Long memberId, Long amount, String orderId) {
+    public static PointTransaction createUse(UUID id, UUID memberId, Long amount, String orderId) {
         return PointTransaction.builder()
                 .id(id)
                 .memberId(memberId)
@@ -40,8 +41,8 @@ public class PointTransactionFixture {
                 .build();
     }
 
-    public static PointTransaction createUseCancel(Long id, Long memberId, Long amount,
-                                                    String orderId, Long relatedTransactionId) {
+    public static PointTransaction createUseCancel(UUID id, UUID memberId, Long amount,
+                                                    String orderId, UUID relatedTransactionId) {
         return PointTransaction.builder()
                 .id(id)
                 .memberId(memberId)

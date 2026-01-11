@@ -20,6 +20,7 @@ public class PointUsageDetailMapper {
 
     public PointUsageDetailEntity toEntity(PointUsageDetail domain) {
         return PointUsageDetailEntity.builder()
+                .id(domain.getId())
                 .transactionId(domain.getTransactionId())
                 .ledgerId(domain.getLedgerId())
                 .usedAmount(domain.getUsedAmount())

@@ -1,5 +1,6 @@
 package com.musinsa.pointsystem.domain.service;
 
+import com.musinsa.pointsystem.common.util.UuidGenerator;
 import com.musinsa.pointsystem.domain.model.EarnType;
 import com.musinsa.pointsystem.domain.model.PointLedger;
 import com.musinsa.pointsystem.fixture.PointLedgerFixture;
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -30,7 +32,9 @@ class PointUsagePolicyTest {
         @DisplayName("부분 사용 시 올바른 금액이 차감된다")
         void partialUse_shouldDeductCorrectAmount() {
             // GIVEN
-            PointLedger ledger = PointLedgerFixture.createSystem(1L, 1L, 1000L);
+            UUID id = UuidGenerator.generate();
+            UUID memberId = UuidGenerator.generate();
+            PointLedger ledger = PointLedgerFixture.createSystem(id, memberId, 1000L);
 
             // WHEN
             PointUsagePolicy.UsageResult result = policy.use(List.of(ledger), 500L);
@@ -46,7 +50,9 @@ class PointUsagePolicyTest {
         @DisplayName("전액 사용 시 잔액이 0이 된다")
         void fullUse_shouldMakeBalanceZero() {
             // GIVEN
-            PointLedger ledger = PointLedgerFixture.createSystem(1L, 1L, 1000L);
+            UUID id = UuidGenerator.generate();
+            UUID memberId = UuidGenerator.generate();
+            PointLedger ledger = PointLedgerFixture.createSystem(id, memberId, 1000L);
 
             // WHEN
             PointUsagePolicy.UsageResult result = policy.use(List.of(ledger), 1000L);
@@ -65,8 +71,11 @@ class PointUsagePolicyTest {
         @DisplayName("첫 번째 적립건으로 충분하지 않으면 다음 적립건도 사용")
         void multipleUsage_shouldUseNextLedger() {
             // GIVEN
-            PointLedger ledger1 = PointLedgerFixture.createSystem(1L, 1L, 500L);
-            PointLedger ledger2 = PointLedgerFixture.createSystem(2L, 1L, 500L);
+            UUID memberId = UuidGenerator.generate();
+            UUID id1 = UuidGenerator.generate();
+            UUID id2 = UuidGenerator.generate();
+            PointLedger ledger1 = PointLedgerFixture.createSystem(id1, memberId, 500L);
+            PointLedger ledger2 = PointLedgerFixture.createSystem(id2, memberId, 500L);
 
             // WHEN
             PointUsagePolicy.UsageResult result = policy.use(List.of(ledger1, ledger2), 800L);
@@ -82,9 +91,13 @@ class PointUsagePolicyTest {
         @DisplayName("필요한 만큼만 적립건 사용")
         void partialUsage_shouldStopWhenEnough() {
             // GIVEN
-            PointLedger ledger1 = PointLedgerFixture.createSystem(1L, 1L, 500L);
-            PointLedger ledger2 = PointLedgerFixture.createSystem(2L, 1L, 500L);
-            PointLedger ledger3 = PointLedgerFixture.createSystem(3L, 1L, 500L);
+            UUID memberId = UuidGenerator.generate();
+            UUID id1 = UuidGenerator.generate();
+            UUID id2 = UuidGenerator.generate();
+            UUID id3 = UuidGenerator.generate();
+            PointLedger ledger1 = PointLedgerFixture.createSystem(id1, memberId, 500L);
+            PointLedger ledger2 = PointLedgerFixture.createSystem(id2, memberId, 500L);
+            PointLedger ledger3 = PointLedgerFixture.createSystem(id3, memberId, 500L);
 
             // WHEN
             PointUsagePolicy.UsageResult result = policy.use(List.of(ledger1, ledger2, ledger3), 600L);
@@ -103,15 +116,18 @@ class PointUsagePolicyTest {
         @DisplayName("리스트 순서대로 사용 (정렬은 호출자 책임)")
         void shouldUseInListOrder() {
             // GIVEN - 수기 지급이 먼저 오도록 정렬된 리스트 가정
-            PointLedger manual = PointLedgerFixture.createManual(1L, 1L, 500L);
-            PointLedger system = PointLedgerFixture.createSystem(2L, 1L, 500L);
+            UUID memberId = UuidGenerator.generate();
+            UUID manualId = UuidGenerator.generate();
+            UUID systemId = UuidGenerator.generate();
+            PointLedger manual = PointLedgerFixture.createManual(manualId, memberId, 500L);
+            PointLedger system = PointLedgerFixture.createSystem(systemId, memberId, 500L);
 
             // WHEN
             PointUsagePolicy.UsageResult result = policy.use(List.of(manual, system), 300L);
 
             // THEN
             assertThat(result.usageDetails()).hasSize(1);
-            assertThat(result.usageDetails().get(0).ledgerId()).isEqualTo(1L);
+            assertThat(result.usageDetails().get(0).ledgerId()).isEqualTo(manualId);
             assertThat(manual.getAvailableAmount()).isEqualTo(200L);
             assertThat(system.getAvailableAmount()).isEqualTo(500L);
         }
@@ -125,7 +141,9 @@ class PointUsagePolicyTest {
         @DisplayName("사용 금액이 0이면 아무것도 사용하지 않음")
         void zeroAmount_shouldNotUseAny() {
             // GIVEN
-            PointLedger ledger = PointLedgerFixture.createSystem(1L, 1L, 1000L);
+            UUID id = UuidGenerator.generate();
+            UUID memberId = UuidGenerator.generate();
+            PointLedger ledger = PointLedgerFixture.createSystem(id, memberId, 1000L);
 
             // WHEN
             PointUsagePolicy.UsageResult result = policy.use(List.of(ledger), 0L);

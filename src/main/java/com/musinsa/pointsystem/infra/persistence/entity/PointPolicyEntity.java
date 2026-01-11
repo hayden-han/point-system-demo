@@ -1,11 +1,13 @@
 package com.musinsa.pointsystem.infra.persistence.entity;
 
+import com.musinsa.pointsystem.common.util.UuidGenerator;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Table(name = "point_policy")
@@ -14,8 +16,8 @@ import java.time.LocalDateTime;
 public class PointPolicyEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(columnDefinition = "BINARY(16)")
+    private UUID id;
 
     @Column(name = "policy_key", nullable = false, unique = true, length = 50)
     private String policyKey;
@@ -34,6 +36,9 @@ public class PointPolicyEntity {
 
     @PrePersist
     protected void onCreate() {
+        if (id == null) {
+            id = UuidGenerator.generate();
+        }
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
     }

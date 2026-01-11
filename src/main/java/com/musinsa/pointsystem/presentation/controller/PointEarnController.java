@@ -13,6 +13,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/api/v1/members/{memberId}/points/earn")
 @RequiredArgsConstructor
@@ -23,7 +25,7 @@ public class PointEarnController {
 
     @PostMapping
     public EarnPointResponse earn(
-            @PathVariable Long memberId,
+            @PathVariable UUID memberId,
             @Valid @RequestBody EarnPointRequest request) {
         EarnPointCommand command = EarnPointCommand.builder()
                 .memberId(memberId)
@@ -38,8 +40,8 @@ public class PointEarnController {
 
     @PostMapping("/{ledgerId}/cancel")
     public CancelEarnPointResponse cancelEarn(
-            @PathVariable Long memberId,
-            @PathVariable Long ledgerId) {
+            @PathVariable UUID memberId,
+            @PathVariable UUID ledgerId) {
         CancelEarnPointCommand command = CancelEarnPointCommand.builder()
                 .memberId(memberId)
                 .ledgerId(ledgerId)
