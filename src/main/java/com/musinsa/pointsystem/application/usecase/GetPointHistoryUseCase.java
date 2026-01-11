@@ -1,10 +1,10 @@
 package com.musinsa.pointsystem.application.usecase;
 
+import com.musinsa.pointsystem.domain.model.PageRequest;
+import com.musinsa.pointsystem.domain.model.PageResult;
 import com.musinsa.pointsystem.domain.model.PointTransaction;
 import com.musinsa.pointsystem.domain.repository.PointTransactionRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,7 +17,7 @@ public class GetPointHistoryUseCase {
     private final PointTransactionRepository pointTransactionRepository;
 
     @Transactional(readOnly = true)
-    public Page<PointTransaction> execute(UUID memberId, Pageable pageable) {
-        return pointTransactionRepository.findByMemberId(memberId, pageable);
+    public PageResult<PointTransaction> execute(UUID memberId, PageRequest pageRequest) {
+        return pointTransactionRepository.findByMemberId(memberId, pageRequest);
     }
 }

@@ -3,13 +3,13 @@ package com.musinsa.pointsystem.presentation.controller;
 import com.musinsa.pointsystem.application.usecase.GetPointBalanceUseCase;
 import com.musinsa.pointsystem.application.usecase.GetPointHistoryUseCase;
 import com.musinsa.pointsystem.domain.model.MemberPoint;
+import com.musinsa.pointsystem.domain.model.PageRequest;
+import com.musinsa.pointsystem.domain.model.PageResult;
 import com.musinsa.pointsystem.domain.model.PointTransaction;
+import com.musinsa.pointsystem.presentation.dto.response.PageResponse;
 import com.musinsa.pointsystem.presentation.dto.response.PointBalanceResponse;
 import com.musinsa.pointsystem.presentation.dto.response.PointTransactionResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -29,10 +29,12 @@ public class PointBalanceController {
     }
 
     @GetMapping("/history")
-    public Page<PointTransactionResponse> getHistory(
+    public PageResponse<PointTransactionResponse> getHistory(
             @PathVariable UUID memberId,
-            @PageableDefault(size = 20) Pageable pageable) {
-        Page<PointTransaction> transactions = getPointHistoryUseCase.execute(memberId, pageable);
-        return transactions.map(PointTransactionResponse::from);
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        PageRequest pageRequest = PageRequest.of(page, size);
+        PageResult<PointTransaction> transactions = getPointHistoryUseCase.execute(memberId, pageRequest);
+        return PageResponse.from(transactions, PointTransactionResponse::from);
     }
 }
