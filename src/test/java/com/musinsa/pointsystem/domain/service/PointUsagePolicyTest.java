@@ -2,6 +2,7 @@ package com.musinsa.pointsystem.domain.service;
 
 import com.musinsa.pointsystem.common.util.UuidGenerator;
 import com.musinsa.pointsystem.domain.model.EarnType;
+import com.musinsa.pointsystem.domain.model.PointAmount;
 import com.musinsa.pointsystem.domain.model.PointLedger;
 import com.musinsa.pointsystem.fixture.PointLedgerFixture;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,13 +38,13 @@ class PointUsagePolicyTest {
             PointLedger ledger = PointLedgerFixture.createSystem(id, memberId, 1000L);
 
             // WHEN
-            PointUsagePolicy.UsageResult result = policy.use(List.of(ledger), 500L);
+            PointUsagePolicy.UsageResult result = policy.use(List.of(ledger), PointAmount.of(500L));
 
             // THEN
             assertThat(result.updatedLedgers()).hasSize(1);
             assertThat(result.usageDetails()).hasSize(1);
-            assertThat(result.usageDetails().get(0).usedAmount()).isEqualTo(500L);
-            assertThat(ledger.getAvailableAmount()).isEqualTo(500L);
+            assertThat(result.usageDetails().get(0).usedAmount().getValue()).isEqualTo(500L);
+            assertThat(ledger.getAvailableAmount().getValue()).isEqualTo(500L);
         }
 
         @Test
@@ -55,11 +56,11 @@ class PointUsagePolicyTest {
             PointLedger ledger = PointLedgerFixture.createSystem(id, memberId, 1000L);
 
             // WHEN
-            PointUsagePolicy.UsageResult result = policy.use(List.of(ledger), 1000L);
+            PointUsagePolicy.UsageResult result = policy.use(List.of(ledger), PointAmount.of(1000L));
 
             // THEN
-            assertThat(result.usageDetails().get(0).usedAmount()).isEqualTo(1000L);
-            assertThat(ledger.getAvailableAmount()).isEqualTo(0L);
+            assertThat(result.usageDetails().get(0).usedAmount().getValue()).isEqualTo(1000L);
+            assertThat(ledger.getAvailableAmount().getValue()).isEqualTo(0L);
         }
     }
 
@@ -78,13 +79,13 @@ class PointUsagePolicyTest {
             PointLedger ledger2 = PointLedgerFixture.createSystem(id2, memberId, 500L);
 
             // WHEN
-            PointUsagePolicy.UsageResult result = policy.use(List.of(ledger1, ledger2), 800L);
+            PointUsagePolicy.UsageResult result = policy.use(List.of(ledger1, ledger2), PointAmount.of(800L));
 
             // THEN
             assertThat(result.updatedLedgers()).hasSize(2);
             assertThat(result.usageDetails()).hasSize(2);
-            assertThat(result.usageDetails().get(0).usedAmount()).isEqualTo(500L);
-            assertThat(result.usageDetails().get(1).usedAmount()).isEqualTo(300L);
+            assertThat(result.usageDetails().get(0).usedAmount().getValue()).isEqualTo(500L);
+            assertThat(result.usageDetails().get(1).usedAmount().getValue()).isEqualTo(300L);
         }
 
         @Test
@@ -100,11 +101,11 @@ class PointUsagePolicyTest {
             PointLedger ledger3 = PointLedgerFixture.createSystem(id3, memberId, 500L);
 
             // WHEN
-            PointUsagePolicy.UsageResult result = policy.use(List.of(ledger1, ledger2, ledger3), 600L);
+            PointUsagePolicy.UsageResult result = policy.use(List.of(ledger1, ledger2, ledger3), PointAmount.of(600L));
 
             // THEN
             assertThat(result.usageDetails()).hasSize(2);
-            assertThat(ledger3.getAvailableAmount()).isEqualTo(500L);
+            assertThat(ledger3.getAvailableAmount().getValue()).isEqualTo(500L);
         }
     }
 
@@ -123,13 +124,13 @@ class PointUsagePolicyTest {
             PointLedger system = PointLedgerFixture.createSystem(systemId, memberId, 500L);
 
             // WHEN
-            PointUsagePolicy.UsageResult result = policy.use(List.of(manual, system), 300L);
+            PointUsagePolicy.UsageResult result = policy.use(List.of(manual, system), PointAmount.of(300L));
 
             // THEN
             assertThat(result.usageDetails()).hasSize(1);
             assertThat(result.usageDetails().get(0).ledgerId()).isEqualTo(manualId);
-            assertThat(manual.getAvailableAmount()).isEqualTo(200L);
-            assertThat(system.getAvailableAmount()).isEqualTo(500L);
+            assertThat(manual.getAvailableAmount().getValue()).isEqualTo(200L);
+            assertThat(system.getAvailableAmount().getValue()).isEqualTo(500L);
         }
     }
 
@@ -146,7 +147,7 @@ class PointUsagePolicyTest {
             PointLedger ledger = PointLedgerFixture.createSystem(id, memberId, 1000L);
 
             // WHEN
-            PointUsagePolicy.UsageResult result = policy.use(List.of(ledger), 0L);
+            PointUsagePolicy.UsageResult result = policy.use(List.of(ledger), PointAmount.ZERO);
 
             // THEN
             assertThat(result.updatedLedgers()).isEmpty();
@@ -157,7 +158,7 @@ class PointUsagePolicyTest {
         @DisplayName("빈 리스트에서는 아무것도 사용하지 않음")
         void emptyList_shouldNotUseAny() {
             // WHEN
-            PointUsagePolicy.UsageResult result = policy.use(List.of(), 500L);
+            PointUsagePolicy.UsageResult result = policy.use(List.of(), PointAmount.of(500L));
 
             // THEN
             assertThat(result.updatedLedgers()).isEmpty();

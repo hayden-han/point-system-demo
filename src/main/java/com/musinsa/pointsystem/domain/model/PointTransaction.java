@@ -12,15 +12,15 @@ public class PointTransaction {
     private final UUID id;
     private final UUID memberId;
     private final TransactionType type;
-    private final Long amount;
-    private final String orderId;
+    private final PointAmount amount;
+    private final OrderId orderId;
     private final UUID relatedTransactionId;
     private final UUID ledgerId;
     private final LocalDateTime createdAt;
 
     @Builder
-    public PointTransaction(UUID id, UUID memberId, TransactionType type, Long amount,
-                            String orderId, UUID relatedTransactionId, UUID ledgerId,
+    public PointTransaction(UUID id, UUID memberId, TransactionType type, PointAmount amount,
+                            OrderId orderId, UUID relatedTransactionId, UUID ledgerId,
                             LocalDateTime createdAt) {
         this.id = id;
         this.memberId = memberId;
@@ -32,7 +32,7 @@ public class PointTransaction {
         this.createdAt = createdAt;
     }
 
-    public static PointTransaction createEarn(UUID memberId, Long amount, UUID ledgerId) {
+    public static PointTransaction createEarn(UUID memberId, PointAmount amount, UUID ledgerId) {
         return PointTransaction.builder()
                 .id(UuidGenerator.generate())
                 .memberId(memberId)
@@ -43,7 +43,7 @@ public class PointTransaction {
                 .build();
     }
 
-    public static PointTransaction createEarnCancel(UUID memberId, Long amount, UUID ledgerId) {
+    public static PointTransaction createEarnCancel(UUID memberId, PointAmount amount, UUID ledgerId) {
         return PointTransaction.builder()
                 .id(UuidGenerator.generate())
                 .memberId(memberId)
@@ -54,7 +54,7 @@ public class PointTransaction {
                 .build();
     }
 
-    public static PointTransaction createUse(UUID memberId, Long amount, String orderId) {
+    public static PointTransaction createUse(UUID memberId, PointAmount amount, OrderId orderId) {
         return PointTransaction.builder()
                 .id(UuidGenerator.generate())
                 .memberId(memberId)
@@ -65,7 +65,7 @@ public class PointTransaction {
                 .build();
     }
 
-    public static PointTransaction createUseCancel(UUID memberId, Long amount, String orderId, UUID relatedTransactionId) {
+    public static PointTransaction createUseCancel(UUID memberId, PointAmount amount, OrderId orderId, UUID relatedTransactionId) {
         return PointTransaction.builder()
                 .id(UuidGenerator.generate())
                 .memberId(memberId)

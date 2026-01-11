@@ -1,5 +1,7 @@
 package com.musinsa.pointsystem.fixture;
 
+import com.musinsa.pointsystem.domain.model.OrderId;
+import com.musinsa.pointsystem.domain.model.PointAmount;
 import com.musinsa.pointsystem.domain.model.PointTransaction;
 import com.musinsa.pointsystem.domain.model.TransactionType;
 
@@ -13,7 +15,7 @@ public class PointTransactionFixture {
                 .id(id)
                 .memberId(memberId)
                 .type(TransactionType.EARN)
-                .amount(amount)
+                .amount(PointAmount.of(amount))
                 .ledgerId(ledgerId)
                 .createdAt(LocalDateTime.now())
                 .build();
@@ -24,7 +26,7 @@ public class PointTransactionFixture {
                 .id(id)
                 .memberId(memberId)
                 .type(TransactionType.EARN_CANCEL)
-                .amount(amount)
+                .amount(PointAmount.of(amount))
                 .ledgerId(ledgerId)
                 .createdAt(LocalDateTime.now())
                 .build();
@@ -35,8 +37,8 @@ public class PointTransactionFixture {
                 .id(id)
                 .memberId(memberId)
                 .type(TransactionType.USE)
-                .amount(amount)
-                .orderId(orderId)
+                .amount(PointAmount.of(amount))
+                .orderId(OrderId.of(orderId))
                 .createdAt(LocalDateTime.now())
                 .build();
     }
@@ -47,8 +49,8 @@ public class PointTransactionFixture {
                 .id(id)
                 .memberId(memberId)
                 .type(TransactionType.USE_CANCEL)
-                .amount(amount)
-                .orderId(orderId)
+                .amount(PointAmount.of(amount))
+                .orderId(OrderId.of(orderId))
                 .relatedTransactionId(relatedTransactionId)
                 .createdAt(LocalDateTime.now())
                 .build();

@@ -27,7 +27,7 @@ public class MemberPointRepositoryImpl implements MemberPointRepository {
     public MemberPoint save(MemberPoint memberPoint) {
         MemberPointEntity entity = jpaRepository.findById(memberPoint.getMemberId())
                 .map(existing -> {
-                    existing.updateTotalBalance(memberPoint.getTotalBalance());
+                    existing.updateTotalBalance(memberPoint.getTotalBalance().getValue());
                     return existing;
                 })
                 .orElseGet(() -> mapper.toEntity(memberPoint));

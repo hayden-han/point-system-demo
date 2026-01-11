@@ -2,6 +2,7 @@ package com.musinsa.pointsystem.infra.persistence.repository;
 
 import com.musinsa.pointsystem.domain.model.EarnPolicyConfig;
 import com.musinsa.pointsystem.domain.model.ExpirationPolicyConfig;
+import com.musinsa.pointsystem.domain.model.PointAmount;
 import com.musinsa.pointsystem.domain.model.PointPolicy;
 import com.musinsa.pointsystem.domain.repository.PointPolicyRepository;
 import com.musinsa.pointsystem.infra.persistence.entity.PointPolicyEntity;
@@ -61,9 +62,9 @@ public class PointPolicyRepositoryImpl implements PointPolicyRepository {
                 ));
 
         return EarnPolicyConfig.builder()
-                .minAmount(policyMap.get(PointPolicy.EARN_MIN_AMOUNT))
-                .maxAmount(policyMap.get(PointPolicy.EARN_MAX_AMOUNT))
-                .maxBalance(policyMap.get(PointPolicy.BALANCE_MAX_AMOUNT))
+                .minAmount(PointAmount.of(policyMap.get(PointPolicy.EARN_MIN_AMOUNT)))
+                .maxAmount(PointAmount.of(policyMap.get(PointPolicy.EARN_MAX_AMOUNT)))
+                .maxBalance(PointAmount.of(policyMap.get(PointPolicy.BALANCE_MAX_AMOUNT)))
                 .defaultExpirationDays(policyMap.get(PointPolicy.EXPIRATION_DEFAULT_DAYS).intValue())
                 .minExpirationDays(policyMap.get(PointPolicy.EXPIRATION_MIN_DAYS).intValue())
                 .maxExpirationDays(policyMap.get(PointPolicy.EXPIRATION_MAX_DAYS).intValue())

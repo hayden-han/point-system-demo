@@ -1,5 +1,7 @@
 package com.musinsa.pointsystem.infra.persistence.mapper;
 
+import com.musinsa.pointsystem.domain.model.OrderId;
+import com.musinsa.pointsystem.domain.model.PointAmount;
 import com.musinsa.pointsystem.domain.model.PointTransaction;
 import com.musinsa.pointsystem.domain.model.TransactionType;
 import com.musinsa.pointsystem.infra.persistence.entity.PointTransactionEntity;
@@ -13,8 +15,8 @@ public class PointTransactionMapper {
                 .id(entity.getId())
                 .memberId(entity.getMemberId())
                 .type(TransactionType.valueOf(entity.getType()))
-                .amount(entity.getAmount())
-                .orderId(entity.getOrderId())
+                .amount(PointAmount.of(entity.getAmount()))
+                .orderId(entity.getOrderId() != null ? OrderId.of(entity.getOrderId()) : null)
                 .relatedTransactionId(entity.getRelatedTransactionId())
                 .ledgerId(entity.getLedgerId())
                 .createdAt(entity.getCreatedAt())
@@ -26,8 +28,8 @@ public class PointTransactionMapper {
                 .id(domain.getId())
                 .memberId(domain.getMemberId())
                 .type(domain.getType().name())
-                .amount(domain.getAmount())
-                .orderId(domain.getOrderId())
+                .amount(domain.getAmount().getValue())
+                .orderId(domain.getOrderId() != null ? domain.getOrderId().getValue() : null)
                 .relatedTransactionId(domain.getRelatedTransactionId())
                 .ledgerId(domain.getLedgerId())
                 .build();

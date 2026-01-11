@@ -5,6 +5,7 @@ import com.musinsa.pointsystem.application.dto.*;
 import com.musinsa.pointsystem.common.util.UuidGenerator;
 import com.musinsa.pointsystem.domain.model.EarnType;
 import com.musinsa.pointsystem.domain.model.MemberPoint;
+import com.musinsa.pointsystem.domain.model.PointAmount;
 import com.musinsa.pointsystem.domain.model.PointLedger;
 import com.musinsa.pointsystem.domain.repository.MemberPointRepository;
 import com.musinsa.pointsystem.domain.repository.PointLedgerRepository;
@@ -104,12 +105,12 @@ class IntegrationScenarioTest extends IntegrationTestBase {
 
             // 적립건 상태 확인
             PointLedger ledgerAAfterUse = pointLedgerRepository.findById(ledgerIdA).orElseThrow();
-            assertThat(ledgerAAfterUse.getAvailableAmount()).isEqualTo(0L);
-            assertThat(ledgerAAfterUse.getUsedAmount()).isEqualTo(1000L);
+            assertThat(ledgerAAfterUse.getAvailableAmount()).isEqualTo(PointAmount.of(0L));
+            assertThat(ledgerAAfterUse.getUsedAmount()).isEqualTo(PointAmount.of(1000L));
 
             PointLedger ledgerBAfterUse = pointLedgerRepository.findById(ledgerIdB).orElseThrow();
-            assertThat(ledgerBAfterUse.getAvailableAmount()).isEqualTo(300L);
-            assertThat(ledgerBAfterUse.getUsedAmount()).isEqualTo(200L);
+            assertThat(ledgerBAfterUse.getAvailableAmount()).isEqualTo(PointAmount.of(300L));
+            assertThat(ledgerBAfterUse.getUsedAmount()).isEqualTo(PointAmount.of(200L));
 
             // ===== STEP 4: A 만료 처리 (테스트용 시간 조작) =====
             // GIVEN
@@ -139,7 +140,7 @@ class IntegrationScenarioTest extends IntegrationTestBase {
             // ===== STEP 6: 검증 =====
             // 총 잔액: 1400
             MemberPoint memberPoint = memberPointRepository.findByMemberId(memberId).orElseThrow();
-            assertThat(memberPoint.getTotalBalance()).isEqualTo(1400L);
+            assertThat(memberPoint.getTotalBalance()).isEqualTo(PointAmount.of(1400L));
 
             // B 잔액: 400 (300 + 100 복구, 사용취소는 만료일 긴 것부터이므로 B 200 중 100만 복구)
             // 실제로는 취소 순서가 expiredAt DESC이므로:
@@ -150,12 +151,13 @@ class IntegrationScenarioTest extends IntegrationTestBase {
             // - A에서 900원 복구 -> 신규 적립건 900원
 
             PointLedger ledgerBAfterCancel = pointLedgerRepository.findById(ledgerIdB).orElseThrow();
-            assertThat(ledgerBAfterCancel.getAvailableAmount()).isEqualTo(500L);
+            assertThat(ledgerBAfterCancel.getAvailableAmount()).isEqualTo(PointAmount.of(500L));
 
             // 사용 가능한 적립건 확인 (B 복구 + 신규 생성)
             List<PointLedger> availableLedgers = pointLedgerRepository.findAvailableByMemberId(memberId);
-            Long totalAvailable = availableLedgers.stream()
-                    .mapToLong(PointLedger::getAvailableAmount)
+            long totalAvailable = availableLedgers.stream()
+                    .map(ledger -> ledger.getAvailableAmount().getValue())
+                    .mapToLong(v -> v)
                     .sum();
             assertThat(totalAvailable).isEqualTo(1400L);
 

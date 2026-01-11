@@ -6,6 +6,7 @@ import com.musinsa.pointsystem.domain.exception.InvalidExpirationException;
 import com.musinsa.pointsystem.domain.exception.MaxBalanceExceededException;
 import com.musinsa.pointsystem.domain.model.EarnPolicyConfig;
 import com.musinsa.pointsystem.domain.model.MemberPoint;
+import com.musinsa.pointsystem.domain.model.PointAmount;
 import com.musinsa.pointsystem.fixture.MemberPointFixture;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -26,9 +27,9 @@ class PointEarnValidatorTest {
     void setUp() {
         validator = new PointEarnValidator();
         policy = EarnPolicyConfig.builder()
-                .minAmount(1L)
-                .maxAmount(100000L)
-                .maxBalance(10000000L)
+                .minAmount(PointAmount.of(1L))
+                .maxAmount(PointAmount.of(100000L))
+                .maxBalance(PointAmount.of(10000000L))
                 .defaultExpirationDays(365)
                 .minExpirationDays(1)
                 .maxExpirationDays(1824)
@@ -42,28 +43,28 @@ class PointEarnValidatorTest {
         @Test
         @DisplayName("최소 금액 이상이면 통과")
         void minimumAmount_shouldPass() {
-            assertThatCode(() -> validator.validateAmount(1L, policy))
+            assertThatCode(() -> validator.validateAmount(PointAmount.of(1L), policy))
                     .doesNotThrowAnyException();
         }
 
         @Test
         @DisplayName("최대 금액 이하이면 통과")
         void maximumAmount_shouldPass() {
-            assertThatCode(() -> validator.validateAmount(100000L, policy))
+            assertThatCode(() -> validator.validateAmount(PointAmount.of(100000L), policy))
                     .doesNotThrowAnyException();
         }
 
         @Test
         @DisplayName("최소 금액 미만이면 예외 발생")
         void belowMinimum_shouldThrowException() {
-            assertThatThrownBy(() -> validator.validateAmount(0L, policy))
+            assertThatThrownBy(() -> validator.validateAmount(PointAmount.of(0L), policy))
                     .isInstanceOf(InvalidEarnAmountException.class);
         }
 
         @Test
         @DisplayName("최대 금액 초과이면 예외 발생")
         void aboveMaximum_shouldThrowException() {
-            assertThatThrownBy(() -> validator.validateAmount(100001L, policy))
+            assertThatThrownBy(() -> validator.validateAmount(PointAmount.of(100001L), policy))
                     .isInstanceOf(InvalidEarnAmountException.class);
         }
     }
@@ -78,7 +79,7 @@ class PointEarnValidatorTest {
             UUID memberId = UuidGenerator.generate();
             MemberPoint memberPoint = MemberPointFixture.createWithBalance(memberId, 5000000L);
 
-            assertThatCode(() -> validator.validateMaxBalance(memberPoint, 4000000L, policy))
+            assertThatCode(() -> validator.validateMaxBalance(memberPoint, PointAmount.of(4000000L), policy))
                     .doesNotThrowAnyException();
         }
 
@@ -88,7 +89,7 @@ class PointEarnValidatorTest {
             UUID memberId = UuidGenerator.generate();
             MemberPoint memberPoint = MemberPointFixture.createWithBalance(memberId, 9500000L);
 
-            assertThatThrownBy(() -> validator.validateMaxBalance(memberPoint, 600000L, policy))
+            assertThatThrownBy(() -> validator.validateMaxBalance(memberPoint, PointAmount.of(600000L), policy))
                     .isInstanceOf(MaxBalanceExceededException.class);
         }
 
@@ -98,7 +99,7 @@ class PointEarnValidatorTest {
             UUID memberId = UuidGenerator.generate();
             MemberPoint memberPoint = MemberPointFixture.createWithBalance(memberId, 9000000L);
 
-            assertThatCode(() -> validator.validateMaxBalance(memberPoint, 1000000L, policy))
+            assertThatCode(() -> validator.validateMaxBalance(memberPoint, PointAmount.of(1000000L), policy))
                     .doesNotThrowAnyException();
         }
     }

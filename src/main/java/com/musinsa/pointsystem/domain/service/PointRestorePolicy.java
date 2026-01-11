@@ -1,6 +1,7 @@
 package com.musinsa.pointsystem.domain.service;
 
 import com.musinsa.pointsystem.domain.model.EarnType;
+import com.musinsa.pointsystem.domain.model.PointAmount;
 import com.musinsa.pointsystem.domain.model.PointLedger;
 import com.musinsa.pointsystem.domain.model.PointUsageDetail;
 
@@ -29,7 +30,7 @@ public class PointRestorePolicy {
      */
     public record NewLedgerInfo(
             UUID memberId,
-            Long amount,
+            PointAmount amount,
             EarnType earnType,
             LocalDateTime expiredAt,
             UUID relatedTransactionId
@@ -47,7 +48,7 @@ public class PointRestorePolicy {
     public RestoreResult restore(
             List<PointUsageDetail> usageDetails,
             java.util.Map<UUID, PointLedger> ledgerMap,
-            Long cancelAmount,
+            PointAmount cancelAmount,
             int defaultExpirationDays,
             UUID cancelTransactionId,
             UUID memberId
@@ -56,15 +57,15 @@ public class PointRestorePolicy {
         List<NewLedgerInfo> newLedgers = new ArrayList<>();
         List<PointUsageDetail> updatedUsageDetails = new ArrayList<>();
 
-        Long remainingCancelAmount = cancelAmount;
+        PointAmount remainingCancelAmount = cancelAmount;
 
         for (PointUsageDetail usageDetail : usageDetails) {
-            if (remainingCancelAmount <= 0) {
+            if (remainingCancelAmount.isZero()) {
                 break;
             }
 
-            Long cancelFromDetail = usageDetail.cancel(remainingCancelAmount);
-            remainingCancelAmount -= cancelFromDetail;
+            PointAmount cancelFromDetail = usageDetail.cancel(remainingCancelAmount);
+            remainingCancelAmount = remainingCancelAmount.subtract(cancelFromDetail);
             updatedUsageDetails.add(usageDetail);
 
             PointLedger originalLedger = ledgerMap.get(usageDetail.getLedgerId());

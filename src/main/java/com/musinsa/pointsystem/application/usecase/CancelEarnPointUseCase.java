@@ -6,6 +6,7 @@ import com.musinsa.pointsystem.domain.exception.PointLedgerAlreadyCanceledExcept
 import com.musinsa.pointsystem.domain.exception.PointLedgerAlreadyUsedException;
 import com.musinsa.pointsystem.domain.exception.PointLedgerNotFoundException;
 import com.musinsa.pointsystem.domain.model.MemberPoint;
+import com.musinsa.pointsystem.domain.model.PointAmount;
 import com.musinsa.pointsystem.domain.model.PointLedger;
 import com.musinsa.pointsystem.domain.model.PointTransaction;
 import com.musinsa.pointsystem.domain.repository.MemberPointRepository;
@@ -38,7 +39,7 @@ public class CancelEarnPointUseCase {
             throw new PointLedgerAlreadyUsedException(command.getLedgerId());
         }
 
-        Long canceledAmount = pointLedger.getEarnedAmount();
+        PointAmount canceledAmount = pointLedger.getEarnedAmount();
         pointLedger.cancel();
         pointLedgerRepository.save(pointLedger);
 
@@ -57,8 +58,8 @@ public class CancelEarnPointUseCase {
                 .ledgerId(command.getLedgerId())
                 .transactionId(savedTransaction.getId())
                 .memberId(command.getMemberId())
-                .canceledAmount(canceledAmount)
-                .totalBalance(savedMemberPoint.getTotalBalance())
+                .canceledAmount(canceledAmount.getValue())
+                .totalBalance(savedMemberPoint.getTotalBalance().getValue())
                 .build();
     }
 }

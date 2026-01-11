@@ -28,7 +28,7 @@ public class PointLedgerRepositoryImpl implements PointLedgerRepository {
             if (existingEntity.isPresent()) {
                 // 기존 엔티티 업데이트
                 PointLedgerEntity entity = existingEntity.get();
-                entity.updateAvailableAmount(pointLedger.getAvailableAmount(), pointLedger.getUsedAmount());
+                entity.updateAvailableAmount(pointLedger.getAvailableAmount().getValue(), pointLedger.getUsedAmount().getValue());
                 if (pointLedger.isCanceled()) {
                     entity.cancel();
                 }
@@ -86,7 +86,7 @@ public class PointLedgerRepositoryImpl implements PointLedgerRepository {
             PointLedgerEntity existingEntity = existingEntityMap.get(ledger.getId());
             if (existingEntity != null) {
                 // 기존 엔티티 업데이트
-                existingEntity.updateAvailableAmount(ledger.getAvailableAmount(), ledger.getUsedAmount());
+                existingEntity.updateAvailableAmount(ledger.getAvailableAmount().getValue(), ledger.getUsedAmount().getValue());
                 if (ledger.isCanceled()) {
                     existingEntity.cancel();
                 }

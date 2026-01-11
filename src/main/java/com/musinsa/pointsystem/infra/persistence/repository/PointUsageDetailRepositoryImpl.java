@@ -28,7 +28,7 @@ public class PointUsageDetailRepositoryImpl implements PointUsageDetailRepositor
             if (existingEntity.isPresent()) {
                 // 기존 엔티티 업데이트
                 PointUsageDetailEntity entity = existingEntity.get();
-                entity.addCanceledAmount(pointUsageDetail.getCanceledAmount() - entity.getCanceledAmount());
+                entity.addCanceledAmount(pointUsageDetail.getCanceledAmount().getValue() - entity.getCanceledAmount());
                 return mapper.toDomain(jpaRepository.save(entity));
             }
         }
@@ -59,7 +59,7 @@ public class PointUsageDetailRepositoryImpl implements PointUsageDetailRepositor
             PointUsageDetailEntity existingEntity = existingEntityMap.get(detail.getId());
             if (existingEntity != null) {
                 // 기존 엔티티 업데이트 - 취소 금액 차이만큼 추가
-                existingEntity.addCanceledAmount(detail.getCanceledAmount() - existingEntity.getCanceledAmount());
+                existingEntity.addCanceledAmount(detail.getCanceledAmount().getValue() - existingEntity.getCanceledAmount());
             } else {
                 // 신규 엔티티
                 newEntities.add(mapper.toEntity(detail));

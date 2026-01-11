@@ -8,37 +8,37 @@ import java.util.UUID;
 @Getter
 public class MemberPoint {
     private final UUID memberId;
-    private Long totalBalance;
+    private PointAmount totalBalance;
 
     @Builder
-    public MemberPoint(UUID memberId, Long totalBalance) {
+    public MemberPoint(UUID memberId, PointAmount totalBalance) {
         this.memberId = memberId;
-        this.totalBalance = totalBalance;
+        this.totalBalance = totalBalance != null ? totalBalance : PointAmount.ZERO;
     }
 
     public static MemberPoint create(UUID memberId) {
         return MemberPoint.builder()
                 .memberId(memberId)
-                .totalBalance(0L)
+                .totalBalance(PointAmount.ZERO)
                 .build();
     }
 
-    public void increaseBalance(Long amount) {
-        this.totalBalance += amount;
+    public void increaseBalance(PointAmount amount) {
+        this.totalBalance = this.totalBalance.add(amount);
     }
 
-    public void decreaseBalance(Long amount) {
-        if (this.totalBalance < amount) {
+    public void decreaseBalance(PointAmount amount) {
+        if (this.totalBalance.isLessThan(amount)) {
             throw new IllegalStateException("잔액이 부족합니다.");
         }
-        this.totalBalance -= amount;
+        this.totalBalance = this.totalBalance.subtract(amount);
     }
 
-    public boolean canEarn(Long amount, Long maxBalance) {
-        return this.totalBalance + amount <= maxBalance;
+    public boolean canEarn(PointAmount amount, PointAmount maxBalance) {
+        return this.totalBalance.add(amount).isLessThanOrEqual(maxBalance);
     }
 
-    public boolean hasEnoughBalance(Long amount) {
-        return this.totalBalance >= amount;
+    public boolean hasEnoughBalance(PointAmount amount) {
+        return this.totalBalance.isGreaterThanOrEqual(amount);
     }
 }

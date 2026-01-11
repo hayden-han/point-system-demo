@@ -135,8 +135,8 @@ class UsePointUseCaseTest extends IntegrationTestBase {
                     .findFirst()
                     .orElseThrow();
 
-            assertThat(manualLedger.getAvailableAmount()).isEqualTo(200L); // 500 - 300 = 200
-            assertThat(systemLedger.getAvailableAmount()).isEqualTo(500L); // 사용 안됨
+            assertThat(manualLedger.getAvailableAmount().getValue()).isEqualTo(200L); // 500 - 300 = 200
+            assertThat(systemLedger.getAvailableAmount().getValue()).isEqualTo(500L); // 사용 안됨
         }
 
         @Test
@@ -169,8 +169,8 @@ class UsePointUseCaseTest extends IntegrationTestBase {
                     .findFirst()
                     .orElseThrow();
 
-            assertThat(shortExpLedger.getAvailableAmount()).isEqualTo(200L); // 500 - 300 = 200
-            assertThat(longExpLedger.getAvailableAmount()).isEqualTo(500L); // 사용 안됨
+            assertThat(shortExpLedger.getAvailableAmount().getValue()).isEqualTo(200L); // 500 - 300 = 200
+            assertThat(longExpLedger.getAvailableAmount().getValue()).isEqualTo(500L); // 사용 안됨
         }
 
         @Test
@@ -204,8 +204,8 @@ class UsePointUseCaseTest extends IntegrationTestBase {
                     .findFirst()
                     .orElseThrow();
 
-            assertThat(manualLedger.getAvailableAmount()).isEqualTo(200L); // 500 - 300 = 200
-            assertThat(systemLedger.getAvailableAmount()).isEqualTo(500L); // 사용 안됨
+            assertThat(manualLedger.getAvailableAmount().getValue()).isEqualTo(200L); // 500 - 300 = 200
+            assertThat(systemLedger.getAvailableAmount().getValue()).isEqualTo(500L); // 사용 안됨
         }
     }
 

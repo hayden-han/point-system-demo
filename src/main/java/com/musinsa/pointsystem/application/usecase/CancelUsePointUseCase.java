@@ -5,7 +5,12 @@ import com.musinsa.pointsystem.application.dto.CancelUsePointResult;
 import com.musinsa.pointsystem.application.port.DistributedLock;
 import com.musinsa.pointsystem.domain.exception.InvalidCancelAmountException;
 import com.musinsa.pointsystem.domain.exception.PointTransactionNotFoundException;
-import com.musinsa.pointsystem.domain.model.*;
+import com.musinsa.pointsystem.domain.model.ExpirationPolicyConfig;
+import com.musinsa.pointsystem.domain.model.MemberPoint;
+import com.musinsa.pointsystem.domain.model.PointAmount;
+import com.musinsa.pointsystem.domain.model.PointLedger;
+import com.musinsa.pointsystem.domain.model.PointTransaction;
+import com.musinsa.pointsystem.domain.model.PointUsageDetail;
 import com.musinsa.pointsystem.domain.repository.*;
 import com.musinsa.pointsystem.domain.service.PointRestorePolicy;
 import lombok.RequiredArgsConstructor;
@@ -35,17 +40,20 @@ public class CancelUsePointUseCase {
         PointTransaction originalTransaction = pointTransactionRepository.findById(command.getTransactionId())
                 .orElseThrow(() -> new PointTransactionNotFoundException(command.getTransactionId()));
 
+        // DTO → 도메인 타입 변환
+        PointAmount cancelAmount = PointAmount.of(command.getCancelAmount());
+
         // 취소 가능한 사용 상세 조회 (만료일 긴 것부터)
         List<PointUsageDetail> usageDetails = pointUsageDetailRepository
                 .findCancelableByTransactionId(command.getTransactionId());
 
         // 취소 가능 금액 검증
-        Long totalCancelable = usageDetails.stream()
-                .mapToLong(PointUsageDetail::getCancelableAmount)
-                .sum();
+        PointAmount totalCancelable = usageDetails.stream()
+                .map(PointUsageDetail::getCancelableAmount)
+                .reduce(PointAmount.ZERO, PointAmount::add);
 
-        if (command.getCancelAmount() > totalCancelable) {
-            throw new InvalidCancelAmountException(command.getCancelAmount(), totalCancelable);
+        if (cancelAmount.isGreaterThan(totalCancelable)) {
+            throw new InvalidCancelAmountException(cancelAmount.getValue(), totalCancelable.getValue());
         }
 
         // 정책 조회 (1회 쿼리)
@@ -54,7 +62,7 @@ public class CancelUsePointUseCase {
         // 사용취소 트랜잭션 생성
         PointTransaction cancelTransaction = PointTransaction.createUseCancel(
                 command.getMemberId(),
-                command.getCancelAmount(),
+                cancelAmount,
                 originalTransaction.getOrderId(),
                 command.getTransactionId()
         );
@@ -72,7 +80,7 @@ public class CancelUsePointUseCase {
         PointRestorePolicy.RestoreResult restoreResult = pointRestorePolicy.restore(
                 usageDetails,
                 ledgerMap,
-                command.getCancelAmount(),
+                cancelAmount,
                 expirationPolicy.getDefaultExpirationDays(),
                 savedCancelTransaction.getId(),
                 command.getMemberId()
@@ -98,15 +106,15 @@ public class CancelUsePointUseCase {
 
         // 회원 잔액 업데이트
         MemberPoint memberPoint = memberPointRepository.getOrCreate(command.getMemberId());
-        memberPoint.increaseBalance(command.getCancelAmount());
+        memberPoint.increaseBalance(cancelAmount);
         MemberPoint savedMemberPoint = memberPointRepository.save(memberPoint);
 
         return CancelUsePointResult.builder()
                 .transactionId(savedCancelTransaction.getId())
                 .memberId(command.getMemberId())
-                .canceledAmount(command.getCancelAmount())
-                .totalBalance(savedMemberPoint.getTotalBalance())
-                .orderId(originalTransaction.getOrderId())
+                .canceledAmount(cancelAmount.getValue())
+                .totalBalance(savedMemberPoint.getTotalBalance().getValue())
+                .orderId(originalTransaction.getOrderId().getValue())
                 .build();
     }
 }

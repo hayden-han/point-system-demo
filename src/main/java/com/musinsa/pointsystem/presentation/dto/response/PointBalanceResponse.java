@@ -15,7 +15,7 @@ public class PointBalanceResponse {
     public static PointBalanceResponse from(MemberPoint memberPoint) {
         return PointBalanceResponse.builder()
                 .memberId(memberPoint.getMemberId())
-                .totalBalance(memberPoint.getTotalBalance())
+                .totalBalance(memberPoint.getTotalBalance().getValue())
                 .build();
     }
 }

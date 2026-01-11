@@ -4,8 +4,9 @@ import com.musinsa.pointsystem.application.dto.UsePointCommand;
 import com.musinsa.pointsystem.application.dto.UsePointResult;
 import com.musinsa.pointsystem.application.port.DistributedLock;
 import com.musinsa.pointsystem.domain.exception.InsufficientPointException;
-import com.musinsa.pointsystem.domain.exception.InvalidOrderIdException;
 import com.musinsa.pointsystem.domain.model.MemberPoint;
+import com.musinsa.pointsystem.domain.model.OrderId;
+import com.musinsa.pointsystem.domain.model.PointAmount;
 import com.musinsa.pointsystem.domain.model.PointLedger;
 import com.musinsa.pointsystem.domain.model.PointTransaction;
 import com.musinsa.pointsystem.domain.model.PointUsageDetail;
@@ -33,14 +34,14 @@ public class UsePointUseCase {
     @DistributedLock(key = "'lock:point:member:' + #command.memberId")
     @Transactional
     public UsePointResult execute(UsePointCommand command) {
-        if (command.getOrderId() == null || command.getOrderId().isBlank()) {
-            throw new InvalidOrderIdException();
-        }
+        // DTO → 도메인 타입 변환 (OrderId VO에서 null/빈값 검증 수행)
+        OrderId orderId = OrderId.of(command.getOrderId());
+        PointAmount amount = PointAmount.of(command.getAmount());
 
         MemberPoint memberPoint = memberPointRepository.getOrCreate(command.getMemberId());
 
-        if (!memberPoint.hasEnoughBalance(command.getAmount())) {
-            throw new InsufficientPointException(command.getAmount(), memberPoint.getTotalBalance());
+        if (!memberPoint.hasEnoughBalance(amount)) {
+            throw new InsufficientPointException(amount.getValue(), memberPoint.getTotalBalance().getValue());
         }
 
         // 사용 가능한 적립건 조회 (우선순위: 수기지급 > 만료일 짧은 순)
@@ -49,13 +50,13 @@ public class UsePointUseCase {
         // 트랜잭션 생성
         PointTransaction transaction = PointTransaction.createUse(
                 command.getMemberId(),
-                command.getAmount(),
-                command.getOrderId()
+                amount,
+                orderId
         );
         PointTransaction savedTransaction = pointTransactionRepository.save(transaction);
 
         // 도메인 서비스로 적립건에서 차감
-        PointUsagePolicy.UsageResult usageResult = pointUsagePolicy.use(availableLedgers, command.getAmount());
+        PointUsagePolicy.UsageResult usageResult = pointUsagePolicy.use(availableLedgers, amount);
 
         // 사용 상세 생성
         List<PointUsageDetail> usageDetails = usageResult.usageDetails().stream()
@@ -71,14 +72,14 @@ public class UsePointUseCase {
         pointUsageDetailRepository.saveAll(usageDetails);
 
         // 회원 잔액 업데이트
-        memberPoint.decreaseBalance(command.getAmount());
+        memberPoint.decreaseBalance(amount);
         MemberPoint savedMemberPoint = memberPointRepository.save(memberPoint);
 
         return UsePointResult.builder()
                 .transactionId(savedTransaction.getId())
                 .memberId(command.getMemberId())
-                .usedAmount(command.getAmount())
-                .totalBalance(savedMemberPoint.getTotalBalance())
+                .usedAmount(amount.getValue())
+                .totalBalance(savedMemberPoint.getTotalBalance().getValue())
                 .orderId(command.getOrderId())
                 .build();
     }

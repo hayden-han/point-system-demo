@@ -1,5 +1,6 @@
 package com.musinsa.pointsystem.infra.persistence.mapper;
 
+import com.musinsa.pointsystem.domain.model.PointAmount;
 import com.musinsa.pointsystem.domain.model.PointUsageDetail;
 import com.musinsa.pointsystem.infra.persistence.entity.PointUsageDetailEntity;
 import org.springframework.stereotype.Component;
@@ -12,8 +13,8 @@ public class PointUsageDetailMapper {
                 .id(entity.getId())
                 .transactionId(entity.getTransactionId())
                 .ledgerId(entity.getLedgerId())
-                .usedAmount(entity.getUsedAmount())
-                .canceledAmount(entity.getCanceledAmount())
+                .usedAmount(PointAmount.of(entity.getUsedAmount()))
+                .canceledAmount(PointAmount.of(entity.getCanceledAmount()))
                 .createdAt(entity.getCreatedAt())
                 .build();
     }
@@ -23,8 +24,8 @@ public class PointUsageDetailMapper {
                 .id(domain.getId())
                 .transactionId(domain.getTransactionId())
                 .ledgerId(domain.getLedgerId())
-                .usedAmount(domain.getUsedAmount())
-                .canceledAmount(domain.getCanceledAmount())
+                .usedAmount(domain.getUsedAmount().getValue())
+                .canceledAmount(domain.getCanceledAmount().getValue())
                 .build();
     }
 }

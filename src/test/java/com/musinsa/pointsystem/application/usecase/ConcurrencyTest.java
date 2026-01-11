@@ -6,6 +6,7 @@ import com.musinsa.pointsystem.application.dto.UsePointCommand;
 import com.musinsa.pointsystem.application.exception.LockAcquisitionFailedException;
 import com.musinsa.pointsystem.domain.model.EarnType;
 import com.musinsa.pointsystem.domain.model.MemberPoint;
+import com.musinsa.pointsystem.domain.model.PointAmount;
 import com.musinsa.pointsystem.domain.repository.MemberPointRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -82,8 +83,8 @@ class ConcurrencyTest extends IntegrationTestBase {
 
             // THEN
             MemberPoint memberPoint = memberPointRepository.findByMemberId(memberId).orElseThrow();
-            Long expectedBalance = successCount.get() * amountPerEarn;
-            assertThat(memberPoint.getTotalBalance()).isEqualTo(expectedBalance);
+            long expectedBalance = successCount.get() * amountPerEarn;
+            assertThat(memberPoint.getTotalBalance()).isEqualTo(PointAmount.of(expectedBalance));
         }
 
         @Test
@@ -123,9 +124,9 @@ class ConcurrencyTest extends IntegrationTestBase {
 
             // THEN
             MemberPoint memberPoint = memberPointRepository.findByMemberId(memberId).orElseThrow();
-            Long expectedBalance = initialBalance - (successCount.get() * amountPerUse);
-            assertThat(memberPoint.getTotalBalance()).isEqualTo(expectedBalance);
-            assertThat(memberPoint.getTotalBalance()).isGreaterThanOrEqualTo(0L);
+            long expectedBalance = initialBalance - (successCount.get() * amountPerUse);
+            assertThat(memberPoint.getTotalBalance()).isEqualTo(PointAmount.of(expectedBalance));
+            assertThat(memberPoint.getTotalBalance().getValue()).isGreaterThanOrEqualTo(0L);
         }
 
         @Test
@@ -186,10 +187,10 @@ class ConcurrencyTest extends IntegrationTestBase {
 
             // THEN
             MemberPoint memberPoint = memberPointRepository.findByMemberId(memberId).orElseThrow();
-            Long expectedBalance = initialBalance
+            long expectedBalance = initialBalance
                     + (earnSuccessCount.get() * earnAmount)
                     - (useSuccessCount.get() * useAmount);
-            assertThat(memberPoint.getTotalBalance()).isEqualTo(expectedBalance);
+            assertThat(memberPoint.getTotalBalance()).isEqualTo(PointAmount.of(expectedBalance));
         }
 
         @Test

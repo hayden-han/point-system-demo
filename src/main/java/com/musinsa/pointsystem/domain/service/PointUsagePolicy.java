@@ -1,7 +1,7 @@
 package com.musinsa.pointsystem.domain.service;
 
+import com.musinsa.pointsystem.domain.model.PointAmount;
 import com.musinsa.pointsystem.domain.model.PointLedger;
-import com.musinsa.pointsystem.domain.model.PointUsageDetail;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,22 +16,22 @@ public class PointUsagePolicy {
 
     public record UsageDetail(
             UUID ledgerId,
-            Long usedAmount
+            PointAmount usedAmount
     ) {}
 
-    public UsageResult use(List<PointLedger> availableLedgers, Long amount) {
+    public UsageResult use(List<PointLedger> availableLedgers, PointAmount amount) {
         List<PointLedger> updatedLedgers = new ArrayList<>();
         List<UsageDetail> usageDetails = new ArrayList<>();
 
-        Long remainingAmount = amount;
+        PointAmount remainingAmount = amount;
 
         for (PointLedger ledger : availableLedgers) {
-            if (remainingAmount <= 0) {
+            if (remainingAmount.isZero()) {
                 break;
             }
 
-            Long usedFromLedger = ledger.use(remainingAmount);
-            remainingAmount -= usedFromLedger;
+            PointAmount usedFromLedger = ledger.use(remainingAmount);
+            remainingAmount = remainingAmount.subtract(usedFromLedger);
 
             updatedLedgers.add(ledger);
             usageDetails.add(new UsageDetail(ledger.getId(), usedFromLedger));

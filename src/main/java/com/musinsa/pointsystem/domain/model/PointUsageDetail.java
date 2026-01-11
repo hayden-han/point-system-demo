@@ -12,43 +12,43 @@ public class PointUsageDetail {
     private final UUID id;
     private final UUID transactionId;
     private final UUID ledgerId;
-    private final Long usedAmount;
-    private Long canceledAmount;
+    private final PointAmount usedAmount;
+    private PointAmount canceledAmount;
     private final LocalDateTime createdAt;
 
     @Builder
     public PointUsageDetail(UUID id, UUID transactionId, UUID ledgerId,
-                            Long usedAmount, Long canceledAmount, LocalDateTime createdAt) {
+                            PointAmount usedAmount, PointAmount canceledAmount, LocalDateTime createdAt) {
         this.id = id;
         this.transactionId = transactionId;
         this.ledgerId = ledgerId;
         this.usedAmount = usedAmount;
-        this.canceledAmount = canceledAmount;
+        this.canceledAmount = canceledAmount != null ? canceledAmount : PointAmount.ZERO;
         this.createdAt = createdAt;
     }
 
-    public static PointUsageDetail create(UUID transactionId, UUID ledgerId, Long usedAmount) {
+    public static PointUsageDetail create(UUID transactionId, UUID ledgerId, PointAmount usedAmount) {
         return PointUsageDetail.builder()
                 .id(UuidGenerator.generate())
                 .transactionId(transactionId)
                 .ledgerId(ledgerId)
                 .usedAmount(usedAmount)
-                .canceledAmount(0L)
+                .canceledAmount(PointAmount.ZERO)
                 .createdAt(LocalDateTime.now())
                 .build();
     }
 
-    public Long getCancelableAmount() {
-        return usedAmount - canceledAmount;
+    public PointAmount getCancelableAmount() {
+        return usedAmount.subtract(canceledAmount);
     }
 
-    public Long cancel(Long amount) {
-        Long cancelAmount = Math.min(amount, getCancelableAmount());
-        this.canceledAmount += cancelAmount;
+    public PointAmount cancel(PointAmount amount) {
+        PointAmount cancelAmount = amount.min(getCancelableAmount());
+        this.canceledAmount = this.canceledAmount.add(cancelAmount);
         return cancelAmount;
     }
 
     public boolean isCancelable() {
-        return getCancelableAmount() > 0;
+        return getCancelableAmount().isPositive();
     }
 }

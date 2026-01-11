@@ -25,13 +25,13 @@ class PointLedgerTest {
             UUID memberId = UuidGenerator.generate();
 
             // WHEN
-            PointLedger ledger = PointLedger.create(memberId, 1000L, EarnType.SYSTEM, LocalDateTime.now().plusDays(365));
+            PointLedger ledger = PointLedger.create(memberId, PointAmount.of(1000L), EarnType.SYSTEM, LocalDateTime.now().plusDays(365));
 
             // THEN
             assertThat(ledger.getMemberId()).isEqualTo(memberId);
-            assertThat(ledger.getEarnedAmount()).isEqualTo(1000L);
-            assertThat(ledger.getAvailableAmount()).isEqualTo(1000L);
-            assertThat(ledger.getUsedAmount()).isEqualTo(0L);
+            assertThat(ledger.getEarnedAmount().getValue()).isEqualTo(1000L);
+            assertThat(ledger.getAvailableAmount().getValue()).isEqualTo(1000L);
+            assertThat(ledger.getUsedAmount().getValue()).isEqualTo(0L);
             assertThat(ledger.isCanceled()).isFalse();
         }
 
@@ -44,11 +44,11 @@ class PointLedgerTest {
 
             // WHEN
             PointLedger ledger = PointLedger.createFromCancelUse(
-                    memberId, 500L, EarnType.SYSTEM, LocalDateTime.now().plusDays(365), sourceTransactionId);
+                    memberId, PointAmount.of(500L), EarnType.SYSTEM, LocalDateTime.now().plusDays(365), sourceTransactionId);
 
             // THEN
             assertThat(ledger.getSourceTransactionId()).isEqualTo(sourceTransactionId);
-            assertThat(ledger.getAvailableAmount()).isEqualTo(500L);
+            assertThat(ledger.getAvailableAmount().getValue()).isEqualTo(500L);
         }
     }
 
@@ -114,7 +114,7 @@ class PointLedgerTest {
 
             // THEN
             assertThat(ledger.isCanceled()).isTrue();
-            assertThat(ledger.getAvailableAmount()).isEqualTo(0L);
+            assertThat(ledger.getAvailableAmount().getValue()).isEqualTo(0L);
         }
 
         @Test
@@ -214,12 +214,12 @@ class PointLedgerTest {
             PointLedger ledger = PointLedgerFixture.createSystem(id, memberId, 1000L);
 
             // WHEN
-            Long usedAmount = ledger.use(300L);
+            PointAmount usedAmount = ledger.use(PointAmount.of(300L));
 
             // THEN
-            assertThat(usedAmount).isEqualTo(300L);
-            assertThat(ledger.getAvailableAmount()).isEqualTo(700L);
-            assertThat(ledger.getUsedAmount()).isEqualTo(300L);
+            assertThat(usedAmount.getValue()).isEqualTo(300L);
+            assertThat(ledger.getAvailableAmount().getValue()).isEqualTo(700L);
+            assertThat(ledger.getUsedAmount().getValue()).isEqualTo(300L);
         }
 
         @Test
@@ -231,11 +231,11 @@ class PointLedgerTest {
             PointLedger ledger = PointLedgerFixture.createSystem(id, memberId, 500L);
 
             // WHEN
-            Long usedAmount = ledger.use(800L);
+            PointAmount usedAmount = ledger.use(PointAmount.of(800L));
 
             // THEN
-            assertThat(usedAmount).isEqualTo(500L);
-            assertThat(ledger.getAvailableAmount()).isEqualTo(0L);
+            assertThat(usedAmount.getValue()).isEqualTo(500L);
+            assertThat(ledger.getAvailableAmount().getValue()).isEqualTo(0L);
         }
     }
 
@@ -252,11 +252,11 @@ class PointLedgerTest {
             PointLedger ledger = PointLedgerFixture.createPartiallyUsed(id, memberId, 1000L, 500L, EarnType.SYSTEM);
 
             // WHEN
-            ledger.restore(300L);
+            ledger.restore(PointAmount.of(300L));
 
             // THEN
-            assertThat(ledger.getAvailableAmount()).isEqualTo(800L);
-            assertThat(ledger.getUsedAmount()).isEqualTo(200L);
+            assertThat(ledger.getAvailableAmount().getValue()).isEqualTo(800L);
+            assertThat(ledger.getUsedAmount().getValue()).isEqualTo(200L);
         }
 
         @Test
@@ -268,7 +268,7 @@ class PointLedgerTest {
             PointLedger ledger = PointLedgerFixture.createPartiallyUsed(id, memberId, 1000L, 500L, EarnType.SYSTEM);
 
             // WHEN & THEN
-            assertThatThrownBy(() -> ledger.restore(600L))
+            assertThatThrownBy(() -> ledger.restore(PointAmount.of(600L)))
                     .isInstanceOf(IllegalStateException.class);
         }
     }

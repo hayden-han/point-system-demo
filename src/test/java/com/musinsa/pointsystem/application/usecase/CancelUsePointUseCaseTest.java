@@ -61,8 +61,8 @@ class CancelUsePointUseCaseTest extends IntegrationTestBase {
 
             // 적립건 복구 확인
             PointLedger ledger = pointLedgerRepository.findById(ledgerId).orElseThrow();
-            assertThat(ledger.getAvailableAmount()).isEqualTo(1000L);
-            assertThat(ledger.getUsedAmount()).isEqualTo(0L);
+            assertThat(ledger.getAvailableAmount().getValue()).isEqualTo(1000L);
+            assertThat(ledger.getUsedAmount().getValue()).isEqualTo(0L);
         }
 
         @Test
@@ -87,8 +87,8 @@ class CancelUsePointUseCaseTest extends IntegrationTestBase {
 
             // 적립건 부분 복구 확인
             PointLedger ledger = pointLedgerRepository.findById(ledgerId).orElseThrow();
-            assertThat(ledger.getAvailableAmount()).isEqualTo(500L);
-            assertThat(ledger.getUsedAmount()).isEqualTo(500L);
+            assertThat(ledger.getAvailableAmount().getValue()).isEqualTo(500L);
+            assertThat(ledger.getUsedAmount().getValue()).isEqualTo(500L);
         }
 
         @Test
@@ -147,7 +147,7 @@ class CancelUsePointUseCaseTest extends IntegrationTestBase {
 
             // 원본 적립건 복구 확인
             PointLedger ledger = pointLedgerRepository.findById(ledgerId).orElseThrow();
-            assertThat(ledger.getAvailableAmount()).isEqualTo(500L);
+            assertThat(ledger.getAvailableAmount().getValue()).isEqualTo(500L);
         }
 
         @Test
@@ -173,12 +173,12 @@ class CancelUsePointUseCaseTest extends IntegrationTestBase {
             // 신규 적립건 생성 확인 (원본 적립건은 만료 상태 유지)
             PointLedger originalLedger = pointLedgerRepository.findById(expiredLedgerId).orElseThrow();
             assertThat(originalLedger.isExpired()).isTrue();
-            assertThat(originalLedger.getAvailableAmount()).isEqualTo(0L);
+            assertThat(originalLedger.getAvailableAmount().getValue()).isEqualTo(0L);
 
             // 신규 적립건이 생성되어 사용 가능
             List<PointLedger> availableLedgers = pointLedgerRepository.findAvailableByMemberId(memberId);
             assertThat(availableLedgers).hasSize(1);
-            assertThat(availableLedgers.get(0).getAvailableAmount()).isEqualTo(500L);
+            assertThat(availableLedgers.get(0).getAvailableAmount().getValue()).isEqualTo(500L);
         }
 
         @Test
@@ -205,12 +205,12 @@ class CancelUsePointUseCaseTest extends IntegrationTestBase {
 
             // 미만료 적립건 복구 확인 (200 + 300 = 500)
             PointLedger notExpiredLedger = pointLedgerRepository.findById(notExpiredLedgerId).orElseThrow();
-            assertThat(notExpiredLedger.getAvailableAmount()).isEqualTo(500L);
+            assertThat(notExpiredLedger.getAvailableAmount().getValue()).isEqualTo(500L);
 
             // 만료 적립건은 복구되지 않고 그대로
             PointLedger expiredLedger = pointLedgerRepository.findById(expiredLedgerId).orElseThrow();
             assertThat(expiredLedger.isExpired()).isTrue();
-            assertThat(expiredLedger.getAvailableAmount()).isEqualTo(0L);
+            assertThat(expiredLedger.getAvailableAmount().getValue()).isEqualTo(0L);
 
             // 잔액 검증으로 단순화
             assertThat(result.getTotalBalance()).isEqualTo(800L);

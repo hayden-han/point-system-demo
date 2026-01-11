@@ -2,6 +2,7 @@ package com.musinsa.pointsystem.application.usecase;
 
 import com.musinsa.pointsystem.IntegrationTestBase;
 import com.musinsa.pointsystem.domain.model.MemberPoint;
+import com.musinsa.pointsystem.domain.model.PointAmount;
 import com.musinsa.pointsystem.domain.model.PointLedger;
 import com.musinsa.pointsystem.domain.model.PointUsageDetail;
 import com.musinsa.pointsystem.domain.repository.MemberPointRepository;
@@ -47,13 +48,14 @@ class DataConsistencyTest extends IntegrationTestBase {
             // WHEN
             MemberPoint memberPoint = memberPointRepository.findByMemberId(memberId).orElseThrow();
             List<PointLedger> availableLedgers = pointLedgerRepository.findAvailableByMemberId(memberId);
-            Long sumOfAvailable = availableLedgers.stream()
-                    .mapToLong(PointLedger::getAvailableAmount)
+            long sumOfAvailable = availableLedgers.stream()
+                    .map(ledger -> ledger.getAvailableAmount().getValue())
+                    .mapToLong(v -> v)
                     .sum();
 
             // THEN
-            assertThat(memberPoint.getTotalBalance()).isEqualTo(1500L);
-            assertThat(sumOfAvailable).isEqualTo(memberPoint.getTotalBalance());
+            assertThat(memberPoint.getTotalBalance()).isEqualTo(PointAmount.of(1500L));
+            assertThat(sumOfAvailable).isEqualTo(memberPoint.getTotalBalance().getValue());
             // 유효한 적립건은 2개 (7001: 800, 7002: 700)
             assertThat(availableLedgers).hasSize(2);
         }
@@ -68,11 +70,11 @@ class DataConsistencyTest extends IntegrationTestBase {
             PointLedger ledger = pointLedgerRepository.findById(ledgerId).orElseThrow();
 
             // THEN
-            assertThat(ledger.getEarnedAmount()).isEqualTo(1000L);
-            assertThat(ledger.getAvailableAmount()).isEqualTo(500L);
-            assertThat(ledger.getUsedAmount()).isEqualTo(500L);
-            assertThat(ledger.getEarnedAmount())
-                    .isEqualTo(ledger.getAvailableAmount() + ledger.getUsedAmount());
+            assertThat(ledger.getEarnedAmount()).isEqualTo(PointAmount.of(1000L));
+            assertThat(ledger.getAvailableAmount()).isEqualTo(PointAmount.of(500L));
+            assertThat(ledger.getUsedAmount()).isEqualTo(PointAmount.of(500L));
+            assertThat(ledger.getEarnedAmount().getValue())
+                    .isEqualTo(ledger.getAvailableAmount().getValue() + ledger.getUsedAmount().getValue());
         }
 
         @Test
@@ -83,11 +85,13 @@ class DataConsistencyTest extends IntegrationTestBase {
 
             // WHEN
             List<PointUsageDetail> usageDetails = pointUsageDetailRepository.findByTransactionId(transactionId);
-            Long sumOfUsed = usageDetails.stream()
-                    .mapToLong(PointUsageDetail::getUsedAmount)
+            long sumOfUsed = usageDetails.stream()
+                    .map(detail -> detail.getUsedAmount().getValue())
+                    .mapToLong(v -> v)
                     .sum();
-            Long sumOfCanceled = usageDetails.stream()
-                    .mapToLong(PointUsageDetail::getCanceledAmount)
+            long sumOfCanceled = usageDetails.stream()
+                    .map(detail -> detail.getCanceledAmount().getValue())
+                    .mapToLong(v -> v)
                     .sum();
 
             // THEN
@@ -96,7 +100,7 @@ class DataConsistencyTest extends IntegrationTestBase {
             // 두 적립건에서 각각 500씩 사용
             assertThat(usageDetails).hasSize(2);
             usageDetails.forEach(detail ->
-                assertThat(detail.getUsedAmount()).isEqualTo(500L)
+                assertThat(detail.getUsedAmount()).isEqualTo(PointAmount.of(500L))
             );
         }
 
@@ -113,10 +117,10 @@ class DataConsistencyTest extends IntegrationTestBase {
             assertThat(usageDetails).hasSize(1);
             PointUsageDetail detail = usageDetails.get(0);
 
-            assertThat(detail.getUsedAmount()).isEqualTo(1000L);
-            assertThat(detail.getCanceledAmount()).isEqualTo(300L);
-            assertThat(detail.getCanceledAmount()).isLessThanOrEqualTo(detail.getUsedAmount());
-            assertThat(detail.getCancelableAmount()).isEqualTo(700L);
+            assertThat(detail.getUsedAmount()).isEqualTo(PointAmount.of(1000L));
+            assertThat(detail.getCanceledAmount()).isEqualTo(PointAmount.of(300L));
+            assertThat(detail.getCanceledAmount().getValue()).isLessThanOrEqualTo(detail.getUsedAmount().getValue());
+            assertThat(detail.getCancelableAmount()).isEqualTo(PointAmount.of(700L));
         }
     }
 }

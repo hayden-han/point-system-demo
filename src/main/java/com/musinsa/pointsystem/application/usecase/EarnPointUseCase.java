@@ -5,6 +5,7 @@ import com.musinsa.pointsystem.application.dto.EarnPointResult;
 import com.musinsa.pointsystem.application.port.DistributedLock;
 import com.musinsa.pointsystem.domain.model.EarnPolicyConfig;
 import com.musinsa.pointsystem.domain.model.MemberPoint;
+import com.musinsa.pointsystem.domain.model.PointAmount;
 import com.musinsa.pointsystem.domain.model.PointLedger;
 import com.musinsa.pointsystem.domain.model.PointTransaction;
 import com.musinsa.pointsystem.domain.repository.MemberPointRepository;
@@ -31,6 +32,9 @@ public class EarnPointUseCase {
     @DistributedLock(key = "'lock:point:member:' + #command.memberId")
     @Transactional
     public EarnPointResult execute(EarnPointCommand command) {
+        // DTO → 도메인 타입 변환
+        PointAmount amount = PointAmount.of(command.getAmount());
+
         // 정책 조회 (1회 쿼리)
         EarnPolicyConfig policy = pointPolicyRepository.getEarnPolicyConfig();
 
@@ -39,20 +43,19 @@ public class EarnPointUseCase {
 
         // 유효성 검증 (도메인 서비스)
         pointEarnValidator.validate(
-                command.getAmount(),
+                amount,
                 command.getExpirationDays(),
                 memberPoint,
                 policy
         );
 
-        // 만료일 계산
-        int expirationDays = policy.getExpirationDays(command.getExpirationDays());
-        LocalDateTime expiredAt = LocalDateTime.now().plusDays(expirationDays);
+        // 만료일 계산 (도메인 로직을 EarnPolicyConfig로 이동)
+        LocalDateTime expiredAt = policy.calculateExpirationDate(command.getExpirationDays());
 
         // 적립건 생성
         PointLedger pointLedger = PointLedger.create(
                 command.getMemberId(),
-                command.getAmount(),
+                amount,
                 command.getEarnType(),
                 expiredAt
         );
@@ -61,21 +64,21 @@ public class EarnPointUseCase {
         // 트랜잭션 기록
         PointTransaction transaction = PointTransaction.createEarn(
                 command.getMemberId(),
-                command.getAmount(),
+                amount,
                 savedLedger.getId()
         );
         PointTransaction savedTransaction = pointTransactionRepository.save(transaction);
 
         // 잔액 업데이트
-        memberPoint.increaseBalance(command.getAmount());
+        memberPoint.increaseBalance(amount);
         MemberPoint savedMemberPoint = memberPointRepository.save(memberPoint);
 
         return EarnPointResult.builder()
                 .ledgerId(savedLedger.getId())
                 .transactionId(savedTransaction.getId())
                 .memberId(command.getMemberId())
-                .earnedAmount(command.getAmount())
-                .totalBalance(savedMemberPoint.getTotalBalance())
+                .earnedAmount(amount.getValue())
+                .totalBalance(savedMemberPoint.getTotalBalance().getValue())
                 .expiredAt(expiredAt)
                 .build();
     }
