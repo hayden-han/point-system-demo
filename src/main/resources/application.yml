@@ -92,3 +92,10 @@ management:
     metrics:
       export:
         enabled: true
+
+# 분산락 설정
+distributed-lock:
+  wait-time-ms: 3000        # 락 획득 최대 대기 시간 (ms)
+  lease-time-ms: 30000      # 락 자동 해제 시간 (ms), -1이면 Watchdog 자동 연장
+  max-retry-attempts: 4     # 최대 재시도 횟수
+  retry-delays-ms: 0,200,500,1000  # 시도별 대기 시간 (ms)

@@ -25,14 +25,14 @@ public class PointTransactionMapper {
 
     public PointTransactionEntity toEntity(PointTransaction domain) {
         return PointTransactionEntity.builder()
-                .id(domain.getId())
-                .memberId(domain.getMemberId())
-                .type(domain.getType().name())
-                .amount(domain.getAmount().getValue())
-                .orderId(domain.getOrderId() != null ? domain.getOrderId().getValue() : null)
-                .relatedTransactionId(domain.getRelatedTransactionId())
-                .ledgerId(domain.getLedgerId())
-                .transactedAt(domain.getTransactedAt())
+                .id(domain.id())
+                .memberId(domain.memberId())
+                .type(domain.type().name())
+                .amount(domain.amount().value())
+                .orderId(domain.orderId() != null ? domain.orderId().value() : null)
+                .relatedTransactionId(domain.relatedTransactionId())
+                .ledgerId(domain.ledgerId())
+                .transactedAt(domain.transactedAt())
                 .build();
     }
 }

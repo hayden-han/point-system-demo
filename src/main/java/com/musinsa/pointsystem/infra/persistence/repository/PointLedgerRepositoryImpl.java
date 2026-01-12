@@ -22,14 +22,14 @@ public class PointLedgerRepositoryImpl implements PointLedgerRepository {
 
     @Override
     public PointLedger save(PointLedger pointLedger) {
-        if (pointLedger.getId() != null) {
+        if (pointLedger.id() != null) {
             // UUIDv7을 사용하므로 ID가 항상 존재함. DB 조회로 신규/기존 구분
-            Optional<PointLedgerEntity> existingEntity = jpaRepository.findById(pointLedger.getId());
+            Optional<PointLedgerEntity> existingEntity = jpaRepository.findById(pointLedger.id());
             if (existingEntity.isPresent()) {
                 // 기존 엔티티 업데이트
                 PointLedgerEntity entity = existingEntity.get();
-                entity.updateAvailableAmount(pointLedger.getAvailableAmount().getValue(), pointLedger.getUsedAmount().getValue());
-                if (pointLedger.isCanceled()) {
+                entity.updateAvailableAmount(pointLedger.availableAmount().value(), pointLedger.usedAmount().value());
+                if (pointLedger.canceled()) {
                     entity.cancel();
                 }
                 return mapper.toDomain(jpaRepository.save(entity));
@@ -71,7 +71,7 @@ public class PointLedgerRepositoryImpl implements PointLedgerRepository {
         // 별도의 신규/기존 구분 로직 필요
 
         List<UUID> ids = pointLedgers.stream()
-                .map(PointLedger::getId)
+                .map(PointLedger::id)
                 .toList();
 
         // 기존 엔티티 조회
@@ -83,11 +83,11 @@ public class PointLedgerRepositoryImpl implements PointLedgerRepository {
         List<PointLedgerEntity> newEntities = new java.util.ArrayList<>();
 
         for (PointLedger ledger : pointLedgers) {
-            PointLedgerEntity existingEntity = existingEntityMap.get(ledger.getId());
+            PointLedgerEntity existingEntity = existingEntityMap.get(ledger.id());
             if (existingEntity != null) {
                 // 기존 엔티티 업데이트
-                existingEntity.updateAvailableAmount(ledger.getAvailableAmount().getValue(), ledger.getUsedAmount().getValue());
-                if (ledger.isCanceled()) {
+                existingEntity.updateAvailableAmount(ledger.availableAmount().value(), ledger.usedAmount().value());
+                if (ledger.canceled()) {
                     existingEntity.cancel();
                 }
             } else {

@@ -43,9 +43,9 @@ public class MemberPointRepositoryImpl implements MemberPointRepository {
     @Override
     public MemberPoint save(MemberPoint memberPoint) {
         // MemberPoint 저장/업데이트
-        MemberPointEntity memberPointEntity = jpaRepository.findById(memberPoint.getMemberId())
+        MemberPointEntity memberPointEntity = jpaRepository.findById(memberPoint.memberId())
                 .map(existing -> {
-                    existing.updateTotalBalance(memberPoint.getTotalBalance().getValue());
+                    existing.updateTotalBalance(memberPoint.totalBalance().value());
                     return existing;
                 })
                 .orElseGet(() -> mapper.toEntity(memberPoint));
@@ -53,8 +53,8 @@ public class MemberPointRepositoryImpl implements MemberPointRepository {
         MemberPointEntity savedMemberPointEntity = jpaRepository.save(memberPointEntity);
 
         // Ledgers 저장
-        if (memberPoint.getLedgers() != null && !memberPoint.getLedgers().isEmpty()) {
-            saveLedgers(memberPoint.getLedgers());
+        if (memberPoint.ledgers() != null && !memberPoint.ledgers().isEmpty()) {
+            saveLedgers(memberPoint.ledgers());
         }
 
         return mapper.toDomain(savedMemberPointEntity);
@@ -69,7 +69,7 @@ public class MemberPointRepositoryImpl implements MemberPointRepository {
         }
 
         List<UUID> ids = ledgers.stream()
-                .map(PointLedger::getId)
+                .map(PointLedger::id)
                 .toList();
 
         // 기존 엔티티 조회
@@ -79,14 +79,14 @@ public class MemberPointRepositoryImpl implements MemberPointRepository {
         List<PointLedgerEntity> newEntities = new ArrayList<>();
 
         for (PointLedger ledger : ledgers) {
-            PointLedgerEntity existingEntity = existingEntityMap.get(ledger.getId());
+            PointLedgerEntity existingEntity = existingEntityMap.get(ledger.id());
             if (existingEntity != null) {
                 // 기존 엔티티 업데이트
                 existingEntity.updateAvailableAmount(
-                        ledger.getAvailableAmount().getValue(),
-                        ledger.getUsedAmount().getValue()
+                        ledger.availableAmount().value(),
+                        ledger.usedAmount().value()
                 );
-                if (ledger.isCanceled()) {
+                if (ledger.canceled()) {
                     existingEntity.cancel();
                 }
             } else {
@@ -100,10 +100,8 @@ public class MemberPointRepositoryImpl implements MemberPointRepository {
             pointLedgerJpaRepository.saveAll(newEntities);
         }
 
-        // 기존 엔티티는 변경감지로 자동 업데이트됨
-        if (!existingEntityMap.isEmpty()) {
-            pointLedgerJpaRepository.saveAll(existingEntityMap.values().stream().toList());
-        }
+        // 기존 엔티티는 변경감지(Dirty Checking)로 자동 업데이트됨
+        // 명시적 saveAll 호출 불필요
     }
 
     @Override

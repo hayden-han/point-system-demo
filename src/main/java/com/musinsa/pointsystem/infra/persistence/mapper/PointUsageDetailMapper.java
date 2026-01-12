@@ -20,11 +20,11 @@ public class PointUsageDetailMapper {
 
     public PointUsageDetailEntity toEntity(PointUsageDetail domain) {
         return PointUsageDetailEntity.builder()
-                .id(domain.getId())
-                .transactionId(domain.getTransactionId())
-                .ledgerId(domain.getLedgerId())
-                .usedAmount(domain.getUsedAmount().getValue())
-                .canceledAmount(domain.getCanceledAmount().getValue())
+                .id(domain.id())
+                .transactionId(domain.transactionId())
+                .ledgerId(domain.ledgerId())
+                .usedAmount(domain.usedAmount().value())
+                .canceledAmount(domain.canceledAmount().value())
                 .build();
     }
 }

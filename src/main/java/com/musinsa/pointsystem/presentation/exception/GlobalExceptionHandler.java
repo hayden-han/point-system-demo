@@ -97,6 +97,13 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of("VALIDATION_ERROR", message));
     }
 
+    @ExceptionHandler(DuplicateRequestException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateRequest(DuplicateRequestException e) {
+        log.warn("중복 요청 감지: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ErrorResponse.of("DUPLICATE_REQUEST", e.getMessage()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleException(Exception e) {
         log.error("예상치 못한 오류 발생", e);

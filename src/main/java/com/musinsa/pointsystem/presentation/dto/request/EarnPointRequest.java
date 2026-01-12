@@ -10,7 +10,7 @@ import lombok.Builder;
 @Builder
 public record EarnPointRequest(
 
-        @Schema(description = "적립 금액 (1 ~ 1,000,000)", example = "1000", minimum = "1", maximum = "1000000")
+        @Schema(description = "적립 금액 (1 ~ 100,000)", example = "1000", minimum = "1", maximum = "100000")
         @NotNull(message = "적립 금액은 필수입니다.")
         @Positive(message = "적립 금액은 양수여야 합니다.")
         Long amount,
@@ -20,6 +20,6 @@ public record EarnPointRequest(
         @Pattern(regexp = "^(MANUAL|SYSTEM)$", message = "적립 타입은 MANUAL 또는 SYSTEM이어야 합니다.")
         String earnType,
 
-        @Schema(description = "만료일 (일 단위, 미입력 시 기본 365일)", example = "365", minimum = "1", maximum = "1825")
+        @Schema(description = "만료일 (일 단위, 미입력 시 기본 365일)", example = "365", minimum = "1", maximum = "1824")
         Integer expirationDays
 ) {}

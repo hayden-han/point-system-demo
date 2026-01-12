@@ -6,10 +6,12 @@ import com.musinsa.pointsystem.application.dto.EarnPointCommand;
 import com.musinsa.pointsystem.application.dto.EarnPointResult;
 import com.musinsa.pointsystem.application.usecase.CancelEarnPointUseCase;
 import com.musinsa.pointsystem.application.usecase.EarnPointUseCase;
+import com.musinsa.pointsystem.infra.idempotency.IdempotencyKeyRepository;
 import com.musinsa.pointsystem.presentation.dto.request.EarnPointRequest;
 import com.musinsa.pointsystem.presentation.dto.response.CancelEarnPointResponse;
 import com.musinsa.pointsystem.presentation.dto.response.EarnPointResponse;
 import com.musinsa.pointsystem.presentation.dto.response.ErrorResponse;
+import com.musinsa.pointsystem.presentation.exception.DuplicateRequestException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -17,8 +19,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -27,17 +31,20 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/members/{memberId}/points/earn")
 @RequiredArgsConstructor
+@Slf4j
 public class PointEarnController {
 
     private final EarnPointUseCase earnPointUseCase;
     private final CancelEarnPointUseCase cancelEarnPointUseCase;
+    private final IdempotencyKeyRepository idempotencyKeyRepository;
+    private final ObjectMapper objectMapper;
 
     @Operation(
             summary = "포인트 적립",
             description = "회원에게 포인트를 적립합니다.\n\n" +
-                    "- 1회 적립 금액: 1원 ~ 1,000,000원\n" +
+                    "- 1회 적립 금액: 1원 ~ 100,000원\n" +
                     "- 최대 보유 금액: 10,000,000원\n" +
-                    "- 만료일: 기본 365일 (최소 1일 ~ 최대 5년)"
+                    "- 만료일: 기본 365일 (최소 1일 ~ 최대 1,824일)"
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "적립 성공",
@@ -77,16 +84,56 @@ public class PointEarnController {
     public EarnPointResponse earn(
             @Parameter(description = "회원 ID", required = true, example = "01938f9a-1234-7abc-def0-123456789abc")
             @PathVariable UUID memberId,
+            @Parameter(description = "멱등성 키 (중복 요청 방지용, 선택)", example = "unique-request-id-123")
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
             @Valid @RequestBody EarnPointRequest request) {
-        EarnPointCommand command = EarnPointCommand.builder()
-                .memberId(memberId)
-                .amount(request.amount())
-                .earnType(request.earnType())
-                .expirationDays(request.expirationDays())
-                .build();
 
-        EarnPointResult result = earnPointUseCase.execute(command);
-        return EarnPointResponse.from(result);
+        // 멱등성 키가 있으면 중복 체크
+        if (idempotencyKey != null && !idempotencyKey.isBlank()) {
+            // 이미 처리된 결과가 있으면 반환
+            var cachedResult = idempotencyKeyRepository.getResult(idempotencyKey);
+            if (cachedResult.isPresent()) {
+                try {
+                    return objectMapper.readValue(cachedResult.get(), EarnPointResponse.class);
+                } catch (Exception e) {
+                    log.warn("멱등성 캐시 역직렬화 실패: {}", e.getMessage());
+                }
+            }
+
+            // 새 요청 처리 시도
+            if (!idempotencyKeyRepository.tryAcquire(idempotencyKey)) {
+                throw new DuplicateRequestException(idempotencyKey);
+            }
+        }
+
+        try {
+            EarnPointCommand command = EarnPointCommand.builder()
+                    .memberId(memberId)
+                    .amount(request.amount())
+                    .earnType(request.earnType())
+                    .expirationDays(request.expirationDays())
+                    .build();
+
+            EarnPointResult result = earnPointUseCase.execute(command);
+            EarnPointResponse response = EarnPointResponse.from(result);
+
+            // 멱등성 키가 있으면 결과 저장
+            if (idempotencyKey != null && !idempotencyKey.isBlank()) {
+                try {
+                    idempotencyKeyRepository.saveResult(idempotencyKey, objectMapper.writeValueAsString(response));
+                } catch (Exception e) {
+                    log.warn("멱등성 결과 저장 실패: {}", e.getMessage());
+                }
+            }
+
+            return response;
+        } catch (Exception e) {
+            // 실패 시 멱등성 키 삭제 (재시도 허용)
+            if (idempotencyKey != null && !idempotencyKey.isBlank()) {
+                idempotencyKeyRepository.remove(idempotencyKey);
+            }
+            throw e;
+        }
     }
 
     @Operation(

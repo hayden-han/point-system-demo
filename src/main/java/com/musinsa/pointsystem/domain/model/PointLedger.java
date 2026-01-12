@@ -33,47 +33,6 @@ public record PointLedger(
         }
     }
 
-    // 기존 코드 호환성을 위한 getter 메서드들
-    public UUID getId() {
-        return id;
-    }
-
-    public UUID getMemberId() {
-        return memberId;
-    }
-
-    public PointAmount getEarnedAmount() {
-        return earnedAmount;
-    }
-
-    public PointAmount getAvailableAmount() {
-        return availableAmount;
-    }
-
-    public PointAmount getUsedAmount() {
-        return usedAmount;
-    }
-
-    public EarnType getEarnType() {
-        return earnType;
-    }
-
-    public UUID getSourceTransactionId() {
-        return sourceTransactionId;
-    }
-
-    public LocalDateTime getExpiredAt() {
-        return expiredAt;
-    }
-
-    public boolean isCanceled() {
-        return canceled;
-    }
-
-    public LocalDateTime getEarnedAt() {
-        return earnedAt;
-    }
-
     // 비즈니스 메서드
     public boolean canCancel() {
         return !canceled && earnedAmount.equals(availableAmount);

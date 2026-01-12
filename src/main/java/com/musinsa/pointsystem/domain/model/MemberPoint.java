@@ -28,19 +28,6 @@ public record MemberPoint(
         ledgers = ledgers != null ? List.copyOf(ledgers) : List.of();
     }
 
-    // 기존 코드 호환성을 위한 getter 메서드들
-    public UUID getMemberId() {
-        return memberId;
-    }
-
-    public PointAmount getTotalBalance() {
-        return totalBalance;
-    }
-
-    public List<PointLedger> getLedgers() {
-        return ledgers;
-    }
-
     // Static Factory Method
     public static MemberPoint create(UUID memberId) {
         return new MemberPoint(memberId, PointAmount.ZERO, List.of());

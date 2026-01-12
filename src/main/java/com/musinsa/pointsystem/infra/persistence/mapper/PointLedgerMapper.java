@@ -26,16 +26,16 @@ public class PointLedgerMapper {
 
     public PointLedgerEntity toEntity(PointLedger domain) {
         return PointLedgerEntity.builder()
-                .id(domain.getId())
-                .memberId(domain.getMemberId())
-                .earnedAmount(domain.getEarnedAmount().getValue())
-                .availableAmount(domain.getAvailableAmount().getValue())
-                .usedAmount(domain.getUsedAmount().getValue())
-                .earnType(domain.getEarnType().name())
-                .sourceTransactionId(domain.getSourceTransactionId())
-                .expiredAt(domain.getExpiredAt())
-                .isCanceled(domain.isCanceled())
-                .earnedAt(domain.getEarnedAt())
+                .id(domain.id())
+                .memberId(domain.memberId())
+                .earnedAmount(domain.earnedAmount().value())
+                .availableAmount(domain.availableAmount().value())
+                .usedAmount(domain.usedAmount().value())
+                .earnType(domain.earnType().name())
+                .sourceTransactionId(domain.sourceTransactionId())
+                .expiredAt(domain.expiredAt())
+                .isCanceled(domain.canceled())
+                .earnedAt(domain.earnedAt())
                 .build();
     }
 }

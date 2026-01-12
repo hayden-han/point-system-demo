@@ -58,6 +58,6 @@ public class MemberPointMapper {
     }
 
     public MemberPointEntity toEntity(MemberPoint domain) {
-        return new MemberPointEntity(domain.getMemberId(), domain.getTotalBalance().getValue());
+        return new MemberPointEntity(domain.memberId(), domain.totalBalance().value());
     }
 }

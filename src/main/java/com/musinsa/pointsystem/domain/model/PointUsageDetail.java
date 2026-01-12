@@ -21,27 +21,6 @@ public record PointUsageDetail(
         }
     }
 
-    // 기존 코드 호환성을 위한 getter 메서드들
-    public UUID getId() {
-        return id;
-    }
-
-    public UUID getTransactionId() {
-        return transactionId;
-    }
-
-    public UUID getLedgerId() {
-        return ledgerId;
-    }
-
-    public PointAmount getUsedAmount() {
-        return usedAmount;
-    }
-
-    public PointAmount getCanceledAmount() {
-        return canceledAmount;
-    }
-
     // 비즈니스 메서드
     public PointAmount getCancelableAmount() {
         return usedAmount.subtract(canceledAmount);

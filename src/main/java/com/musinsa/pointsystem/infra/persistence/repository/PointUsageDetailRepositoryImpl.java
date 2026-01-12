@@ -22,13 +22,13 @@ public class PointUsageDetailRepositoryImpl implements PointUsageDetailRepositor
 
     @Override
     public PointUsageDetail save(PointUsageDetail pointUsageDetail) {
-        if (pointUsageDetail.getId() != null) {
+        if (pointUsageDetail.id() != null) {
             // UUIDv7을 사용하므로 ID가 항상 존재함. DB 조회로 신규/기존 구분
-            Optional<PointUsageDetailEntity> existingEntity = jpaRepository.findById(pointUsageDetail.getId());
+            Optional<PointUsageDetailEntity> existingEntity = jpaRepository.findById(pointUsageDetail.id());
             if (existingEntity.isPresent()) {
                 // 기존 엔티티 업데이트
                 PointUsageDetailEntity entity = existingEntity.get();
-                entity.addCanceledAmount(pointUsageDetail.getCanceledAmount().getValue() - entity.getCanceledAmount());
+                entity.addCanceledAmount(pointUsageDetail.canceledAmount().value() - entity.getCanceledAmount());
                 return mapper.toDomain(jpaRepository.save(entity));
             }
         }
@@ -45,7 +45,7 @@ public class PointUsageDetailRepositoryImpl implements PointUsageDetailRepositor
 
         // ID가 이미 도메인에서 생성되므로 기존 엔티티인지 DB 조회로 확인
         List<UUID> ids = pointUsageDetails.stream()
-                .map(PointUsageDetail::getId)
+                .map(PointUsageDetail::id)
                 .toList();
 
         // 기존 엔티티 조회
@@ -56,10 +56,10 @@ public class PointUsageDetailRepositoryImpl implements PointUsageDetailRepositor
         List<PointUsageDetailEntity> newEntities = new java.util.ArrayList<>();
 
         for (PointUsageDetail detail : pointUsageDetails) {
-            PointUsageDetailEntity existingEntity = existingEntityMap.get(detail.getId());
+            PointUsageDetailEntity existingEntity = existingEntityMap.get(detail.id());
             if (existingEntity != null) {
                 // 기존 엔티티 업데이트 - 취소 금액 차이만큼 추가
-                existingEntity.addCanceledAmount(detail.getCanceledAmount().getValue() - existingEntity.getCanceledAmount());
+                existingEntity.addCanceledAmount(detail.canceledAmount().value() - existingEntity.getCanceledAmount());
             } else {
                 // 신규 엔티티
                 newEntities.add(mapper.toEntity(detail));
