@@ -17,4 +17,9 @@ public interface PointLedgerJpaRepository extends JpaRepository<PointLedgerEntit
            "AND pl.isCanceled = false " +
            "ORDER BY CASE pl.earnType WHEN 'MANUAL' THEN 0 ELSE 1 END, pl.expiredAt ASC")
     List<PointLedgerEntity> findAvailableByMemberId(@Param("memberId") UUID memberId);
+
+    /**
+     * 회원의 모든 적립건 조회
+     */
+    List<PointLedgerEntity> findByMemberId(UUID memberId);
 }

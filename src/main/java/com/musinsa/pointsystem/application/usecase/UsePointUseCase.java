@@ -6,14 +6,11 @@ import com.musinsa.pointsystem.application.port.DistributedLock;
 import com.musinsa.pointsystem.domain.model.MemberPoint;
 import com.musinsa.pointsystem.domain.model.OrderId;
 import com.musinsa.pointsystem.domain.model.PointAmount;
-import com.musinsa.pointsystem.domain.model.PointLedger;
 import com.musinsa.pointsystem.domain.model.PointTransaction;
 import com.musinsa.pointsystem.domain.model.PointUsageDetail;
 import com.musinsa.pointsystem.domain.repository.MemberPointRepository;
-import com.musinsa.pointsystem.domain.repository.PointLedgerRepository;
 import com.musinsa.pointsystem.domain.repository.PointTransactionRepository;
 import com.musinsa.pointsystem.domain.repository.PointUsageDetailRepository;
-import com.musinsa.pointsystem.domain.service.PointUsagePolicy;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,10 +22,8 @@ import java.util.List;
 public class UsePointUseCase {
 
     private final MemberPointRepository memberPointRepository;
-    private final PointLedgerRepository pointLedgerRepository;
     private final PointTransactionRepository pointTransactionRepository;
     private final PointUsageDetailRepository pointUsageDetailRepository;
-    private final PointUsagePolicy pointUsagePolicy;
 
     @DistributedLock(key = "'lock:point:member:' + #command.memberId")
     @Transactional
@@ -37,12 +32,16 @@ public class UsePointUseCase {
         OrderId orderId = OrderId.of(command.getOrderId());
         PointAmount amount = PointAmount.of(command.getAmount());
 
-        MemberPoint memberPoint = memberPointRepository.getOrCreate(command.getMemberId());
+        // 회원 포인트 조회 (사용 가능한 Ledgers 포함)
+        MemberPoint memberPoint = memberPointRepository.getOrCreateWithAvailableLedgers(command.getMemberId());
 
-        // 사용 가능한 적립건 조회 (우선순위: 수기지급 > 만료일 짧은 순)
-        List<PointLedger> availableLedgers = pointLedgerRepository.findAvailableByMemberId(command.getMemberId());
+        // Aggregate 메서드 호출 (잔액 검증 + 적립건 차감 + 잔액 업데이트)
+        MemberPoint.UsageResult usageResult = memberPoint.use(amount);
 
-        // 트랜잭션 생성
+        // MemberPoint와 Ledgers 함께 저장
+        memberPointRepository.save(memberPoint);
+
+        // 트랜잭션 생성 및 저장
         PointTransaction transaction = PointTransaction.createUse(
                 command.getMemberId(),
                 amount,
@@ -50,10 +49,7 @@ public class UsePointUseCase {
         );
         PointTransaction savedTransaction = pointTransactionRepository.save(transaction);
 
-        // 도메인 서비스로 적립건에서 차감
-        PointUsagePolicy.UsageResult usageResult = pointUsagePolicy.use(availableLedgers, amount);
-
-        // 사용 상세 생성
+        // 사용 상세 생성 및 저장
         List<PointUsageDetail> usageDetails = usageResult.usageDetails().stream()
                 .map(detail -> PointUsageDetail.create(
                         savedTransaction.getId(),
@@ -61,21 +57,13 @@ public class UsePointUseCase {
                         detail.usedAmount()
                 ))
                 .toList();
-
-        // 저장
-        pointLedgerRepository.saveAll(usageResult.updatedLedgers());
         pointUsageDetailRepository.saveAll(usageDetails);
-
-        // 회원 잔액 업데이트 (도메인 모델 내에서 잔액 부족 검증)
-        // - 잔액 부족 시: InsufficientPointException
-        memberPoint.decreaseBalance(amount);
-        MemberPoint savedMemberPoint = memberPointRepository.save(memberPoint);
 
         return UsePointResult.builder()
                 .transactionId(savedTransaction.getId())
                 .memberId(command.getMemberId())
                 .usedAmount(amount.getValue())
-                .totalBalance(savedMemberPoint.getTotalBalance().getValue())
+                .totalBalance(memberPoint.getTotalBalance().getValue())
                 .orderId(command.getOrderId())
                 .build();
     }

@@ -5,10 +5,8 @@ import com.musinsa.pointsystem.application.dto.CancelEarnPointResult;
 import com.musinsa.pointsystem.domain.exception.PointLedgerNotFoundException;
 import com.musinsa.pointsystem.domain.model.MemberPoint;
 import com.musinsa.pointsystem.domain.model.PointAmount;
-import com.musinsa.pointsystem.domain.model.PointLedger;
 import com.musinsa.pointsystem.domain.model.PointTransaction;
 import com.musinsa.pointsystem.domain.repository.MemberPointRepository;
-import com.musinsa.pointsystem.domain.repository.PointLedgerRepository;
 import com.musinsa.pointsystem.domain.repository.PointTransactionRepository;
 import com.musinsa.pointsystem.application.port.DistributedLock;
 import lombok.RequiredArgsConstructor;
@@ -20,23 +18,22 @@ import org.springframework.transaction.annotation.Transactional;
 public class CancelEarnPointUseCase {
 
     private final MemberPointRepository memberPointRepository;
-    private final PointLedgerRepository pointLedgerRepository;
     private final PointTransactionRepository pointTransactionRepository;
 
     @DistributedLock(key = "'lock:point:member:' + #command.memberId")
     @Transactional
     public CancelEarnPointResult execute(CancelEarnPointCommand command) {
-        // 적립건 조회
-        PointLedger pointLedger = pointLedgerRepository.findById(command.getLedgerId())
+        // 회원 포인트 조회 (Ledgers 포함)
+        MemberPoint memberPoint = memberPointRepository.findByMemberIdWithLedgers(command.getMemberId())
                 .orElseThrow(() -> new PointLedgerNotFoundException(command.getLedgerId()));
 
-        // 적립 취소 수행 (도메인 모델 내에서 비즈니스 규칙 검증)
-        // - 이미 취소된 경우: PointLedgerAlreadyCanceledException
-        // - 사용된 경우: PointLedgerAlreadyUsedException
-        PointAmount canceledAmount = pointLedger.getEarnedAmount();
-        pointLedger.cancel();
-        pointLedgerRepository.save(pointLedger);
+        // Aggregate 메서드 호출 (검증 + 취소 + 잔액 업데이트)
+        PointAmount canceledAmount = memberPoint.cancelEarn(command.getLedgerId());
 
+        // MemberPoint와 Ledgers 함께 저장
+        memberPointRepository.save(memberPoint);
+
+        // 트랜잭션 기록
         PointTransaction transaction = PointTransaction.createEarnCancel(
                 command.getMemberId(),
                 canceledAmount,
@@ -44,16 +41,12 @@ public class CancelEarnPointUseCase {
         );
         PointTransaction savedTransaction = pointTransactionRepository.save(transaction);
 
-        MemberPoint memberPoint = memberPointRepository.getOrCreate(command.getMemberId());
-        memberPoint.decreaseBalance(canceledAmount);
-        MemberPoint savedMemberPoint = memberPointRepository.save(memberPoint);
-
         return CancelEarnPointResult.builder()
                 .ledgerId(command.getLedgerId())
                 .transactionId(savedTransaction.getId())
                 .memberId(command.getMemberId())
                 .canceledAmount(canceledAmount.getValue())
-                .totalBalance(savedMemberPoint.getTotalBalance().getValue())
+                .totalBalance(memberPoint.getTotalBalance().getValue())
                 .build();
     }
 }

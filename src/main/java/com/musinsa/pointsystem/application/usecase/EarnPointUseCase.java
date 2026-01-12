@@ -9,15 +9,11 @@ import com.musinsa.pointsystem.domain.model.PointAmount;
 import com.musinsa.pointsystem.domain.model.PointLedger;
 import com.musinsa.pointsystem.domain.model.PointTransaction;
 import com.musinsa.pointsystem.domain.repository.MemberPointRepository;
-import com.musinsa.pointsystem.domain.repository.PointLedgerRepository;
 import com.musinsa.pointsystem.domain.repository.PointPolicyRepository;
 import com.musinsa.pointsystem.domain.repository.PointTransactionRepository;
-import com.musinsa.pointsystem.domain.service.PointEarnValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -25,9 +21,7 @@ public class EarnPointUseCase {
 
     private final PointPolicyRepository pointPolicyRepository;
     private final MemberPointRepository memberPointRepository;
-    private final PointLedgerRepository pointLedgerRepository;
     private final PointTransactionRepository pointTransactionRepository;
-    private final PointEarnValidator pointEarnValidator;
 
     @DistributedLock(key = "'lock:point:member:' + #command.memberId")
     @Transactional
@@ -38,48 +32,35 @@ public class EarnPointUseCase {
         // 정책 조회 (1회 쿼리)
         EarnPolicyConfig policy = pointPolicyRepository.getEarnPolicyConfig();
 
-        // 회원 포인트 조회
-        MemberPoint memberPoint = memberPointRepository.getOrCreate(command.getMemberId());
+        // 회원 포인트 조회 (Ledgers 포함)
+        MemberPoint memberPoint = memberPointRepository.getOrCreateWithLedgers(command.getMemberId());
 
-        // 유효성 검증 (도메인 서비스)
-        pointEarnValidator.validate(
+        // Aggregate 메서드 호출 (검증 + 적립 + 잔액 업데이트)
+        PointLedger ledger = memberPoint.earnWithExpirationValidation(
                 amount,
+                command.getEarnType(),
                 command.getExpirationDays(),
-                memberPoint,
                 policy
         );
 
-        // 만료일 계산 (도메인 로직을 EarnPolicyConfig로 이동)
-        LocalDateTime expiredAt = policy.calculateExpirationDate(command.getExpirationDays());
+        // MemberPoint와 Ledgers 함께 저장
+        memberPointRepository.save(memberPoint);
 
-        // 적립건 생성
-        PointLedger pointLedger = PointLedger.create(
-                command.getMemberId(),
-                amount,
-                command.getEarnType(),
-                expiredAt
-        );
-        PointLedger savedLedger = pointLedgerRepository.save(pointLedger);
-
-        // 트랜잭션 기록
+        // 트랜잭션 기록 (감사 로그)
         PointTransaction transaction = PointTransaction.createEarn(
                 command.getMemberId(),
                 amount,
-                savedLedger.getId()
+                ledger.getId()
         );
         PointTransaction savedTransaction = pointTransactionRepository.save(transaction);
 
-        // 잔액 업데이트
-        memberPoint.increaseBalance(amount);
-        MemberPoint savedMemberPoint = memberPointRepository.save(memberPoint);
-
         return EarnPointResult.builder()
-                .ledgerId(savedLedger.getId())
+                .ledgerId(ledger.getId())
                 .transactionId(savedTransaction.getId())
                 .memberId(command.getMemberId())
                 .earnedAmount(amount.getValue())
-                .totalBalance(savedMemberPoint.getTotalBalance().getValue())
-                .expiredAt(expiredAt)
+                .totalBalance(memberPoint.getTotalBalance().getValue())
+                .expiredAt(ledger.getExpiredAt())
                 .build();
     }
 }
