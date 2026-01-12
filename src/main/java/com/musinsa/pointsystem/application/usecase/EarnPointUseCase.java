@@ -12,7 +12,7 @@ import com.musinsa.pointsystem.domain.model.PointTransaction;
 import com.musinsa.pointsystem.domain.repository.MemberPointRepository;
 import com.musinsa.pointsystem.domain.repository.PointPolicyRepository;
 import com.musinsa.pointsystem.domain.repository.PointTransactionRepository;
-import com.musinsa.pointsystem.domain.service.PointDomainService;
+import com.musinsa.pointsystem.domain.service.PointAccrualManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,7 +24,7 @@ public class EarnPointUseCase {
     private final MemberPointRepository memberPointRepository;
     private final PointTransactionRepository pointTransactionRepository;
     private final PointPolicyRepository pointPolicyRepository;
-    private final PointDomainService pointDomainService;
+    private final PointAccrualManager pointAccrualManager;
 
     @DistributedLock(key = "'lock:point:member:' + #command.memberId")
     @Transactional
@@ -40,7 +40,7 @@ public class EarnPointUseCase {
         MemberPoint memberPoint = memberPointRepository.getOrCreateWithLedgers(command.memberId());
 
         // Domain Service를 통한 적립 처리
-        MemberPoint.EarnResult earnResult = pointDomainService.earnWithExpirationValidation(
+        MemberPoint.EarnResult earnResult = pointAccrualManager.earnWithExpirationValidation(
                 memberPoint,
                 amount,
                 earnType,
@@ -56,7 +56,7 @@ public class EarnPointUseCase {
         memberPointRepository.save(updatedMemberPoint);
 
         // 트랜잭션 기록 (감사 로그)
-        PointTransaction transaction = pointDomainService.createEarnTransaction(
+        PointTransaction transaction = pointAccrualManager.createEarnTransaction(
                 command.memberId(),
                 amount,
                 ledger.id()

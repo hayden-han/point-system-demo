@@ -14,7 +14,7 @@ import com.musinsa.pointsystem.domain.repository.MemberPointRepository;
 import com.musinsa.pointsystem.domain.repository.PointPolicyRepository;
 import com.musinsa.pointsystem.domain.repository.PointTransactionRepository;
 import com.musinsa.pointsystem.domain.repository.PointUsageDetailRepository;
-import com.musinsa.pointsystem.domain.service.PointDomainService;
+import com.musinsa.pointsystem.domain.service.PointUsageManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,7 +29,7 @@ public class CancelUsePointUseCase {
     private final PointTransactionRepository pointTransactionRepository;
     private final PointUsageDetailRepository pointUsageDetailRepository;
     private final PointPolicyRepository pointPolicyRepository;
-    private final PointDomainService pointDomainService;
+    private final PointUsageManager pointUsageManager;
 
     @DistributedLock(key = "'lock:point:member:' + #command.memberId")
     @Transactional
@@ -49,7 +49,7 @@ public class CancelUsePointUseCase {
         ExpirationPolicyConfig expirationPolicy = pointPolicyRepository.getExpirationPolicyConfig();
 
         // 사용취소 트랜잭션 생성 및 저장
-        PointTransaction cancelTransaction = pointDomainService.createUseCancelTransaction(
+        PointTransaction cancelTransaction = pointUsageManager.createUseCancelTransaction(
                 command.memberId(),
                 cancelAmount,
                 originalTransaction.orderId(),
@@ -62,7 +62,7 @@ public class CancelUsePointUseCase {
                 .orElseThrow(() -> new MemberPointNotFoundException(command.memberId()));
 
         // Domain Service를 통한 사용 취소 처리
-        MemberPoint.RestoreResult restoreResult = pointDomainService.cancelUse(
+        MemberPoint.RestoreResult restoreResult = pointUsageManager.cancelUse(
                 memberPoint,
                 usageDetails,
                 cancelAmount,

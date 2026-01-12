@@ -2,7 +2,6 @@ package com.musinsa.pointsystem.domain.factory;
 
 import com.musinsa.pointsystem.domain.model.*;
 import com.musinsa.pointsystem.domain.port.IdGenerator;
-import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -11,8 +10,8 @@ import java.util.UUID;
  * 포인트 도메인 객체 생성 팩토리
  * - ID 생성 로직을 캡슐화
  * - 도메인 모델의 순수성 유지
+ * - 프레임워크 독립적 (Spring 어노테이션 없음)
  */
-@Component
 public class PointFactory {
 
     private final IdGenerator idGenerator;
