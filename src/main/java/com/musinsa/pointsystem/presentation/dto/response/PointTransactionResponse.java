@@ -33,7 +33,7 @@ public record PointTransactionResponse(
         UUID ledgerId,
 
         @Schema(description = "거래 일시", example = "2024-01-01T12:00:00")
-        LocalDateTime createdAt
+        LocalDateTime transactedAt
 ) {
     public static PointTransactionResponse from(PointTransactionResult result) {
         return PointTransactionResponse.builder()
@@ -44,7 +44,7 @@ public record PointTransactionResponse(
                 .orderId(result.orderId())
                 .relatedTransactionId(result.relatedTransactionId())
                 .ledgerId(result.ledgerId())
-                .createdAt(result.createdAt())
+                .transactedAt(result.transactedAt())
                 .build();
     }
 }

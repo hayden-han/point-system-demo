@@ -18,5 +18,5 @@ public record PointTransactionResult(
         String orderId,
         UUID relatedTransactionId,
         UUID ledgerId,
-        LocalDateTime createdAt
+        LocalDateTime transactedAt
 ) {}
