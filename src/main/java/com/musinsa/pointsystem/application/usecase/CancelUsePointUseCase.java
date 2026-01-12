@@ -59,7 +59,7 @@ public class CancelUsePointUseCase {
         MemberPoint memberPoint = memberPointRepository.findByMemberIdWithLedgers(command.getMemberId())
                 .orElseThrow(() -> new MemberPointNotFoundException(command.getMemberId()));
 
-        // Aggregate 메서드 호출 (검증 + 복구 + 잔액 업데이트)
+        // Aggregate 메서드 호출 (불변 - 새 MemberPoint 반환)
         MemberPoint.RestoreResult restoreResult = memberPoint.cancelUse(
                 usageDetails,
                 cancelAmount,
@@ -67,8 +67,11 @@ public class CancelUsePointUseCase {
                 savedCancelTransaction.getId()
         );
 
+        // 결과에서 새 객체 추출
+        MemberPoint updatedMemberPoint = restoreResult.memberPoint();
+
         // MemberPoint와 Ledgers 함께 저장
-        memberPointRepository.save(memberPoint);
+        memberPointRepository.save(updatedMemberPoint);
 
         // 사용 상세 저장
         pointUsageDetailRepository.saveAll(restoreResult.updatedUsageDetails());
@@ -77,7 +80,7 @@ public class CancelUsePointUseCase {
                 .transactionId(savedCancelTransaction.getId())
                 .memberId(command.getMemberId())
                 .canceledAmount(cancelAmount.getValue())
-                .totalBalance(memberPoint.getTotalBalance().getValue())
+                .totalBalance(updatedMemberPoint.getTotalBalance().getValue())
                 .orderId(originalTransaction.getOrderId().getValue())
                 .build();
     }

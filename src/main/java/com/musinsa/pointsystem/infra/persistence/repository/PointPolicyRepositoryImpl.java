@@ -61,14 +61,14 @@ public class PointPolicyRepositoryImpl implements PointPolicyRepository {
                         PointPolicyEntity::getPolicyValue
                 ));
 
-        return EarnPolicyConfig.builder()
-                .minAmount(PointAmount.of(policyMap.get(PointPolicy.EARN_MIN_AMOUNT)))
-                .maxAmount(PointAmount.of(policyMap.get(PointPolicy.EARN_MAX_AMOUNT)))
-                .maxBalance(PointAmount.of(policyMap.get(PointPolicy.BALANCE_MAX_AMOUNT)))
-                .defaultExpirationDays(policyMap.get(PointPolicy.EXPIRATION_DEFAULT_DAYS).intValue())
-                .minExpirationDays(policyMap.get(PointPolicy.EXPIRATION_MIN_DAYS).intValue())
-                .maxExpirationDays(policyMap.get(PointPolicy.EXPIRATION_MAX_DAYS).intValue())
-                .build();
+        return new EarnPolicyConfig(
+                PointAmount.of(policyMap.get(PointPolicy.EARN_MIN_AMOUNT)),
+                PointAmount.of(policyMap.get(PointPolicy.EARN_MAX_AMOUNT)),
+                PointAmount.of(policyMap.get(PointPolicy.BALANCE_MAX_AMOUNT)),
+                policyMap.get(PointPolicy.EXPIRATION_DEFAULT_DAYS).intValue(),
+                policyMap.get(PointPolicy.EXPIRATION_MIN_DAYS).intValue(),
+                policyMap.get(PointPolicy.EXPIRATION_MAX_DAYS).intValue()
+        );
     }
 
     @Override

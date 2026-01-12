@@ -9,14 +9,14 @@ import org.springframework.stereotype.Component;
 public class PointUsageDetailMapper {
 
     public PointUsageDetail toDomain(PointUsageDetailEntity entity) {
-        return PointUsageDetail.builder()
-                .id(entity.getId())
-                .transactionId(entity.getTransactionId())
-                .ledgerId(entity.getLedgerId())
-                .usedAmount(PointAmount.of(entity.getUsedAmount()))
-                .canceledAmount(PointAmount.of(entity.getCanceledAmount()))
-                .createdAt(entity.getCreatedAt())
-                .build();
+        return new PointUsageDetail(
+                entity.getId(),
+                entity.getTransactionId(),
+                entity.getLedgerId(),
+                PointAmount.of(entity.getUsedAmount()),
+                PointAmount.of(entity.getCanceledAmount()),
+                entity.getCreatedAt()
+        );
     }
 
     public PointUsageDetailEntity toEntity(PointUsageDetail domain) {

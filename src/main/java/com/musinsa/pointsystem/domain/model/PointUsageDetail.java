@@ -1,54 +1,96 @@
 package com.musinsa.pointsystem.domain.model;
 
 import com.musinsa.pointsystem.common.util.UuidGenerator;
-import lombok.Builder;
-import lombok.Getter;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-@Getter
-public class PointUsageDetail {
-    private final UUID id;
-    private final UUID transactionId;
-    private final UUID ledgerId;
-    private final PointAmount usedAmount;
-    private PointAmount canceledAmount;
-    private final LocalDateTime createdAt;
-
-    @Builder
-    public PointUsageDetail(UUID id, UUID transactionId, UUID ledgerId,
-                            PointAmount usedAmount, PointAmount canceledAmount, LocalDateTime createdAt) {
-        this.id = id;
-        this.transactionId = transactionId;
-        this.ledgerId = ledgerId;
-        this.usedAmount = usedAmount;
-        this.canceledAmount = canceledAmount != null ? canceledAmount : PointAmount.ZERO;
-        this.createdAt = createdAt;
+/**
+ * 포인트 사용 상세 (어떤 적립건에서 얼마나 사용했는지 추적)
+ * - 불변 record + wither 패턴
+ * - 상태 변경 시 새 객체 반환
+ */
+public record PointUsageDetail(
+        UUID id,
+        UUID transactionId,
+        UUID ledgerId,
+        PointAmount usedAmount,
+        PointAmount canceledAmount,
+        LocalDateTime createdAt
+) {
+    // Compact constructor - 기본값 설정
+    public PointUsageDetail {
+        if (canceledAmount == null) {
+            canceledAmount = PointAmount.ZERO;
+        }
     }
 
+    // 기존 코드 호환성을 위한 getter 메서드들
+    public UUID getId() {
+        return id;
+    }
+
+    public UUID getTransactionId() {
+        return transactionId;
+    }
+
+    public UUID getLedgerId() {
+        return ledgerId;
+    }
+
+    public PointAmount getUsedAmount() {
+        return usedAmount;
+    }
+
+    public PointAmount getCanceledAmount() {
+        return canceledAmount;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    // Static Factory Method
     public static PointUsageDetail create(UUID transactionId, UUID ledgerId, PointAmount usedAmount) {
-        return PointUsageDetail.builder()
-                .id(UuidGenerator.generate())
-                .transactionId(transactionId)
-                .ledgerId(ledgerId)
-                .usedAmount(usedAmount)
-                .canceledAmount(PointAmount.ZERO)
-                .createdAt(LocalDateTime.now())
-                .build();
+        return new PointUsageDetail(
+                UuidGenerator.generate(),
+                transactionId,
+                ledgerId,
+                usedAmount,
+                PointAmount.ZERO,
+                LocalDateTime.now()
+        );
     }
 
+    // 비즈니스 메서드
     public PointAmount getCancelableAmount() {
         return usedAmount.subtract(canceledAmount);
-    }
-
-    public PointAmount cancel(PointAmount amount) {
-        PointAmount cancelAmount = amount.min(getCancelableAmount());
-        this.canceledAmount = this.canceledAmount.add(cancelAmount);
-        return cancelAmount;
     }
 
     public boolean isCancelable() {
         return getCancelableAmount().isPositive();
     }
+
+    /**
+     * 취소 처리 (불변 - 새 객체 반환)
+     * @param amount 취소할 금액
+     * @return [새 PointUsageDetail, 실제 취소된 금액] 튜플
+     */
+    public CancelResult cancel(PointAmount amount) {
+        PointAmount cancelAmount = amount.min(getCancelableAmount());
+        PointUsageDetail updated = new PointUsageDetail(
+                id,
+                transactionId,
+                ledgerId,
+                usedAmount,
+                canceledAmount.add(cancelAmount),
+                createdAt
+        );
+        return new CancelResult(updated, cancelAmount);
+    }
+
+    /**
+     * 취소 결과 (새 객체 + 취소된 금액)
+     */
+    public record CancelResult(PointUsageDetail usageDetail, PointAmount canceledAmount) {}
 }

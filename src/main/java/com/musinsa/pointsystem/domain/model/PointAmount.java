@@ -1,27 +1,19 @@
 package com.musinsa.pointsystem.domain.model;
 
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-
 /**
  * 포인트 금액을 나타내는 Value Object.
- * - 불변(immutable)
+ * - 불변(immutable) record
  * - 0 이상의 값만 허용
  * - 금액 연산 메서드 제공
  */
-@Getter
-@EqualsAndHashCode
-public final class PointAmount implements Comparable<PointAmount> {
+public record PointAmount(long value) implements Comparable<PointAmount> {
 
     public static final PointAmount ZERO = new PointAmount(0L);
 
-    private final long value;
-
-    private PointAmount(long value) {
+    public PointAmount {
         if (value < 0) {
             throw new IllegalArgumentException("금액은 0 이상이어야 합니다: " + value);
         }
-        this.value = value;
     }
 
     public static PointAmount of(long value) {
@@ -29,6 +21,11 @@ public final class PointAmount implements Comparable<PointAmount> {
             return ZERO;
         }
         return new PointAmount(value);
+    }
+
+    // record의 getter는 value()로 접근하지만, 기존 코드 호환성을 위해 getValue() 추가
+    public long getValue() {
+        return value;
     }
 
     public PointAmount add(PointAmount other) {
@@ -74,10 +71,5 @@ public final class PointAmount implements Comparable<PointAmount> {
     @Override
     public int compareTo(PointAmount other) {
         return Long.compare(this.value, other.value);
-    }
-
-    @Override
-    public String toString() {
-        return String.valueOf(value);
     }
 }

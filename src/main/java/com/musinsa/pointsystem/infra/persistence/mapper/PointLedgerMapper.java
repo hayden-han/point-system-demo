@@ -10,18 +10,18 @@ import org.springframework.stereotype.Component;
 public class PointLedgerMapper {
 
     public PointLedger toDomain(PointLedgerEntity entity) {
-        return PointLedger.builder()
-                .id(entity.getId())
-                .memberId(entity.getMemberId())
-                .earnedAmount(PointAmount.of(entity.getEarnedAmount()))
-                .availableAmount(PointAmount.of(entity.getAvailableAmount()))
-                .usedAmount(PointAmount.of(entity.getUsedAmount()))
-                .earnType(EarnType.valueOf(entity.getEarnType()))
-                .sourceTransactionId(entity.getSourceTransactionId())
-                .expiredAt(entity.getExpiredAt())
-                .isCanceled(entity.getIsCanceled())
-                .createdAt(entity.getCreatedAt())
-                .build();
+        return new PointLedger(
+                entity.getId(),
+                entity.getMemberId(),
+                PointAmount.of(entity.getEarnedAmount()),
+                PointAmount.of(entity.getAvailableAmount()),
+                PointAmount.of(entity.getUsedAmount()),
+                EarnType.valueOf(entity.getEarnType()),
+                entity.getSourceTransactionId(),
+                entity.getExpiredAt(),
+                entity.getIsCanceled(),
+                entity.getCreatedAt()
+        );
     }
 
     public PointLedgerEntity toEntity(PointLedger domain) {

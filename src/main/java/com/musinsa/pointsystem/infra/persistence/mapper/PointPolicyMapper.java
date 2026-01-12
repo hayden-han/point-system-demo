@@ -8,11 +8,11 @@ import org.springframework.stereotype.Component;
 public class PointPolicyMapper {
 
     public PointPolicy toDomain(PointPolicyEntity entity) {
-        return PointPolicy.builder()
-                .id(entity.getId())
-                .policyKey(entity.getPolicyKey())
-                .policyValue(entity.getPolicyValue())
-                .description(entity.getDescription())
-                .build();
+        return new PointPolicy(
+                entity.getId(),
+                entity.getPolicyKey(),
+                entity.getPolicyValue(),
+                entity.getDescription()
+        );
     }
 }

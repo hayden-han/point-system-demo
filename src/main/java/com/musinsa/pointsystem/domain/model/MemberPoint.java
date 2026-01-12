@@ -1,8 +1,8 @@
 package com.musinsa.pointsystem.domain.model;
 
+import com.musinsa.pointsystem.common.util.UuidGenerator;
+import com.musinsa.pointsystem.domain.event.*;
 import com.musinsa.pointsystem.domain.exception.*;
-import lombok.Builder;
-import lombok.Getter;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -10,64 +10,439 @@ import java.util.stream.Collectors;
 
 import static java.util.Comparator.comparing;
 
-@Getter
-public class MemberPoint {
-    private final UUID memberId;
-    private PointAmount totalBalance;
-    private List<PointLedger> ledgers;
-
-    @Builder
-    public MemberPoint(UUID memberId, PointAmount totalBalance, List<PointLedger> ledgers) {
-        this.memberId = memberId;
-        this.totalBalance = totalBalance != null ? totalBalance : PointAmount.ZERO;
-        this.ledgers = ledgers != null ? new ArrayList<>(ledgers) : new ArrayList<>();
+/**
+ * 회원 포인트 Aggregate Root
+ * - 불변 record 패턴
+ * - 이벤트 소싱 지원 (reconstitute, apply 메서드)
+ * - 모든 상태 변경 시 새 객체 반환
+ */
+public record MemberPoint(
+        UUID memberId,
+        PointAmount totalBalance,
+        List<PointLedger> ledgers
+) {
+    // Compact constructor - 기본값 및 불변 리스트
+    public MemberPoint {
+        if (totalBalance == null) {
+            totalBalance = PointAmount.ZERO;
+        }
+        // 불변 리스트로 복사
+        ledgers = ledgers != null ? List.copyOf(ledgers) : List.of();
     }
 
+    // 기존 코드 호환성을 위한 getter 메서드들
+    public UUID getMemberId() {
+        return memberId;
+    }
+
+    public PointAmount getTotalBalance() {
+        return totalBalance;
+    }
+
+    public List<PointLedger> getLedgers() {
+        return ledgers;
+    }
+
+    // Static Factory Method
     public static MemberPoint create(UUID memberId) {
-        return MemberPoint.builder()
-                .memberId(memberId)
-                .totalBalance(PointAmount.ZERO)
-                .ledgers(new ArrayList<>())
-                .build();
+        return new MemberPoint(memberId, PointAmount.ZERO, List.of());
     }
 
     // =====================================================
-    // 적립 (Earn)
+    // 이벤트 소싱: Aggregate 복원 (Reconstitute)
     // =====================================================
 
     /**
-     * 포인트 적립
-     * @param amount 적립 금액
-     * @param earnType 적립 유형 (MANUAL/SYSTEM)
-     * @param expiredAt 만료일시
-     * @param policy 적립 정책
-     * @return 생성된 PointLedger
+     * 이벤트들로부터 Aggregate 상태 복원
+     *
+     * @param memberId Aggregate ID
+     * @param events   이벤트 목록 (버전 순서)
+     * @return 복원된 MemberPoint
      */
-    public PointLedger earn(PointAmount amount, EarnType earnType,
+    public static MemberPoint reconstitute(UUID memberId, List<PointEvent> events) {
+        MemberPoint aggregate = MemberPoint.create(memberId);
+        for (PointEvent event : events) {
+            aggregate = aggregate.apply(event);
+        }
+        return aggregate;
+    }
+
+    /**
+     * 스냅샷 + 이벤트로부터 Aggregate 상태 복원
+     *
+     * @param snapshot 스냅샷
+     * @param events   스냅샷 이후 이벤트 목록
+     * @return 복원된 MemberPoint
+     */
+    public static MemberPoint reconstitute(MemberPointSnapshot snapshot, List<PointEvent> events) {
+        MemberPoint aggregate = snapshot.toMemberPoint();
+        for (PointEvent event : events) {
+            aggregate = aggregate.apply(event);
+        }
+        return aggregate;
+    }
+
+    /**
+     * 이벤트 적용 (상태 변경)
+     */
+    public MemberPoint apply(PointEvent event) {
+        return switch (event) {
+            case PointEarnedEvent e -> applyEarned(e);
+            case PointUsedEvent e -> applyUsed(e);
+            case PointEarnCanceledEvent e -> applyEarnCanceled(e);
+            case PointUseCanceledEvent e -> applyUseCanceled(e);
+        };
+    }
+
+    private MemberPoint applyEarned(PointEarnedEvent e) {
+        PointLedger ledger = new PointLedger(
+                e.ledgerId(),
+                memberId,
+                PointAmount.of(e.amount()),
+                PointAmount.of(e.amount()),
+                PointAmount.ZERO,
+                e.earnType(),
+                null,
+                e.expiredAt(),
+                false,
+                e.occurredAt()
+        );
+        List<PointLedger> newLedgers = new ArrayList<>(ledgers);
+        newLedgers.add(ledger);
+
+        return new MemberPoint(
+                memberId,
+                totalBalance.add(PointAmount.of(e.amount())),
+                newLedgers
+        );
+    }
+
+    private MemberPoint applyUsed(PointUsedEvent e) {
+        Map<UUID, Long> usageMap = e.usageDetails().stream()
+                .collect(Collectors.toMap(
+                        PointUsedEvent.UsageDetail::ledgerId,
+                        PointUsedEvent.UsageDetail::usedAmount
+                ));
+
+        List<PointLedger> newLedgers = ledgers.stream()
+                .map(ledger -> {
+                    Long usedAmount = usageMap.get(ledger.id());
+                    if (usedAmount != null) {
+                        return ledger.use(PointAmount.of(usedAmount)).ledger();
+                    }
+                    return ledger;
+                })
+                .toList();
+
+        return new MemberPoint(
+                memberId,
+                totalBalance.subtract(PointAmount.of(e.amount())),
+                newLedgers
+        );
+    }
+
+    private MemberPoint applyEarnCanceled(PointEarnCanceledEvent e) {
+        List<PointLedger> newLedgers = ledgers.stream()
+                .map(ledger -> {
+                    if (ledger.id().equals(e.ledgerId())) {
+                        return ledger.cancel();
+                    }
+                    return ledger;
+                })
+                .toList();
+
+        return new MemberPoint(
+                memberId,
+                totalBalance.subtract(PointAmount.of(e.canceledAmount())),
+                newLedgers
+        );
+    }
+
+    private MemberPoint applyUseCanceled(PointUseCanceledEvent e) {
+        // 복구된 적립건 처리
+        Map<UUID, Long> restoredMap = e.restoredLedgers().stream()
+                .collect(Collectors.toMap(
+                        PointUseCanceledEvent.RestoredLedger::ledgerId,
+                        PointUseCanceledEvent.RestoredLedger::restoredAmount
+                ));
+
+        List<PointLedger> updatedLedgers = new ArrayList<>(ledgers.stream()
+                .map(ledger -> {
+                    Long restoredAmount = restoredMap.get(ledger.id());
+                    if (restoredAmount != null) {
+                        return ledger.restore(PointAmount.of(restoredAmount));
+                    }
+                    return ledger;
+                })
+                .toList());
+
+        // 신규 적립건 추가
+        for (PointUseCanceledEvent.NewLedger newLedger : e.newLedgers()) {
+            PointLedger ledger = new PointLedger(
+                    newLedger.ledgerId(),
+                    memberId,
+                    PointAmount.of(newLedger.amount()),
+                    PointAmount.of(newLedger.amount()),
+                    PointAmount.ZERO,
+                    newLedger.earnType(),
+                    e.originalTransactionId(),
+                    newLedger.expiredAt(),
+                    false,
+                    e.occurredAt()
+            );
+            updatedLedgers.add(ledger);
+        }
+
+        return new MemberPoint(
+                memberId,
+                totalBalance.add(PointAmount.of(e.canceledAmount())),
+                updatedLedgers
+        );
+    }
+
+    // =====================================================
+    // 이벤트 소싱: 커맨드 처리 → 이벤트 생성 (Process)
+    // =====================================================
+
+    /**
+     * 적립 이벤트 결과
+     */
+    public record EarnEventResult(MemberPoint memberPoint, PointEarnedEvent event) {}
+
+    /**
+     * 포인트 적립 처리 → 이벤트 생성
+     */
+    public EarnEventResult processEarn(PointAmount amount, EarnType earnType,
+                                        LocalDateTime expiredAt, EarnPolicyConfig policy,
+                                        long currentVersion) {
+        validateEarnAmount(amount, policy);
+        validateMaxBalance(amount, policy);
+
+        PointEarnedEvent event = new PointEarnedEvent(
+                UuidGenerator.generate(),
+                memberId,
+                UuidGenerator.generate(),
+                amount.getValue(),
+                earnType,
+                expiredAt,
+                currentVersion + 1,
+                LocalDateTime.now()
+        );
+
+        MemberPoint updated = apply(event);
+        return new EarnEventResult(updated, event);
+    }
+
+    /**
+     * 사용 이벤트 결과
+     */
+    public record UseEventResult(MemberPoint memberPoint, PointUsedEvent event) {}
+
+    /**
+     * 포인트 사용 처리 → 이벤트 생성
+     */
+    public UseEventResult processUse(PointAmount amount, String orderId, long currentVersion) {
+        if (totalBalance.isLessThan(amount)) {
+            throw new InsufficientPointException(amount.getValue(), totalBalance.getValue());
+        }
+
+        List<PointLedger> availableLedgers = getAvailableLedgersSorted();
+        List<PointUsedEvent.UsageDetail> usageDetails = new ArrayList<>();
+        PointAmount remainingAmount = amount;
+
+        for (PointLedger ledger : availableLedgers) {
+            if (remainingAmount.isZero()) {
+                break;
+            }
+            PointAmount useAmount = remainingAmount.min(ledger.availableAmount());
+            usageDetails.add(new PointUsedEvent.UsageDetail(ledger.id(), useAmount.getValue()));
+            remainingAmount = remainingAmount.subtract(useAmount);
+        }
+
+        UUID transactionId = UuidGenerator.generate();
+        PointUsedEvent event = new PointUsedEvent(
+                UuidGenerator.generate(),
+                memberId,
+                transactionId,
+                amount.getValue(),
+                orderId,
+                usageDetails,
+                currentVersion + 1,
+                LocalDateTime.now()
+        );
+
+        MemberPoint updated = apply(event);
+        return new UseEventResult(updated, event);
+    }
+
+    /**
+     * 적립취소 이벤트 결과
+     */
+    public record CancelEarnEventResult(MemberPoint memberPoint, PointEarnCanceledEvent event) {}
+
+    /**
+     * 적립 취소 처리 → 이벤트 생성
+     */
+    public CancelEarnEventResult processCancelEarn(UUID ledgerId, long currentVersion) {
+        PointLedger targetLedger = findLedgerById(ledgerId);
+
+        // 취소 검증은 PointLedger.cancel()에서 수행
+        if (targetLedger.isCanceled()) {
+            throw new PointLedgerAlreadyCanceledException(ledgerId);
+        }
+        if (!targetLedger.canCancel()) {
+            throw new PointLedgerAlreadyUsedException(ledgerId);
+        }
+
+        PointEarnCanceledEvent event = new PointEarnCanceledEvent(
+                UuidGenerator.generate(),
+                memberId,
+                ledgerId,
+                targetLedger.earnedAmount().getValue(),
+                currentVersion + 1,
+                LocalDateTime.now()
+        );
+
+        MemberPoint updated = apply(event);
+        return new CancelEarnEventResult(updated, event);
+    }
+
+    /**
+     * 사용취소 이벤트 결과
+     */
+    public record CancelUseEventResult(
+            MemberPoint memberPoint,
+            PointUseCanceledEvent event,
+            List<PointUsageDetail> updatedUsageDetails
+    ) {}
+
+    /**
+     * 사용 취소 처리 → 이벤트 생성
+     */
+    public CancelUseEventResult processCancelUse(
+            List<PointUsageDetail> usageDetails,
+            PointAmount cancelAmount,
+            int defaultExpirationDays,
+            UUID originalTransactionId,
+            String orderId,
+            long currentVersion
+    ) {
+        PointAmount totalCancelable = usageDetails.stream()
+                .map(PointUsageDetail::getCancelableAmount)
+                .reduce(PointAmount.ZERO, PointAmount::add);
+
+        if (cancelAmount.isGreaterThan(totalCancelable)) {
+            throw new InvalidCancelAmountException(cancelAmount.getValue(), totalCancelable.getValue());
+        }
+
+        Map<UUID, PointLedger> ledgerMap = ledgers.stream()
+                .collect(Collectors.toMap(PointLedger::id, l -> l));
+
+        List<PointUseCanceledEvent.RestoredLedger> restoredLedgers = new ArrayList<>();
+        List<PointUseCanceledEvent.NewLedger> newLedgers = new ArrayList<>();
+        List<PointUsageDetail> updatedUsageDetails = new ArrayList<>();
+
+        PointAmount remainingCancelAmount = cancelAmount;
+
+        for (PointUsageDetail usageDetail : usageDetails) {
+            if (remainingCancelAmount.isZero()) {
+                break;
+            }
+
+            PointUsageDetail.CancelResult cancelResult = usageDetail.cancel(remainingCancelAmount);
+            remainingCancelAmount = remainingCancelAmount.subtract(cancelResult.canceledAmount());
+            updatedUsageDetails.add(cancelResult.usageDetail());
+
+            PointLedger originalLedger = ledgerMap.get(usageDetail.ledgerId());
+
+            if (originalLedger != null && originalLedger.isExpired()) {
+                UUID newLedgerId = UuidGenerator.generate();
+                newLedgers.add(new PointUseCanceledEvent.NewLedger(
+                        newLedgerId,
+                        cancelResult.canceledAmount().getValue(),
+                        originalLedger.earnType(),
+                        LocalDateTime.now().plusDays(defaultExpirationDays)
+                ));
+            } else if (originalLedger != null) {
+                restoredLedgers.add(new PointUseCanceledEvent.RestoredLedger(
+                        originalLedger.id(),
+                        cancelResult.canceledAmount().getValue()
+                ));
+            }
+        }
+
+        PointUseCanceledEvent event = new PointUseCanceledEvent(
+                UuidGenerator.generate(),
+                memberId,
+                originalTransactionId,
+                cancelAmount.getValue(),
+                orderId,
+                restoredLedgers,
+                newLedgers,
+                currentVersion + 1,
+                LocalDateTime.now()
+        );
+
+        MemberPoint updated = apply(event);
+        return new CancelUseEventResult(updated, event, updatedUsageDetails);
+    }
+
+    /**
+     * 스냅샷 생성
+     */
+    public MemberPointSnapshot toSnapshot(long version) {
+        return MemberPointSnapshot.from(this, version);
+    }
+
+    // =====================================================
+    // 적립 (Earn) - 기존 State-based 방식 (하위 호환)
+    // =====================================================
+
+    /**
+     * 적립 결과
+     */
+    public record EarnResult(MemberPoint memberPoint, PointLedger ledger) {}
+
+    /**
+     * 포인트 적립 (불변 - 새 객체 반환)
+     */
+    public EarnResult earn(PointAmount amount, EarnType earnType,
                            LocalDateTime expiredAt, EarnPolicyConfig policy) {
         validateEarnAmount(amount, policy);
         validateMaxBalance(amount, policy);
 
         PointLedger ledger = PointLedger.create(memberId, amount, earnType, expiredAt);
-        this.ledgers.add(ledger);
-        this.totalBalance = this.totalBalance.add(amount);
-        return ledger;
+        List<PointLedger> newLedgers = new ArrayList<>(ledgers);
+        newLedgers.add(ledger);
+
+        MemberPoint updated = new MemberPoint(
+                memberId,
+                totalBalance.add(amount),
+                newLedgers
+        );
+        return new EarnResult(updated, ledger);
     }
 
     /**
-     * 만료일 검증 포함 적립
+     * 만료일 검증 포함 적립 (불변 - 새 객체 반환)
      */
-    public PointLedger earnWithExpirationValidation(PointAmount amount, EarnType earnType,
-                                                     Integer expirationDays, EarnPolicyConfig policy) {
+    public EarnResult earnWithExpirationValidation(PointAmount amount, EarnType earnType,
+                                                    Integer expirationDays, EarnPolicyConfig policy) {
         validateEarnAmount(amount, policy);
         validateExpirationDays(expirationDays, policy);
         validateMaxBalance(amount, policy);
 
         LocalDateTime expiredAt = policy.calculateExpirationDate(expirationDays);
         PointLedger ledger = PointLedger.create(memberId, amount, earnType, expiredAt);
-        this.ledgers.add(ledger);
-        this.totalBalance = this.totalBalance.add(amount);
-        return ledger;
+        List<PointLedger> newLedgers = new ArrayList<>(ledgers);
+        newLedgers.add(ledger);
+
+        MemberPoint updated = new MemberPoint(
+                memberId,
+                totalBalance.add(amount),
+                newLedgers
+        );
+        return new EarnResult(updated, ledger);
     }
 
     // =====================================================
@@ -75,19 +450,28 @@ public class MemberPoint {
     // =====================================================
 
     /**
-     * 적립 취소
-     * @param ledgerId 취소할 적립건 ID
-     * @return 취소된 금액
-     * @throws PointLedgerNotFoundException 적립건을 찾을 수 없는 경우
-     * @throws PointLedgerAlreadyCanceledException 이미 취소된 경우
-     * @throws PointLedgerAlreadyUsedException 사용된 경우
+     * 적립취소 결과
      */
-    public PointAmount cancelEarn(UUID ledgerId) {
-        PointLedger ledger = findLedgerById(ledgerId);
-        PointAmount canceledAmount = ledger.getEarnedAmount();
-        ledger.cancel();  // 내부에서 검증
-        this.totalBalance = this.totalBalance.subtract(canceledAmount);
-        return canceledAmount;
+    public record CancelEarnResult(MemberPoint memberPoint, PointAmount canceledAmount) {}
+
+    /**
+     * 적립 취소 (불변 - 새 객체 반환)
+     */
+    public CancelEarnResult cancelEarn(UUID ledgerId) {
+        PointLedger targetLedger = findLedgerById(ledgerId);
+        PointAmount canceledAmount = targetLedger.earnedAmount();
+        PointLedger canceledLedger = targetLedger.cancel();
+
+        List<PointLedger> newLedgers = ledgers.stream()
+                .map(l -> l.id().equals(ledgerId) ? canceledLedger : l)
+                .toList();
+
+        MemberPoint updated = new MemberPoint(
+                memberId,
+                totalBalance.subtract(canceledAmount),
+                newLedgers
+        );
+        return new CancelEarnResult(updated, canceledAmount);
     }
 
     // =====================================================
@@ -95,31 +479,61 @@ public class MemberPoint {
     // =====================================================
 
     /**
-     * 사용 결과
-     */
-    public record UsageResult(List<UsageDetail> usageDetails) {}
-
-    /**
      * 사용 상세
      */
     public record UsageDetail(UUID ledgerId, PointAmount usedAmount) {}
 
     /**
-     * 포인트 사용
-     * @param amount 사용할 금액
-     * @return 사용 결과 (어떤 적립건에서 얼마 사용했는지)
-     * @throws InsufficientPointException 잔액 부족 시
+     * 사용 결과
+     */
+    public record UsageResult(MemberPoint memberPoint, List<UsageDetail> usageDetails) {}
+
+    /**
+     * 포인트 사용 (불변 - 새 객체 반환)
      */
     public UsageResult use(PointAmount amount) {
-        if (this.totalBalance.isLessThan(amount)) {
+        if (totalBalance.isLessThan(amount)) {
             throw new InsufficientPointException(amount.getValue(), totalBalance.getValue());
         }
 
         List<PointLedger> availableLedgers = getAvailableLedgersSorted();
-        List<UsageDetail> usageDetails = deductFromLedgers(availableLedgers, amount);
+        DeductResult deductResult = deductFromLedgers(availableLedgers, amount);
 
-        this.totalBalance = this.totalBalance.subtract(amount);
-        return new UsageResult(usageDetails);
+        // 사용된 적립건들로 ledgers 업데이트
+        Map<UUID, PointLedger> updatedLedgersMap = deductResult.updatedLedgers().stream()
+                .collect(Collectors.toMap(PointLedger::id, l -> l));
+
+        List<PointLedger> newLedgers = ledgers.stream()
+                .map(l -> updatedLedgersMap.getOrDefault(l.id(), l))
+                .toList();
+
+        MemberPoint updated = new MemberPoint(
+                memberId,
+                totalBalance.subtract(amount),
+                newLedgers
+        );
+        return new UsageResult(updated, deductResult.usageDetails());
+    }
+
+    private record DeductResult(List<PointLedger> updatedLedgers, List<UsageDetail> usageDetails) {}
+
+    private DeductResult deductFromLedgers(List<PointLedger> availableLedgers, PointAmount amount) {
+        List<PointLedger> updatedLedgers = new ArrayList<>();
+        List<UsageDetail> usageDetails = new ArrayList<>();
+        PointAmount remainingAmount = amount;
+
+        for (PointLedger ledger : availableLedgers) {
+            if (remainingAmount.isZero()) {
+                break;
+            }
+
+            PointLedger.UseResult useResult = ledger.use(remainingAmount);
+            remainingAmount = remainingAmount.subtract(useResult.usedAmount());
+            updatedLedgers.add(useResult.ledger());
+            usageDetails.add(new UsageDetail(ledger.id(), useResult.usedAmount()));
+        }
+
+        return new DeductResult(updatedLedgers, usageDetails);
     }
 
     // =====================================================
@@ -127,16 +541,7 @@ public class MemberPoint {
     // =====================================================
 
     /**
-     * 복구 결과
-     */
-    public record RestoreResult(
-            List<PointLedger> restoredLedgers,
-            List<NewLedgerInfo> newLedgers,
-            List<PointUsageDetail> updatedUsageDetails
-    ) {}
-
-    /**
-     * 신규 적립건 정보 (만료된 적립건 사용취소 시)
+     * 신규 적립건 정보
      */
     public record NewLedgerInfo(
             PointAmount amount,
@@ -146,13 +551,17 @@ public class MemberPoint {
     ) {}
 
     /**
-     * 사용 취소
-     * @param usageDetails 취소 대상 사용 상세 목록 (만료일 긴 것부터 정렬됨)
-     * @param cancelAmount 취소할 금액
-     * @param defaultExpirationDays 신규 적립 시 기본 만료일
-     * @param cancelTransactionId 취소 트랜잭션 ID
-     * @return 복구 결과
-     * @throws InvalidCancelAmountException 취소 금액이 취소 가능 금액 초과 시
+     * 복구 결과
+     */
+    public record RestoreResult(
+            MemberPoint memberPoint,
+            List<PointLedger> restoredLedgers,
+            List<PointLedger> newLedgers,
+            List<PointUsageDetail> updatedUsageDetails
+    ) {}
+
+    /**
+     * 사용 취소 (불변 - 새 객체 반환)
      */
     public RestoreResult cancelUse(List<PointUsageDetail> usageDetails,
                                    PointAmount cancelAmount,
@@ -167,165 +576,118 @@ public class MemberPoint {
             throw new InvalidCancelAmountException(cancelAmount.getValue(), totalCancelable.getValue());
         }
 
+        // 적립건 ID → 적립건 매핑
+        Map<UUID, PointLedger> ledgerMap = ledgers.stream()
+                .collect(Collectors.toMap(PointLedger::id, l -> l));
+
         List<PointLedger> restoredLedgers = new ArrayList<>();
-        List<NewLedgerInfo> newLedgers = new ArrayList<>();
+        List<PointLedger> newLedgers = new ArrayList<>();
         List<PointUsageDetail> updatedUsageDetails = new ArrayList<>();
+        Map<UUID, PointLedger> ledgerUpdates = new HashMap<>();
 
         PointAmount remainingCancelAmount = cancelAmount;
-
-        // 적립건 ID → 적립건 매핑 생성
-        Map<UUID, PointLedger> ledgerMap = ledgers.stream()
-                .collect(Collectors.toMap(PointLedger::getId, l -> l));
 
         for (PointUsageDetail usageDetail : usageDetails) {
             if (remainingCancelAmount.isZero()) {
                 break;
             }
 
-            PointAmount cancelFromDetail = usageDetail.cancel(remainingCancelAmount);
-            remainingCancelAmount = remainingCancelAmount.subtract(cancelFromDetail);
-            updatedUsageDetails.add(usageDetail);
+            PointUsageDetail.CancelResult cancelResult = usageDetail.cancel(remainingCancelAmount);
+            remainingCancelAmount = remainingCancelAmount.subtract(cancelResult.canceledAmount());
+            updatedUsageDetails.add(cancelResult.usageDetail());
 
-            PointLedger originalLedger = ledgerMap.get(usageDetail.getLedgerId());
+            PointLedger originalLedger = ledgerMap.get(usageDetail.ledgerId());
 
             if (originalLedger != null && originalLedger.isExpired()) {
-                // 만료된 적립건 → 신규 적립 정보 생성
-                newLedgers.add(new NewLedgerInfo(
-                        cancelFromDetail,
-                        originalLedger.getEarnType(),
+                // 만료된 적립건 → 신규 적립건 생성
+                PointLedger newLedger = PointLedger.createFromCancelUse(
+                        memberId,
+                        cancelResult.canceledAmount(),
+                        originalLedger.earnType(),
                         LocalDateTime.now().plusDays(defaultExpirationDays),
                         cancelTransactionId
-                ));
+                );
+                newLedgers.add(newLedger);
             } else if (originalLedger != null) {
                 // 만료되지 않은 적립건 → 복구
-                originalLedger.restore(cancelFromDetail);
-                restoredLedgers.add(originalLedger);
+                PointLedger restored = originalLedger.restore(cancelResult.canceledAmount());
+                restoredLedgers.add(restored);
+                ledgerUpdates.put(restored.id(), restored);
             }
         }
 
-        // 신규 적립건 생성하여 ledgers에 추가
-        for (NewLedgerInfo newLedgerInfo : newLedgers) {
-            PointLedger newLedger = PointLedger.createFromCancelUse(
-                    memberId,
-                    newLedgerInfo.amount(),
-                    newLedgerInfo.earnType(),
-                    newLedgerInfo.expiredAt(),
-                    newLedgerInfo.relatedTransactionId()
-            );
-            this.ledgers.add(newLedger);
+        // ledgers 업데이트 (복구된 것 + 신규 생성)
+        List<PointLedger> finalLedgers = new ArrayList<>();
+        for (PointLedger ledger : ledgers) {
+            finalLedgers.add(ledgerUpdates.getOrDefault(ledger.id(), ledger));
         }
+        finalLedgers.addAll(newLedgers);
 
-        this.totalBalance = this.totalBalance.add(cancelAmount);
-        return new RestoreResult(restoredLedgers, newLedgers, updatedUsageDetails);
+        MemberPoint updated = new MemberPoint(
+                memberId,
+                totalBalance.add(cancelAmount),
+                finalLedgers
+        );
+
+        return new RestoreResult(updated, restoredLedgers, newLedgers, updatedUsageDetails);
     }
 
     // =====================================================
-    // 기존 메서드 (호환성 유지)
+    // 헬퍼 메서드
     // =====================================================
 
-    public void increaseBalance(PointAmount amount) {
-        this.totalBalance = this.totalBalance.add(amount);
-    }
-
-    /**
-     * 잔액 차감 (직접 호출 - 호환성 유지용)
-     */
-    public void decreaseBalance(PointAmount amount) {
-        if (this.totalBalance.isLessThan(amount)) {
-            throw new InsufficientPointException(amount.getValue(), this.totalBalance.getValue());
-        }
-        this.totalBalance = this.totalBalance.subtract(amount);
-    }
-
-    public boolean canEarn(PointAmount amount, PointAmount maxBalance) {
-        return this.totalBalance.add(amount).isLessThanOrEqual(maxBalance);
-    }
-
-    public boolean hasEnoughBalance(PointAmount amount) {
-        return this.totalBalance.isGreaterThanOrEqual(amount);
-    }
-
-    // =====================================================
-    // 내부 헬퍼 메서드
-    // =====================================================
-
-    /**
-     * 사용 가능한 적립건을 우선순위에 따라 정렬하여 반환
-     * 우선순위: MANUAL 우선, 만료일 짧은 순
-     */
     private List<PointLedger> getAvailableLedgersSorted() {
         return ledgers.stream()
                 .filter(PointLedger::isAvailable)
                 .sorted(comparing(PointLedger::isManual).reversed()
-                        .thenComparing(PointLedger::getExpiredAt))
+                        .thenComparing(PointLedger::expiredAt))
                 .toList();
     }
 
-    /**
-     * 적립건들에서 금액 차감
-     */
-    private List<UsageDetail> deductFromLedgers(List<PointLedger> availableLedgers, PointAmount amount) {
-        List<UsageDetail> usageDetails = new ArrayList<>();
-        PointAmount remainingAmount = amount;
-
-        for (PointLedger ledger : availableLedgers) {
-            if (remainingAmount.isZero()) {
-                break;
-            }
-
-            PointAmount usedFromLedger = ledger.use(remainingAmount);
-            remainingAmount = remainingAmount.subtract(usedFromLedger);
-            usageDetails.add(new UsageDetail(ledger.getId(), usedFromLedger));
-        }
-
-        return usageDetails;
-    }
-
-    /**
-     * ID로 적립건 찾기
-     */
     public PointLedger findLedgerById(UUID ledgerId) {
         return ledgers.stream()
-                .filter(l -> l.getId().equals(ledgerId))
+                .filter(l -> l.id().equals(ledgerId))
                 .findFirst()
                 .orElseThrow(() -> new PointLedgerNotFoundException(ledgerId));
     }
 
-    /**
-     * 적립건 추가 (외부에서 생성된 적립건)
-     */
-    public void addLedger(PointLedger ledger) {
-        this.ledgers.add(ledger);
+    public boolean canEarn(PointAmount amount, PointAmount maxBalance) {
+        return totalBalance.add(amount).isLessThanOrEqual(maxBalance);
+    }
+
+    public boolean hasEnoughBalance(PointAmount amount) {
+        return totalBalance.isGreaterThanOrEqual(amount);
     }
 
     // =====================================================
-    // 검증 메서드 (PointEarnValidator에서 이동)
+    // 검증 메서드
     // =====================================================
 
     private void validateEarnAmount(PointAmount amount, EarnPolicyConfig policy) {
-        if (amount.isLessThan(policy.getMinAmount())) {
-            throw InvalidEarnAmountException.belowMinimum(amount.getValue(), policy.getMinAmount().getValue());
+        if (amount.isLessThan(policy.minAmount())) {
+            throw InvalidEarnAmountException.belowMinimum(amount.getValue(), policy.minAmount().getValue());
         }
-        if (amount.isGreaterThan(policy.getMaxAmount())) {
-            throw InvalidEarnAmountException.aboveMaximum(amount.getValue(), policy.getMaxAmount().getValue());
+        if (amount.isGreaterThan(policy.maxAmount())) {
+            throw InvalidEarnAmountException.aboveMaximum(amount.getValue(), policy.maxAmount().getValue());
         }
     }
 
     private void validateMaxBalance(PointAmount earnAmount, EarnPolicyConfig policy) {
-        if (!canEarn(earnAmount, policy.getMaxBalance())) {
+        if (!canEarn(earnAmount, policy.maxBalance())) {
             throw new MaxBalanceExceededException(
-                    this.totalBalance.getValue(), earnAmount.getValue(), policy.getMaxBalance().getValue());
+                    totalBalance.getValue(), earnAmount.getValue(), policy.maxBalance().getValue());
         }
     }
 
     private void validateExpirationDays(Integer expirationDays, EarnPolicyConfig policy) {
         if (expirationDays != null) {
-            if (expirationDays < policy.getMinExpirationDays()) {
-                throw InvalidExpirationException.belowMinimum(expirationDays, policy.getMinExpirationDays());
+            if (expirationDays < policy.minExpirationDays()) {
+                throw InvalidExpirationException.belowMinimum(expirationDays, policy.minExpirationDays());
             }
-            if (expirationDays > policy.getMaxExpirationDays()) {
-                throw InvalidExpirationException.aboveMaximum(expirationDays, policy.getMaxExpirationDays());
+            if (expirationDays > policy.maxExpirationDays()) {
+                throw InvalidExpirationException.aboveMaximum(expirationDays, policy.maxExpirationDays());
             }
         }
     }
+
 }

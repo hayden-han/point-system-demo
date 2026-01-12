@@ -35,11 +35,14 @@ public class UsePointUseCase {
         // 회원 포인트 조회 (사용 가능한 Ledgers 포함)
         MemberPoint memberPoint = memberPointRepository.getOrCreateWithAvailableLedgers(command.getMemberId());
 
-        // Aggregate 메서드 호출 (잔액 검증 + 적립건 차감 + 잔액 업데이트)
+        // Aggregate 메서드 호출 (불변 - 새 MemberPoint 반환)
         MemberPoint.UsageResult usageResult = memberPoint.use(amount);
 
+        // 결과에서 새 객체 추출
+        MemberPoint updatedMemberPoint = usageResult.memberPoint();
+
         // MemberPoint와 Ledgers 함께 저장
-        memberPointRepository.save(memberPoint);
+        memberPointRepository.save(updatedMemberPoint);
 
         // 트랜잭션 생성 및 저장
         PointTransaction transaction = PointTransaction.createUse(
@@ -63,7 +66,7 @@ public class UsePointUseCase {
                 .transactionId(savedTransaction.getId())
                 .memberId(command.getMemberId())
                 .usedAmount(amount.getValue())
-                .totalBalance(memberPoint.getTotalBalance().getValue())
+                .totalBalance(updatedMemberPoint.getTotalBalance().getValue())
                 .orderId(command.getOrderId())
                 .build();
     }

@@ -103,19 +103,20 @@ class PointLedgerTest {
     class CancelTest {
 
         @Test
-        @DisplayName("미사용 적립건 취소 성공")
-        void cancelUnused_shouldSucceed() {
+        @DisplayName("미사용 적립건 취소 성공 - 새 객체 반환")
+        void cancelUnused_shouldReturnNewCanceledLedger() {
             // GIVEN
             UUID id = UuidGenerator.generate();
             UUID memberId = UuidGenerator.generate();
             PointLedger ledger = PointLedgerFixture.createSystem(id, memberId, 1000L);
 
             // WHEN
-            ledger.cancel();
+            PointLedger canceledLedger = ledger.cancel();
 
             // THEN
-            assertThat(ledger.isCanceled()).isTrue();
-            assertThat(ledger.getAvailableAmount().getValue()).isEqualTo(0L);
+            assertThat(canceledLedger.isCanceled()).isTrue();
+            assertThat(canceledLedger.getAvailableAmount().getValue()).isEqualTo(0L);
+            assertThat(ledger.isCanceled()).isFalse(); // 원본 불변
         }
 
         @Test
@@ -127,7 +128,7 @@ class PointLedgerTest {
             PointLedger ledger = PointLedgerFixture.createPartiallyUsed(id, memberId, 1000L, 500L, EarnType.SYSTEM);
 
             // WHEN & THEN
-            assertThatThrownBy(() -> ledger.cancel())
+            assertThatThrownBy(ledger::cancel)
                     .isInstanceOf(PointLedgerAlreadyUsedException.class);
         }
     }
@@ -207,20 +208,21 @@ class PointLedgerTest {
     class UseTest {
 
         @Test
-        @DisplayName("요청 금액만큼 차감")
-        void use_shouldDeductAmount() {
+        @DisplayName("요청 금액만큼 차감 - 새 객체 반환")
+        void use_shouldReturnNewLedgerWithDeductedAmount() {
             // GIVEN
             UUID id = UuidGenerator.generate();
             UUID memberId = UuidGenerator.generate();
             PointLedger ledger = PointLedgerFixture.createSystem(id, memberId, 1000L);
 
             // WHEN
-            PointAmount usedAmount = ledger.use(PointAmount.of(300L));
+            PointLedger.UseResult result = ledger.use(PointAmount.of(300L));
 
             // THEN
-            assertThat(usedAmount.getValue()).isEqualTo(300L);
-            assertThat(ledger.getAvailableAmount().getValue()).isEqualTo(700L);
-            assertThat(ledger.getUsedAmount().getValue()).isEqualTo(300L);
+            assertThat(result.usedAmount().getValue()).isEqualTo(300L);
+            assertThat(result.ledger().getAvailableAmount().getValue()).isEqualTo(700L);
+            assertThat(result.ledger().getUsedAmount().getValue()).isEqualTo(300L);
+            assertThat(ledger.getAvailableAmount().getValue()).isEqualTo(1000L); // 원본 불변
         }
 
         @Test
@@ -232,11 +234,11 @@ class PointLedgerTest {
             PointLedger ledger = PointLedgerFixture.createSystem(id, memberId, 500L);
 
             // WHEN
-            PointAmount usedAmount = ledger.use(PointAmount.of(800L));
+            PointLedger.UseResult result = ledger.use(PointAmount.of(800L));
 
             // THEN
-            assertThat(usedAmount.getValue()).isEqualTo(500L);
-            assertThat(ledger.getAvailableAmount().getValue()).isEqualTo(0L);
+            assertThat(result.usedAmount().getValue()).isEqualTo(500L);
+            assertThat(result.ledger().getAvailableAmount().getValue()).isEqualTo(0L);
         }
     }
 
@@ -245,19 +247,20 @@ class PointLedgerTest {
     class RestoreTest {
 
         @Test
-        @DisplayName("사용된 금액 내에서 복구 성공")
-        void restore_shouldIncreaseAvailableAmount() {
+        @DisplayName("사용된 금액 내에서 복구 성공 - 새 객체 반환")
+        void restore_shouldReturnNewLedgerWithRestoredAmount() {
             // GIVEN
             UUID id = UuidGenerator.generate();
             UUID memberId = UuidGenerator.generate();
             PointLedger ledger = PointLedgerFixture.createPartiallyUsed(id, memberId, 1000L, 500L, EarnType.SYSTEM);
 
             // WHEN
-            ledger.restore(PointAmount.of(300L));
+            PointLedger restoredLedger = ledger.restore(PointAmount.of(300L));
 
             // THEN
-            assertThat(ledger.getAvailableAmount().getValue()).isEqualTo(800L);
-            assertThat(ledger.getUsedAmount().getValue()).isEqualTo(200L);
+            assertThat(restoredLedger.getAvailableAmount().getValue()).isEqualTo(800L);
+            assertThat(restoredLedger.getUsedAmount().getValue()).isEqualTo(200L);
+            assertThat(ledger.getAvailableAmount().getValue()).isEqualTo(500L); // 원본 불변
         }
 
         @Test

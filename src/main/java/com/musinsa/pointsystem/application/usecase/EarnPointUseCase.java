@@ -37,16 +37,20 @@ public class EarnPointUseCase {
         // 회원 포인트 조회 (Ledgers 포함)
         MemberPoint memberPoint = memberPointRepository.getOrCreateWithLedgers(command.getMemberId());
 
-        // Aggregate 메서드 호출 (검증 + 적립 + 잔액 업데이트)
-        PointLedger ledger = memberPoint.earnWithExpirationValidation(
+        // Aggregate 메서드 호출 (불변 - 새 MemberPoint 반환)
+        MemberPoint.EarnResult earnResult = memberPoint.earnWithExpirationValidation(
                 amount,
                 earnType,
                 command.getExpirationDays(),
                 policy
         );
 
+        // 결과에서 새 객체 추출
+        MemberPoint updatedMemberPoint = earnResult.memberPoint();
+        PointLedger ledger = earnResult.ledger();
+
         // MemberPoint와 Ledgers 함께 저장
-        memberPointRepository.save(memberPoint);
+        memberPointRepository.save(updatedMemberPoint);
 
         // 트랜잭션 기록 (감사 로그)
         PointTransaction transaction = PointTransaction.createEarn(
@@ -61,7 +65,7 @@ public class EarnPointUseCase {
                 .transactionId(savedTransaction.getId())
                 .memberId(command.getMemberId())
                 .earnedAmount(amount.getValue())
-                .totalBalance(memberPoint.getTotalBalance().getValue())
+                .totalBalance(updatedMemberPoint.getTotalBalance().getValue())
                 .expiredAt(ledger.getExpiredAt())
                 .build();
     }

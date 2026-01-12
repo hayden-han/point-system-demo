@@ -3,10 +3,12 @@ package com.musinsa.pointsystem.domain.model;
 import com.musinsa.pointsystem.common.util.UuidGenerator;
 import com.musinsa.pointsystem.domain.exception.InsufficientPointException;
 import com.musinsa.pointsystem.fixture.MemberPointFixture;
+import com.musinsa.pointsystem.fixture.PointLedgerFixture;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -32,82 +34,37 @@ class MemberPointTest {
     }
 
     @Nested
-    @DisplayName("잔액 증가")
-    class IncreaseBalanceTest {
+    @DisplayName("포인트 사용")
+    class UseTest {
 
         @Test
-        @DisplayName("잔액 증가 성공")
-        void increaseBalance_shouldAddAmount() {
+        @DisplayName("사용 성공 시 새 MemberPoint 반환")
+        void use_shouldReturnNewMemberPoint() {
             // GIVEN
             UUID memberId = UuidGenerator.generate();
-            MemberPoint memberPoint = MemberPointFixture.createWithBalance(memberId, 1000L);
+            PointLedger ledger = PointLedgerFixture.createSystem(UuidGenerator.generate(), memberId, 1000L);
+            MemberPoint memberPoint = MemberPointFixture.createWithLedgers(memberId, 1000L, List.of(ledger));
 
             // WHEN
-            memberPoint.increaseBalance(PointAmount.of(500L));
+            MemberPoint.UsageResult result = memberPoint.use(PointAmount.of(300L));
 
             // THEN
-            assertThat(memberPoint.getTotalBalance().getValue()).isEqualTo(1500L);
+            assertThat(result.memberPoint().getTotalBalance().getValue()).isEqualTo(700L);
+            assertThat(result.usageDetails()).hasSize(1);
+            assertThat(memberPoint.getTotalBalance().getValue()).isEqualTo(1000L); // 원본 불변
         }
 
         @Test
-        @DisplayName("여러 번 증가 가능")
-        void multipleIncrease_shouldAccumulate() {
+        @DisplayName("잔액보다 많이 사용하면 예외 발생")
+        void useMoreThanBalance_shouldThrowException() {
             // GIVEN
             UUID memberId = UuidGenerator.generate();
-            MemberPoint memberPoint = MemberPointFixture.create(memberId);
-
-            // WHEN
-            memberPoint.increaseBalance(PointAmount.of(100L));
-            memberPoint.increaseBalance(PointAmount.of(200L));
-            memberPoint.increaseBalance(PointAmount.of(300L));
-
-            // THEN
-            assertThat(memberPoint.getTotalBalance().getValue()).isEqualTo(600L);
-        }
-    }
-
-    @Nested
-    @DisplayName("잔액 감소")
-    class DecreaseBalanceTest {
-
-        @Test
-        @DisplayName("잔액 감소 성공")
-        void decreaseBalance_shouldSubtractAmount() {
-            // GIVEN
-            UUID memberId = UuidGenerator.generate();
-            MemberPoint memberPoint = MemberPointFixture.createWithBalance(memberId, 1000L);
-
-            // WHEN
-            memberPoint.decreaseBalance(PointAmount.of(300L));
-
-            // THEN
-            assertThat(memberPoint.getTotalBalance().getValue()).isEqualTo(700L);
-        }
-
-        @Test
-        @DisplayName("잔액보다 많이 감소하면 예외 발생")
-        void decreaseMoreThanBalance_shouldThrowException() {
-            // GIVEN
-            UUID memberId = UuidGenerator.generate();
-            MemberPoint memberPoint = MemberPointFixture.createWithBalance(memberId, 500L);
+            PointLedger ledger = PointLedgerFixture.createSystem(UuidGenerator.generate(), memberId, 500L);
+            MemberPoint memberPoint = MemberPointFixture.createWithLedgers(memberId, 500L, List.of(ledger));
 
             // WHEN & THEN
-            assertThatThrownBy(() -> memberPoint.decreaseBalance(PointAmount.of(600L)))
+            assertThatThrownBy(() -> memberPoint.use(PointAmount.of(600L)))
                     .isInstanceOf(InsufficientPointException.class);
-        }
-
-        @Test
-        @DisplayName("정확히 잔액만큼 감소하면 0이 됨")
-        void decreaseExactBalance_shouldBecomeZero() {
-            // GIVEN
-            UUID memberId = UuidGenerator.generate();
-            MemberPoint memberPoint = MemberPointFixture.createWithBalance(memberId, 1000L);
-
-            // WHEN
-            memberPoint.decreaseBalance(PointAmount.of(1000L));
-
-            // THEN
-            assertThat(memberPoint.getTotalBalance().getValue()).isEqualTo(0L);
         }
     }
 
@@ -190,6 +147,27 @@ class MemberPointTest {
             MemberPoint memberPoint = MemberPointFixture.create(memberId);
 
             assertThat(memberPoint.hasEnoughBalance(PointAmount.of(1L))).isFalse();
+        }
+    }
+
+    @Nested
+    @DisplayName("적립건 조회")
+    class FindLedgerTest {
+
+        @Test
+        @DisplayName("적립건 ID로 조회 성공")
+        void findLedgerById_shouldReturnLedger() {
+            // GIVEN
+            UUID memberId = UuidGenerator.generate();
+            UUID ledgerId = UuidGenerator.generate();
+            PointLedger ledger = PointLedgerFixture.createSystem(ledgerId, memberId, 1000L);
+            MemberPoint memberPoint = MemberPointFixture.createWithLedgers(memberId, 1000L, List.of(ledger));
+
+            // WHEN
+            PointLedger found = memberPoint.findLedgerById(ledgerId);
+
+            // THEN
+            assertThat(found.getId()).isEqualTo(ledgerId);
         }
     }
 }

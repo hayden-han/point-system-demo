@@ -11,16 +11,16 @@ import org.springframework.stereotype.Component;
 public class PointTransactionMapper {
 
     public PointTransaction toDomain(PointTransactionEntity entity) {
-        return PointTransaction.builder()
-                .id(entity.getId())
-                .memberId(entity.getMemberId())
-                .type(TransactionType.valueOf(entity.getType()))
-                .amount(PointAmount.of(entity.getAmount()))
-                .orderId(entity.getOrderId() != null ? OrderId.of(entity.getOrderId()) : null)
-                .relatedTransactionId(entity.getRelatedTransactionId())
-                .ledgerId(entity.getLedgerId())
-                .createdAt(entity.getCreatedAt())
-                .build();
+        return new PointTransaction(
+                entity.getId(),
+                entity.getMemberId(),
+                TransactionType.valueOf(entity.getType()),
+                PointAmount.of(entity.getAmount()),
+                entity.getOrderId() != null ? OrderId.of(entity.getOrderId()) : null,
+                entity.getRelatedTransactionId(),
+                entity.getLedgerId(),
+                entity.getCreatedAt()
+        );
     }
 
     public PointTransactionEntity toEntity(PointTransaction domain) {

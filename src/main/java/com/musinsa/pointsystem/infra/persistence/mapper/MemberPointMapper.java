@@ -8,7 +8,6 @@ import com.musinsa.pointsystem.infra.persistence.entity.PointLedgerEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Component
@@ -21,11 +20,11 @@ public class MemberPointMapper {
      * Entity → Domain (ledgers 없이)
      */
     public MemberPoint toDomain(MemberPointEntity entity) {
-        return MemberPoint.builder()
-                .memberId(entity.getMemberId())
-                .totalBalance(PointAmount.of(entity.getTotalBalance()))
-                .ledgers(new ArrayList<>())
-                .build();
+        return new MemberPoint(
+                entity.getMemberId(),
+                PointAmount.of(entity.getTotalBalance()),
+                List.of()
+        );
     }
 
     /**
@@ -36,11 +35,11 @@ public class MemberPointMapper {
                 .map(pointLedgerMapper::toDomain)
                 .toList();
 
-        return MemberPoint.builder()
-                .memberId(entity.getMemberId())
-                .totalBalance(PointAmount.of(entity.getTotalBalance()))
-                .ledgers(new ArrayList<>(ledgers))
-                .build();
+        return new MemberPoint(
+                entity.getMemberId(),
+                PointAmount.of(entity.getTotalBalance()),
+                ledgers
+        );
     }
 
     public MemberPointEntity toEntity(MemberPoint domain) {

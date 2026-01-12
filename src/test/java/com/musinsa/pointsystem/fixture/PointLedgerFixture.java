@@ -11,106 +11,113 @@ import java.util.UUID;
 public class PointLedgerFixture {
 
     public static PointLedger createDefault() {
-        return PointLedger.builder()
-                .id(UuidGenerator.generate())
-                .memberId(UuidGenerator.generate())
-                .earnedAmount(PointAmount.of(1000L))
-                .availableAmount(PointAmount.of(1000L))
-                .usedAmount(PointAmount.ZERO)
-                .earnType(EarnType.SYSTEM)
-                .expiredAt(LocalDateTime.now().plusDays(365))
-                .isCanceled(false)
-                .createdAt(LocalDateTime.now())
-                .build();
+        return new PointLedger(
+                UuidGenerator.generate(),
+                UuidGenerator.generate(),
+                PointAmount.of(1000L),
+                PointAmount.of(1000L),
+                PointAmount.ZERO,
+                EarnType.SYSTEM,
+                null,
+                LocalDateTime.now().plusDays(365),
+                false,
+                LocalDateTime.now()
+        );
     }
 
     public static PointLedger create(UUID id, UUID memberId, Long amount, EarnType earnType) {
         PointAmount pointAmount = PointAmount.of(amount);
-        return PointLedger.builder()
-                .id(id)
-                .memberId(memberId)
-                .earnedAmount(pointAmount)
-                .availableAmount(pointAmount)
-                .usedAmount(PointAmount.ZERO)
-                .earnType(earnType)
-                .expiredAt(LocalDateTime.now().plusDays(365))
-                .isCanceled(false)
-                .createdAt(LocalDateTime.now())
-                .build();
+        return new PointLedger(
+                id,
+                memberId,
+                pointAmount,
+                pointAmount,
+                PointAmount.ZERO,
+                earnType,
+                null,
+                LocalDateTime.now().plusDays(365),
+                false,
+                LocalDateTime.now()
+        );
     }
 
     public static PointLedger createWithExpiration(UUID id, UUID memberId, Long amount,
                                                     EarnType earnType, LocalDateTime expiredAt) {
         PointAmount pointAmount = PointAmount.of(amount);
-        return PointLedger.builder()
-                .id(id)
-                .memberId(memberId)
-                .earnedAmount(pointAmount)
-                .availableAmount(pointAmount)
-                .usedAmount(PointAmount.ZERO)
-                .earnType(earnType)
-                .expiredAt(expiredAt)
-                .isCanceled(false)
-                .createdAt(LocalDateTime.now())
-                .build();
+        return new PointLedger(
+                id,
+                memberId,
+                pointAmount,
+                pointAmount,
+                PointAmount.ZERO,
+                earnType,
+                null,
+                expiredAt,
+                false,
+                LocalDateTime.now()
+        );
     }
 
     public static PointLedger createPartiallyUsed(UUID id, UUID memberId, Long earnedAmount,
                                                    Long usedAmount, EarnType earnType) {
-        return PointLedger.builder()
-                .id(id)
-                .memberId(memberId)
-                .earnedAmount(PointAmount.of(earnedAmount))
-                .availableAmount(PointAmount.of(earnedAmount - usedAmount))
-                .usedAmount(PointAmount.of(usedAmount))
-                .earnType(earnType)
-                .expiredAt(LocalDateTime.now().plusDays(365))
-                .isCanceled(false)
-                .createdAt(LocalDateTime.now())
-                .build();
+        return new PointLedger(
+                id,
+                memberId,
+                PointAmount.of(earnedAmount),
+                PointAmount.of(earnedAmount - usedAmount),
+                PointAmount.of(usedAmount),
+                earnType,
+                null,
+                LocalDateTime.now().plusDays(365),
+                false,
+                LocalDateTime.now()
+        );
     }
 
     public static PointLedger createFullyUsed(UUID id, UUID memberId, Long amount, EarnType earnType) {
-        return PointLedger.builder()
-                .id(id)
-                .memberId(memberId)
-                .earnedAmount(PointAmount.of(amount))
-                .availableAmount(PointAmount.ZERO)
-                .usedAmount(PointAmount.of(amount))
-                .earnType(earnType)
-                .expiredAt(LocalDateTime.now().plusDays(365))
-                .isCanceled(false)
-                .createdAt(LocalDateTime.now())
-                .build();
+        return new PointLedger(
+                id,
+                memberId,
+                PointAmount.of(amount),
+                PointAmount.ZERO,
+                PointAmount.of(amount),
+                earnType,
+                null,
+                LocalDateTime.now().plusDays(365),
+                false,
+                LocalDateTime.now()
+        );
     }
 
     public static PointLedger createCanceled(UUID id, UUID memberId, Long amount, EarnType earnType) {
-        return PointLedger.builder()
-                .id(id)
-                .memberId(memberId)
-                .earnedAmount(PointAmount.of(amount))
-                .availableAmount(PointAmount.ZERO)
-                .usedAmount(PointAmount.ZERO)
-                .earnType(earnType)
-                .expiredAt(LocalDateTime.now().plusDays(365))
-                .isCanceled(true)
-                .createdAt(LocalDateTime.now())
-                .build();
+        return new PointLedger(
+                id,
+                memberId,
+                PointAmount.of(amount),
+                PointAmount.ZERO,
+                PointAmount.ZERO,
+                earnType,
+                null,
+                LocalDateTime.now().plusDays(365),
+                true,
+                LocalDateTime.now()
+        );
     }
 
     public static PointLedger createExpired(UUID id, UUID memberId, Long amount, EarnType earnType) {
         PointAmount pointAmount = PointAmount.of(amount);
-        return PointLedger.builder()
-                .id(id)
-                .memberId(memberId)
-                .earnedAmount(pointAmount)
-                .availableAmount(pointAmount)
-                .usedAmount(PointAmount.ZERO)
-                .earnType(earnType)
-                .expiredAt(LocalDateTime.now().minusDays(1))
-                .isCanceled(false)
-                .createdAt(LocalDateTime.now().minusDays(366))
-                .build();
+        return new PointLedger(
+                id,
+                memberId,
+                pointAmount,
+                pointAmount,
+                PointAmount.ZERO,
+                earnType,
+                null,
+                LocalDateTime.now().minusDays(1),
+                false,
+                LocalDateTime.now().minusDays(366)
+        );
     }
 
     public static PointLedger createManual(UUID id, UUID memberId, Long amount) {
