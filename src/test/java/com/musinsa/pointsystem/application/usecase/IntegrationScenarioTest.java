@@ -68,8 +68,8 @@ class IntegrationScenarioTest extends IntegrationTestBase {
             EarnPointResult earnResultA = earnPointUseCase.execute(earnCommandA);
 
             // THEN
-            assertThat(earnResultA.getTotalBalance()).isEqualTo(1000L);
-            UUID ledgerIdA = earnResultA.getLedgerId();
+            assertThat(earnResultA.totalBalance()).isEqualTo(1000L);
+            UUID ledgerIdA = earnResultA.ledgerId();
 
             // ===== STEP 2: 500원 적립 -> 잔액 1500, pointKey B =====
             // GIVEN
@@ -83,8 +83,8 @@ class IntegrationScenarioTest extends IntegrationTestBase {
             EarnPointResult earnResultB = earnPointUseCase.execute(earnCommandB);
 
             // THEN
-            assertThat(earnResultB.getTotalBalance()).isEqualTo(1500L);
-            UUID ledgerIdB = earnResultB.getLedgerId();
+            assertThat(earnResultB.totalBalance()).isEqualTo(1500L);
+            UUID ledgerIdB = earnResultB.ledgerId();
 
             // ===== STEP 3: 주문 A1234에서 1200원 사용 -> 잔액 300 =====
             // GIVEN
@@ -98,18 +98,18 @@ class IntegrationScenarioTest extends IntegrationTestBase {
             UsePointResult useResult = usePointUseCase.execute(useCommand);
 
             // THEN
-            assertThat(useResult.getUsedAmount()).isEqualTo(1200L);
-            assertThat(useResult.getTotalBalance()).isEqualTo(300L);
-            UUID useTransactionId = useResult.getTransactionId();
+            assertThat(useResult.usedAmount()).isEqualTo(1200L);
+            assertThat(useResult.totalBalance()).isEqualTo(300L);
+            UUID useTransactionId = useResult.transactionId();
 
             // 적립건 상태 확인
             PointLedger ledgerAAfterUse = pointLedgerRepository.findById(ledgerIdA).orElseThrow();
-            assertThat(ledgerAAfterUse.getAvailableAmount()).isEqualTo(PointAmount.of(0L));
-            assertThat(ledgerAAfterUse.getUsedAmount()).isEqualTo(PointAmount.of(1000L));
+            assertThat(ledgerAAfterUse.availableAmount()).isEqualTo(PointAmount.of(0L));
+            assertThat(ledgerAAfterUse.usedAmount()).isEqualTo(PointAmount.of(1000L));
 
             PointLedger ledgerBAfterUse = pointLedgerRepository.findById(ledgerIdB).orElseThrow();
-            assertThat(ledgerBAfterUse.getAvailableAmount()).isEqualTo(PointAmount.of(300L));
-            assertThat(ledgerBAfterUse.getUsedAmount()).isEqualTo(PointAmount.of(200L));
+            assertThat(ledgerBAfterUse.availableAmount()).isEqualTo(PointAmount.of(300L));
+            assertThat(ledgerBAfterUse.usedAmount()).isEqualTo(PointAmount.of(200L));
 
             // ===== STEP 4: A 만료 처리 (테스트용 시간 조작) =====
             // GIVEN
@@ -133,13 +133,13 @@ class IntegrationScenarioTest extends IntegrationTestBase {
             CancelUsePointResult cancelResult = cancelUsePointUseCase.execute(cancelCommand);
 
             // THEN
-            assertThat(cancelResult.getCanceledAmount()).isEqualTo(1100L);
-            assertThat(cancelResult.getTotalBalance()).isEqualTo(1400L);
+            assertThat(cancelResult.canceledAmount()).isEqualTo(1100L);
+            assertThat(cancelResult.totalBalance()).isEqualTo(1400L);
 
             // ===== STEP 6: 검증 =====
             // 총 잔액: 1400
             MemberPoint memberPoint = memberPointRepository.findByMemberId(memberId).orElseThrow();
-            assertThat(memberPoint.getTotalBalance()).isEqualTo(PointAmount.of(1400L));
+            assertThat(memberPoint.totalBalance()).isEqualTo(PointAmount.of(1400L));
 
             // B 잔액: 400 (300 + 100 복구, 사용취소는 만료일 긴 것부터이므로 B 200 중 100만 복구)
             // 실제로는 취소 순서가 expiredAt DESC이므로:
@@ -150,12 +150,12 @@ class IntegrationScenarioTest extends IntegrationTestBase {
             // - A에서 900원 복구 -> 신규 적립건 900원
 
             PointLedger ledgerBAfterCancel = pointLedgerRepository.findById(ledgerIdB).orElseThrow();
-            assertThat(ledgerBAfterCancel.getAvailableAmount()).isEqualTo(PointAmount.of(500L));
+            assertThat(ledgerBAfterCancel.availableAmount()).isEqualTo(PointAmount.of(500L));
 
             // 사용 가능한 적립건 확인 (B 복구 + 신규 생성)
             List<PointLedger> availableLedgers = pointLedgerRepository.findAvailableByMemberId(memberId);
             long totalAvailable = availableLedgers.stream()
-                    .map(ledger -> ledger.getAvailableAmount().getValue())
+                    .map(ledger -> ledger.availableAmount().getValue())
                     .mapToLong(v -> v)
                     .sum();
             assertThat(totalAvailable).isEqualTo(1400L);

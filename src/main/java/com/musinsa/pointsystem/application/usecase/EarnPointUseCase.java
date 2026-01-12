@@ -28,20 +28,20 @@ public class EarnPointUseCase {
     @Transactional
     public EarnPointResult execute(EarnPointCommand command) {
         // DTO → 도메인 타입 변환
-        PointAmount amount = PointAmount.of(command.getAmount());
-        EarnType earnType = EarnType.valueOf(command.getEarnType());
+        PointAmount amount = PointAmount.of(command.amount());
+        EarnType earnType = EarnType.valueOf(command.earnType());
 
         // 정책 조회
         EarnPolicyConfig policy = pointPolicyRepository.getEarnPolicyConfig();
 
         // 회원 포인트 조회 (Ledgers 포함)
-        MemberPoint memberPoint = memberPointRepository.getOrCreateWithLedgers(command.getMemberId());
+        MemberPoint memberPoint = memberPointRepository.getOrCreateWithLedgers(command.memberId());
 
         // Aggregate 메서드 호출 (불변 - 새 MemberPoint 반환)
         MemberPoint.EarnResult earnResult = memberPoint.earnWithExpirationValidation(
                 amount,
                 earnType,
-                command.getExpirationDays(),
+                command.expirationDays(),
                 policy
         );
 
@@ -54,19 +54,19 @@ public class EarnPointUseCase {
 
         // 트랜잭션 기록 (감사 로그)
         PointTransaction transaction = PointTransaction.createEarn(
-                command.getMemberId(),
+                command.memberId(),
                 amount,
-                ledger.getId()
+                ledger.id()
         );
         PointTransaction savedTransaction = pointTransactionRepository.save(transaction);
 
         return EarnPointResult.builder()
-                .ledgerId(ledger.getId())
-                .transactionId(savedTransaction.getId())
-                .memberId(command.getMemberId())
+                .ledgerId(ledger.id())
+                .transactionId(savedTransaction.id())
+                .memberId(command.memberId())
                 .earnedAmount(amount.getValue())
-                .totalBalance(updatedMemberPoint.getTotalBalance().getValue())
-                .expiredAt(ledger.getExpiredAt())
+                .totalBalance(updatedMemberPoint.totalBalance().getValue())
+                .expiredAt(ledger.expiredAt())
                 .build();
     }
 }

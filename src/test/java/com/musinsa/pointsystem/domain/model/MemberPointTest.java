@@ -28,8 +28,8 @@ class MemberPointTest {
             UUID memberId = UuidGenerator.generate();
             MemberPoint memberPoint = MemberPoint.create(memberId);
 
-            assertThat(memberPoint.getMemberId()).isEqualTo(memberId);
-            assertThat(memberPoint.getTotalBalance().getValue()).isEqualTo(0L);
+            assertThat(memberPoint.memberId()).isEqualTo(memberId);
+            assertThat(memberPoint.totalBalance().getValue()).isEqualTo(0L);
         }
     }
 
@@ -49,9 +49,9 @@ class MemberPointTest {
             MemberPoint.UsageResult result = memberPoint.use(PointAmount.of(300L));
 
             // THEN
-            assertThat(result.memberPoint().getTotalBalance().getValue()).isEqualTo(700L);
+            assertThat(result.memberPoint().totalBalance().getValue()).isEqualTo(700L);
             assertThat(result.usageDetails()).hasSize(1);
-            assertThat(memberPoint.getTotalBalance().getValue()).isEqualTo(1000L); // 원본 불변
+            assertThat(memberPoint.totalBalance().getValue()).isEqualTo(1000L); // 원본 불변
         }
 
         @Test

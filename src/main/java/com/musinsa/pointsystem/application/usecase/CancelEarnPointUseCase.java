@@ -24,11 +24,11 @@ public class CancelEarnPointUseCase {
     @Transactional
     public CancelEarnPointResult execute(CancelEarnPointCommand command) {
         // 회원 포인트 조회 (Ledgers 포함)
-        MemberPoint memberPoint = memberPointRepository.findByMemberIdWithLedgers(command.getMemberId())
-                .orElseThrow(() -> new MemberPointNotFoundException(command.getMemberId()));
+        MemberPoint memberPoint = memberPointRepository.findByMemberIdWithLedgers(command.memberId())
+                .orElseThrow(() -> new MemberPointNotFoundException(command.memberId()));
 
         // Aggregate 메서드 호출 (불변 - 새 MemberPoint 반환)
-        MemberPoint.CancelEarnResult cancelResult = memberPoint.cancelEarn(command.getLedgerId());
+        MemberPoint.CancelEarnResult cancelResult = memberPoint.cancelEarn(command.ledgerId());
 
         // 결과에서 새 객체 추출
         MemberPoint updatedMemberPoint = cancelResult.memberPoint();
@@ -39,18 +39,18 @@ public class CancelEarnPointUseCase {
 
         // 트랜잭션 기록
         PointTransaction transaction = PointTransaction.createEarnCancel(
-                command.getMemberId(),
+                command.memberId(),
                 canceledAmount,
-                command.getLedgerId()
+                command.ledgerId()
         );
         PointTransaction savedTransaction = pointTransactionRepository.save(transaction);
 
         return CancelEarnPointResult.builder()
-                .ledgerId(command.getLedgerId())
-                .transactionId(savedTransaction.getId())
-                .memberId(command.getMemberId())
+                .ledgerId(command.ledgerId())
+                .transactionId(savedTransaction.id())
+                .memberId(command.memberId())
                 .canceledAmount(canceledAmount.getValue())
-                .totalBalance(updatedMemberPoint.getTotalBalance().getValue())
+                .totalBalance(updatedMemberPoint.totalBalance().getValue())
                 .build();
     }
 }

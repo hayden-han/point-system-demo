@@ -83,7 +83,7 @@ class ConcurrencyTest extends IntegrationTestBase {
             // THEN
             MemberPoint memberPoint = memberPointRepository.findByMemberId(memberId).orElseThrow();
             long expectedBalance = successCount.get() * amountPerEarn;
-            assertThat(memberPoint.getTotalBalance()).isEqualTo(PointAmount.of(expectedBalance));
+            assertThat(memberPoint.totalBalance()).isEqualTo(PointAmount.of(expectedBalance));
         }
 
         @Test
@@ -124,8 +124,8 @@ class ConcurrencyTest extends IntegrationTestBase {
             // THEN
             MemberPoint memberPoint = memberPointRepository.findByMemberId(memberId).orElseThrow();
             long expectedBalance = initialBalance - (successCount.get() * amountPerUse);
-            assertThat(memberPoint.getTotalBalance()).isEqualTo(PointAmount.of(expectedBalance));
-            assertThat(memberPoint.getTotalBalance().getValue()).isGreaterThanOrEqualTo(0L);
+            assertThat(memberPoint.totalBalance()).isEqualTo(PointAmount.of(expectedBalance));
+            assertThat(memberPoint.totalBalance().getValue()).isGreaterThanOrEqualTo(0L);
         }
 
         @Test
@@ -189,7 +189,7 @@ class ConcurrencyTest extends IntegrationTestBase {
             long expectedBalance = initialBalance
                     + (earnSuccessCount.get() * earnAmount)
                     - (useSuccessCount.get() * useAmount);
-            assertThat(memberPoint.getTotalBalance()).isEqualTo(PointAmount.of(expectedBalance));
+            assertThat(memberPoint.totalBalance()).isEqualTo(PointAmount.of(expectedBalance));
         }
 
         @Test

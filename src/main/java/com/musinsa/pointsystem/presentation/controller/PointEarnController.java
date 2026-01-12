@@ -80,9 +80,9 @@ public class PointEarnController {
             @Valid @RequestBody EarnPointRequest request) {
         EarnPointCommand command = EarnPointCommand.builder()
                 .memberId(memberId)
-                .amount(request.getAmount())
-                .earnType(request.getEarnType())
-                .expirationDays(request.getExpirationDays())
+                .amount(request.amount())
+                .earnType(request.earnType())
+                .expirationDays(request.expirationDays())
                 .build();
 
         EarnPointResult result = earnPointUseCase.execute(command);

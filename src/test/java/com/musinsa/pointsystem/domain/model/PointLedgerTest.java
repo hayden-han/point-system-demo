@@ -29,10 +29,10 @@ class PointLedgerTest {
             PointLedger ledger = PointLedger.create(memberId, PointAmount.of(1000L), EarnType.SYSTEM, LocalDateTime.now().plusDays(365));
 
             // THEN
-            assertThat(ledger.getMemberId()).isEqualTo(memberId);
-            assertThat(ledger.getEarnedAmount().getValue()).isEqualTo(1000L);
-            assertThat(ledger.getAvailableAmount().getValue()).isEqualTo(1000L);
-            assertThat(ledger.getUsedAmount().getValue()).isEqualTo(0L);
+            assertThat(ledger.memberId()).isEqualTo(memberId);
+            assertThat(ledger.earnedAmount().getValue()).isEqualTo(1000L);
+            assertThat(ledger.availableAmount().getValue()).isEqualTo(1000L);
+            assertThat(ledger.usedAmount().getValue()).isEqualTo(0L);
             assertThat(ledger.isCanceled()).isFalse();
         }
 
@@ -49,7 +49,7 @@ class PointLedgerTest {
 
             // THEN
             assertThat(ledger.getSourceTransactionId()).isEqualTo(sourceTransactionId);
-            assertThat(ledger.getAvailableAmount().getValue()).isEqualTo(500L);
+            assertThat(ledger.availableAmount().getValue()).isEqualTo(500L);
         }
     }
 
@@ -115,7 +115,7 @@ class PointLedgerTest {
 
             // THEN
             assertThat(canceledLedger.isCanceled()).isTrue();
-            assertThat(canceledLedger.getAvailableAmount().getValue()).isEqualTo(0L);
+            assertThat(canceledLedger.availableAmount().getValue()).isEqualTo(0L);
             assertThat(ledger.isCanceled()).isFalse(); // 원본 불변
         }
 
@@ -220,9 +220,9 @@ class PointLedgerTest {
 
             // THEN
             assertThat(result.usedAmount().getValue()).isEqualTo(300L);
-            assertThat(result.ledger().getAvailableAmount().getValue()).isEqualTo(700L);
-            assertThat(result.ledger().getUsedAmount().getValue()).isEqualTo(300L);
-            assertThat(ledger.getAvailableAmount().getValue()).isEqualTo(1000L); // 원본 불변
+            assertThat(result.ledger().availableAmount().getValue()).isEqualTo(700L);
+            assertThat(result.ledger().usedAmount().getValue()).isEqualTo(300L);
+            assertThat(ledger.availableAmount().getValue()).isEqualTo(1000L); // 원본 불변
         }
 
         @Test
@@ -238,7 +238,7 @@ class PointLedgerTest {
 
             // THEN
             assertThat(result.usedAmount().getValue()).isEqualTo(500L);
-            assertThat(result.ledger().getAvailableAmount().getValue()).isEqualTo(0L);
+            assertThat(result.ledger().availableAmount().getValue()).isEqualTo(0L);
         }
     }
 
@@ -258,9 +258,9 @@ class PointLedgerTest {
             PointLedger restoredLedger = ledger.restore(PointAmount.of(300L));
 
             // THEN
-            assertThat(restoredLedger.getAvailableAmount().getValue()).isEqualTo(800L);
-            assertThat(restoredLedger.getUsedAmount().getValue()).isEqualTo(200L);
-            assertThat(ledger.getAvailableAmount().getValue()).isEqualTo(500L); // 원본 불변
+            assertThat(restoredLedger.availableAmount().getValue()).isEqualTo(800L);
+            assertThat(restoredLedger.usedAmount().getValue()).isEqualTo(200L);
+            assertThat(ledger.availableAmount().getValue()).isEqualTo(500L); // 원본 불변
         }
 
         @Test

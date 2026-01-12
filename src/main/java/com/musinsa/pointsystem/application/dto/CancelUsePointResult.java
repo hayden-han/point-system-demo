@@ -1,16 +1,14 @@
 package com.musinsa.pointsystem.application.dto;
 
 import lombok.Builder;
-import lombok.Getter;
 
 import java.util.UUID;
 
-@Getter
 @Builder
-public class CancelUsePointResult {
-    private final UUID transactionId;
-    private final UUID memberId;
-    private final Long canceledAmount;
-    private final Long totalBalance;
-    private final String orderId;
-}
+public record CancelUsePointResult(
+        UUID transactionId,
+        UUID memberId,
+        Long canceledAmount,
+        Long totalBalance,
+        String orderId
+) {}

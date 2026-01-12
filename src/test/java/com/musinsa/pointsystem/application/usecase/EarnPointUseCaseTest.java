@@ -44,12 +44,12 @@ class EarnPointUseCaseTest extends IntegrationTestBase {
             EarnPointResult result = earnPointUseCase.execute(command);
 
             // THEN
-            assertThat(result.getLedgerId()).isNotNull();
-            assertThat(result.getTransactionId()).isNotNull();
-            assertThat(result.getMemberId()).isEqualTo(memberId);
-            assertThat(result.getEarnedAmount()).isEqualTo(1000L);
-            assertThat(result.getTotalBalance()).isEqualTo(1000L);
-            assertThat(result.getExpiredAt()).isAfter(LocalDateTime.now());
+            assertThat(result.ledgerId()).isNotNull();
+            assertThat(result.transactionId()).isNotNull();
+            assertThat(result.memberId()).isEqualTo(memberId);
+            assertThat(result.earnedAmount()).isEqualTo(1000L);
+            assertThat(result.totalBalance()).isEqualTo(1000L);
+            assertThat(result.expiredAt()).isAfter(LocalDateTime.now());
         }
 
         @Test
@@ -67,9 +67,9 @@ class EarnPointUseCaseTest extends IntegrationTestBase {
             EarnPointResult result = earnPointUseCase.execute(command);
 
             // THEN
-            assertThat(result.getLedgerId()).isNotNull();
-            assertThat(result.getEarnedAmount()).isEqualTo(500L);
-            assertThat(result.getTotalBalance()).isEqualTo(500L);
+            assertThat(result.ledgerId()).isNotNull();
+            assertThat(result.earnedAmount()).isEqualTo(500L);
+            assertThat(result.totalBalance()).isEqualTo(500L);
         }
 
         @Test
@@ -88,10 +88,10 @@ class EarnPointUseCaseTest extends IntegrationTestBase {
             EarnPointResult result = earnPointUseCase.execute(command);
 
             // THEN
-            assertThat(result.getLedgerId()).isNotNull();
+            assertThat(result.ledgerId()).isNotNull();
             LocalDateTime expectedExpiration = LocalDateTime.now().plusDays(30);
-            assertThat(result.getExpiredAt()).isBefore(expectedExpiration.plusMinutes(1));
-            assertThat(result.getExpiredAt()).isAfter(expectedExpiration.minusMinutes(1));
+            assertThat(result.expiredAt()).isBefore(expectedExpiration.plusMinutes(1));
+            assertThat(result.expiredAt()).isAfter(expectedExpiration.minusMinutes(1));
         }
 
         @Test
@@ -109,8 +109,8 @@ class EarnPointUseCaseTest extends IntegrationTestBase {
             EarnPointResult result = earnPointUseCase.execute(command);
 
             // THEN
-            assertThat(result.getEarnedAmount()).isEqualTo(1L);
-            assertThat(result.getTotalBalance()).isEqualTo(1L);
+            assertThat(result.earnedAmount()).isEqualTo(1L);
+            assertThat(result.totalBalance()).isEqualTo(1L);
         }
 
         @Test
@@ -128,8 +128,8 @@ class EarnPointUseCaseTest extends IntegrationTestBase {
             EarnPointResult result = earnPointUseCase.execute(command);
 
             // THEN
-            assertThat(result.getEarnedAmount()).isEqualTo(100000L);
-            assertThat(result.getTotalBalance()).isEqualTo(100000L);
+            assertThat(result.earnedAmount()).isEqualTo(100000L);
+            assertThat(result.totalBalance()).isEqualTo(100000L);
         }
     }
 

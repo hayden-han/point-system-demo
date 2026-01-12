@@ -29,11 +29,11 @@ public class UsePointUseCase {
     @Transactional
     public UsePointResult execute(UsePointCommand command) {
         // DTO → 도메인 타입 변환 (OrderId VO에서 null/빈값 검증 수행)
-        OrderId orderId = OrderId.of(command.getOrderId());
-        PointAmount amount = PointAmount.of(command.getAmount());
+        OrderId orderId = OrderId.of(command.orderId());
+        PointAmount amount = PointAmount.of(command.amount());
 
         // 회원 포인트 조회 (사용 가능한 Ledgers 포함)
-        MemberPoint memberPoint = memberPointRepository.getOrCreateWithAvailableLedgers(command.getMemberId());
+        MemberPoint memberPoint = memberPointRepository.getOrCreateWithAvailableLedgers(command.memberId());
 
         // Aggregate 메서드 호출 (불변 - 새 MemberPoint 반환)
         MemberPoint.UsageResult usageResult = memberPoint.use(amount);
@@ -46,7 +46,7 @@ public class UsePointUseCase {
 
         // 트랜잭션 생성 및 저장
         PointTransaction transaction = PointTransaction.createUse(
-                command.getMemberId(),
+                command.memberId(),
                 amount,
                 orderId
         );
@@ -55,7 +55,7 @@ public class UsePointUseCase {
         // 사용 상세 생성 및 저장
         List<PointUsageDetail> usageDetails = usageResult.usageDetails().stream()
                 .map(detail -> PointUsageDetail.create(
-                        savedTransaction.getId(),
+                        savedTransaction.id(),
                         detail.ledgerId(),
                         detail.usedAmount()
                 ))
@@ -63,11 +63,11 @@ public class UsePointUseCase {
         pointUsageDetailRepository.saveAll(usageDetails);
 
         return UsePointResult.builder()
-                .transactionId(savedTransaction.getId())
-                .memberId(command.getMemberId())
+                .transactionId(savedTransaction.id())
+                .memberId(command.memberId())
                 .usedAmount(amount.getValue())
-                .totalBalance(updatedMemberPoint.getTotalBalance().getValue())
-                .orderId(command.getOrderId())
+                .totalBalance(updatedMemberPoint.totalBalance().getValue())
+                .orderId(command.orderId())
                 .build();
     }
 }

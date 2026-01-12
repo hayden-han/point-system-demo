@@ -49,13 +49,13 @@ class DataConsistencyTest extends IntegrationTestBase {
             MemberPoint memberPoint = memberPointRepository.findByMemberId(memberId).orElseThrow();
             List<PointLedger> availableLedgers = pointLedgerRepository.findAvailableByMemberId(memberId);
             long sumOfAvailable = availableLedgers.stream()
-                    .map(ledger -> ledger.getAvailableAmount().getValue())
+                    .map(ledger -> ledger.availableAmount().getValue())
                     .mapToLong(v -> v)
                     .sum();
 
             // THEN
-            assertThat(memberPoint.getTotalBalance()).isEqualTo(PointAmount.of(1500L));
-            assertThat(sumOfAvailable).isEqualTo(memberPoint.getTotalBalance().getValue());
+            assertThat(memberPoint.totalBalance()).isEqualTo(PointAmount.of(1500L));
+            assertThat(sumOfAvailable).isEqualTo(memberPoint.totalBalance().getValue());
             // 유효한 적립건은 2개 (7001: 800, 7002: 700)
             assertThat(availableLedgers).hasSize(2);
         }
@@ -70,11 +70,11 @@ class DataConsistencyTest extends IntegrationTestBase {
             PointLedger ledger = pointLedgerRepository.findById(ledgerId).orElseThrow();
 
             // THEN
-            assertThat(ledger.getEarnedAmount()).isEqualTo(PointAmount.of(1000L));
-            assertThat(ledger.getAvailableAmount()).isEqualTo(PointAmount.of(500L));
-            assertThat(ledger.getUsedAmount()).isEqualTo(PointAmount.of(500L));
-            assertThat(ledger.getEarnedAmount().getValue())
-                    .isEqualTo(ledger.getAvailableAmount().getValue() + ledger.getUsedAmount().getValue());
+            assertThat(ledger.earnedAmount()).isEqualTo(PointAmount.of(1000L));
+            assertThat(ledger.availableAmount()).isEqualTo(PointAmount.of(500L));
+            assertThat(ledger.usedAmount()).isEqualTo(PointAmount.of(500L));
+            assertThat(ledger.earnedAmount().getValue())
+                    .isEqualTo(ledger.availableAmount().getValue() + ledger.usedAmount().getValue());
         }
 
         @Test
@@ -86,11 +86,11 @@ class DataConsistencyTest extends IntegrationTestBase {
             // WHEN
             List<PointUsageDetail> usageDetails = pointUsageDetailRepository.findByTransactionId(transactionId);
             long sumOfUsed = usageDetails.stream()
-                    .map(detail -> detail.getUsedAmount().getValue())
+                    .map(detail -> detail.usedAmount().getValue())
                     .mapToLong(v -> v)
                     .sum();
             long sumOfCanceled = usageDetails.stream()
-                    .map(detail -> detail.getCanceledAmount().getValue())
+                    .map(detail -> detail.canceledAmount().getValue())
                     .mapToLong(v -> v)
                     .sum();
 
@@ -100,7 +100,7 @@ class DataConsistencyTest extends IntegrationTestBase {
             // 두 적립건에서 각각 500씩 사용
             assertThat(usageDetails).hasSize(2);
             usageDetails.forEach(detail ->
-                assertThat(detail.getUsedAmount()).isEqualTo(PointAmount.of(500L))
+                assertThat(detail.usedAmount()).isEqualTo(PointAmount.of(500L))
             );
         }
 
@@ -117,9 +117,9 @@ class DataConsistencyTest extends IntegrationTestBase {
             assertThat(usageDetails).hasSize(1);
             PointUsageDetail detail = usageDetails.get(0);
 
-            assertThat(detail.getUsedAmount()).isEqualTo(PointAmount.of(1000L));
-            assertThat(detail.getCanceledAmount()).isEqualTo(PointAmount.of(300L));
-            assertThat(detail.getCanceledAmount().getValue()).isLessThanOrEqualTo(detail.getUsedAmount().getValue());
+            assertThat(detail.usedAmount()).isEqualTo(PointAmount.of(1000L));
+            assertThat(detail.canceledAmount()).isEqualTo(PointAmount.of(300L));
+            assertThat(detail.canceledAmount().getValue()).isLessThanOrEqualTo(detail.usedAmount().getValue());
             assertThat(detail.getCancelableAmount()).isEqualTo(PointAmount.of(700L));
         }
     }

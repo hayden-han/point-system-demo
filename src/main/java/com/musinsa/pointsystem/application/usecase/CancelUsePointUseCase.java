@@ -33,38 +33,38 @@ public class CancelUsePointUseCase {
     @Transactional
     public CancelUsePointResult execute(CancelUsePointCommand command) {
         // 원본 트랜잭션 조회
-        PointTransaction originalTransaction = pointTransactionRepository.findById(command.getTransactionId())
-                .orElseThrow(() -> new PointTransactionNotFoundException(command.getTransactionId()));
+        PointTransaction originalTransaction = pointTransactionRepository.findById(command.transactionId())
+                .orElseThrow(() -> new PointTransactionNotFoundException(command.transactionId()));
 
         // DTO → 도메인 타입 변환
-        PointAmount cancelAmount = PointAmount.of(command.getCancelAmount());
+        PointAmount cancelAmount = PointAmount.of(command.cancelAmount());
 
         // 취소 가능한 사용 상세 조회 (만료일 긴 것부터)
         List<PointUsageDetail> usageDetails = pointUsageDetailRepository
-                .findCancelableByTransactionId(command.getTransactionId());
+                .findCancelableByTransactionId(command.transactionId());
 
         // 정책 조회
         ExpirationPolicyConfig expirationPolicy = pointPolicyRepository.getExpirationPolicyConfig();
 
         // 사용취소 트랜잭션 생성 및 저장
         PointTransaction cancelTransaction = PointTransaction.createUseCancel(
-                command.getMemberId(),
+                command.memberId(),
                 cancelAmount,
-                originalTransaction.getOrderId(),
-                command.getTransactionId()
+                originalTransaction.orderId(),
+                command.transactionId()
         );
         PointTransaction savedCancelTransaction = pointTransactionRepository.save(cancelTransaction);
 
         // 회원 포인트 조회 (Ledgers 포함)
-        MemberPoint memberPoint = memberPointRepository.findByMemberIdWithLedgers(command.getMemberId())
-                .orElseThrow(() -> new MemberPointNotFoundException(command.getMemberId()));
+        MemberPoint memberPoint = memberPointRepository.findByMemberIdWithLedgers(command.memberId())
+                .orElseThrow(() -> new MemberPointNotFoundException(command.memberId()));
 
         // Aggregate 메서드 호출 (불변 - 새 MemberPoint 반환)
         MemberPoint.RestoreResult restoreResult = memberPoint.cancelUse(
                 usageDetails,
                 cancelAmount,
-                expirationPolicy.getDefaultExpirationDays(),
-                savedCancelTransaction.getId()
+                expirationPolicy.defaultExpirationDays(),
+                savedCancelTransaction.id()
         );
 
         // 결과에서 새 객체 추출
@@ -77,11 +77,11 @@ public class CancelUsePointUseCase {
         pointUsageDetailRepository.saveAll(restoreResult.updatedUsageDetails());
 
         return CancelUsePointResult.builder()
-                .transactionId(savedCancelTransaction.getId())
-                .memberId(command.getMemberId())
+                .transactionId(savedCancelTransaction.id())
+                .memberId(command.memberId())
                 .canceledAmount(cancelAmount.getValue())
-                .totalBalance(updatedMemberPoint.getTotalBalance().getValue())
-                .orderId(originalTransaction.getOrderId().getValue())
+                .totalBalance(updatedMemberPoint.totalBalance().getValue())
+                .orderId(originalTransaction.orderId().getValue())
                 .build();
     }
 }

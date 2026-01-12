@@ -74,8 +74,8 @@ public class PointUseController {
             @Valid @RequestBody UsePointRequest request) {
         UsePointCommand command = UsePointCommand.builder()
                 .memberId(memberId)
-                .amount(request.getAmount())
-                .orderId(request.getOrderId())
+                .amount(request.amount())
+                .orderId(request.orderId())
                 .build();
 
         UsePointResult result = usePointUseCase.execute(command);
@@ -129,8 +129,8 @@ public class PointUseController {
             @Valid @RequestBody CancelUsePointRequest request) {
         CancelUsePointCommand command = CancelUsePointCommand.builder()
                 .memberId(memberId)
-                .transactionId(request.getTransactionId())
-                .cancelAmount(request.getCancelAmount())
+                .transactionId(request.transactionId())
+                .cancelAmount(request.cancelAmount())
                 .build();
 
         CancelUsePointResult result = cancelUsePointUseCase.execute(command);
