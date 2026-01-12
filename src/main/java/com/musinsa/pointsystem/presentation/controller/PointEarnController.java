@@ -12,6 +12,8 @@ import com.musinsa.pointsystem.presentation.dto.response.CancelEarnPointResponse
 import com.musinsa.pointsystem.presentation.dto.response.EarnPointResponse;
 import com.musinsa.pointsystem.presentation.dto.response.ErrorResponse;
 import com.musinsa.pointsystem.presentation.exception.DuplicateRequestException;
+import com.musinsa.pointsystem.presentation.exception.RequestInProgressException;
+import com.musinsa.pointsystem.infra.idempotency.IdempotencyKeyRepository.AcquireResult;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -101,8 +103,25 @@ public class PointEarnController {
             }
 
             // 새 요청 처리 시도
-            if (!idempotencyKeyRepository.tryAcquire(idempotencyKey)) {
-                throw new DuplicateRequestException(idempotencyKey);
+            AcquireResult acquireResult = idempotencyKeyRepository.tryAcquire(idempotencyKey);
+            switch (acquireResult) {
+                case ACQUIRED:
+                    // 정상 처리 계속
+                    break;
+                case ALREADY_COMPLETED:
+                    // 결과 조회 후 반환 (race condition으로 캐시 miss 후 완료된 경우)
+                    var completedResult = idempotencyKeyRepository.getResult(idempotencyKey);
+                    if (completedResult.isPresent()) {
+                        try {
+                            return objectMapper.readValue(completedResult.get(), EarnPointResponse.class);
+                        } catch (Exception e) {
+                            log.warn("멱등성 캐시 역직렬화 실패: {}", e.getMessage());
+                        }
+                    }
+                    throw new DuplicateRequestException(idempotencyKey);
+                case PROCESSING:
+                    // 다른 요청이 처리 중 - 잠시 후 재시도 안내
+                    throw new RequestInProgressException(idempotencyKey);
             }
         }
 

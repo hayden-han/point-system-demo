@@ -1,5 +1,6 @@
 package com.musinsa.pointsystem.domain.factory;
 
+import com.musinsa.pointsystem.common.time.TimeProvider;
 import com.musinsa.pointsystem.domain.model.*;
 import com.musinsa.pointsystem.domain.port.IdGenerator;
 
@@ -15,9 +16,11 @@ import java.util.UUID;
 public class PointFactory {
 
     private final IdGenerator idGenerator;
+    private final TimeProvider timeProvider;
 
-    public PointFactory(IdGenerator idGenerator) {
+    public PointFactory(IdGenerator idGenerator, TimeProvider timeProvider) {
         this.idGenerator = idGenerator;
+        this.timeProvider = timeProvider;
     }
 
     // === PointLedger 생성 ===
@@ -36,7 +39,7 @@ public class PointFactory {
                 null,
                 expiredAt,
                 false,
-                LocalDateTime.now()
+                timeProvider.now()
         );
     }
 
@@ -55,7 +58,7 @@ public class PointFactory {
                 sourceTransactionId,
                 expiredAt,
                 false,
-                LocalDateTime.now()
+                timeProvider.now()
         );
     }
 
@@ -73,7 +76,7 @@ public class PointFactory {
                 null,
                 null,
                 ledgerId,
-                LocalDateTime.now()
+                timeProvider.now()
         );
     }
 
@@ -89,7 +92,7 @@ public class PointFactory {
                 null,
                 null,
                 ledgerId,
-                LocalDateTime.now()
+                timeProvider.now()
         );
     }
 
@@ -105,7 +108,7 @@ public class PointFactory {
                 orderId,
                 null,
                 null,
-                LocalDateTime.now()
+                timeProvider.now()
         );
     }
 
@@ -122,7 +125,7 @@ public class PointFactory {
                 orderId,
                 relatedTransactionId,
                 null,
-                LocalDateTime.now()
+                timeProvider.now()
         );
     }
 

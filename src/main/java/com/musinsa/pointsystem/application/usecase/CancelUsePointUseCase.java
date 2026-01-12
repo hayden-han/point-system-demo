@@ -32,20 +32,25 @@ public class CancelUsePointUseCase {
     @DistributedLock(key = "'lock:point:member:' + #command.memberId")
     @Transactional
     public CancelUsePointResult execute(CancelUsePointCommand command) {
-        // 원본 트랜잭션 조회 (없으면 PointTransactionNotFoundException 발생)
+        // 1. 원본 트랜잭션 조회 (없으면 PointTransactionNotFoundException 발생)
         PointTransaction originalTransaction = pointTransactionRepository.getById(command.transactionId());
 
-        // DTO → 도메인 타입 변환
+        // 2. DTO → 도메인 타입 변환
         PointAmount cancelAmount = PointAmount.of(command.cancelAmount());
 
-        // 취소 가능한 사용 상세 조회 (만료일 긴 것부터)
+        // 3. 정책 조회
+        ExpirationPolicyConfig expirationPolicy = pointPolicyRepository.getExpirationPolicyConfig();
+
+        // 4. 회원 포인트 조회 (모든 Ledgers 포함 - 복원 대상 Ledger 필요)
+        //    분산락으로 보호되므로 다른 스레드의 동시 수정 방지
+        MemberPoint memberPoint = memberPointRepository.getByMemberIdWithAllLedgers(command.memberId());
+
+        // 5. 취소 가능한 사용 상세 조회 (만료일 긴 것부터)
+        //    memberPoint 조회 후 수행하여 동일 트랜잭션 내에서 일관성 보장
         List<PointUsageDetail> usageDetails = pointUsageDetailRepository
                 .findCancelableByTransactionId(command.transactionId());
 
-        // 정책 조회
-        ExpirationPolicyConfig expirationPolicy = pointPolicyRepository.getExpirationPolicyConfig();
-
-        // 사용취소 트랜잭션 생성 및 저장
+        // 6. 사용취소 트랜잭션 생성 및 저장
         PointTransaction cancelTransaction = pointUsageManager.createUseCancelTransaction(
                 command.memberId(),
                 cancelAmount,
@@ -54,10 +59,7 @@ public class CancelUsePointUseCase {
         );
         PointTransaction savedCancelTransaction = pointTransactionRepository.save(cancelTransaction);
 
-        // 회원 포인트 조회 (모든 Ledgers 포함 - 복원 대상 Ledger 필요)
-        MemberPoint memberPoint = memberPointRepository.getByMemberIdWithAllLedgers(command.memberId());
-
-        // Domain Service를 통한 사용 취소 처리
+        // 7. Domain Service를 통한 사용 취소 처리
         MemberPoint.RestoreResult restoreResult = pointUsageManager.cancelUse(
                 memberPoint,
                 usageDetails,

@@ -1,5 +1,6 @@
 package com.musinsa.pointsystem.domain.service;
 
+import com.musinsa.pointsystem.common.time.TimeProvider;
 import com.musinsa.pointsystem.domain.factory.PointFactory;
 import com.musinsa.pointsystem.domain.model.*;
 
@@ -16,9 +17,11 @@ import java.util.UUID;
 public class PointUsageManager {
 
     private final PointFactory pointFactory;
+    private final TimeProvider timeProvider;
 
-    public PointUsageManager(PointFactory pointFactory) {
+    public PointUsageManager(PointFactory pointFactory, TimeProvider timeProvider) {
         this.pointFactory = pointFactory;
+        this.timeProvider = timeProvider;
     }
 
     // =====================================================
@@ -66,7 +69,8 @@ public class PointUsageManager {
                 cancelAmount,
                 defaultExpirationDays,
                 cancelTransactionId,
-                pointFactory
+                pointFactory,
+                timeProvider.now()
         );
     }
 

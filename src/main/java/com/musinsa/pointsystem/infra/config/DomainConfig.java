@@ -1,5 +1,6 @@
 package com.musinsa.pointsystem.infra.config;
 
+import com.musinsa.pointsystem.common.time.TimeProvider;
 import com.musinsa.pointsystem.domain.factory.PointFactory;
 import com.musinsa.pointsystem.domain.port.IdGenerator;
 import com.musinsa.pointsystem.domain.service.PointAccrualManager;
@@ -16,8 +17,8 @@ import org.springframework.context.annotation.Configuration;
 public class DomainConfig {
 
     @Bean
-    public PointFactory pointFactory(IdGenerator idGenerator) {
-        return new PointFactory(idGenerator);
+    public PointFactory pointFactory(IdGenerator idGenerator, TimeProvider timeProvider) {
+        return new PointFactory(idGenerator, timeProvider);
     }
 
     @Bean
@@ -26,7 +27,7 @@ public class DomainConfig {
     }
 
     @Bean
-    public PointUsageManager pointUsageManager(PointFactory pointFactory) {
-        return new PointUsageManager(pointFactory);
+    public PointUsageManager pointUsageManager(PointFactory pointFactory, TimeProvider timeProvider) {
+        return new PointUsageManager(pointFactory, timeProvider);
     }
 }

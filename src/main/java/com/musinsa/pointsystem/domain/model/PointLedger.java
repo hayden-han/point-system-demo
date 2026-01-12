@@ -38,10 +38,36 @@ public record PointLedger(
         return !canceled && earnedAmount.equals(availableAmount);
     }
 
-    public boolean isExpired() {
-        return expiredAt.isBefore(LocalDateTime.now());
+    /**
+     * 만료 여부 확인 (주어진 시간 기준)
+     * @param now 비교 기준 시간 (UTC)
+     */
+    public boolean isExpired(LocalDateTime now) {
+        return expiredAt.isBefore(now);
     }
 
+    /**
+     * 만료 여부 확인 (현재 시간 기준 - UTC)
+     * @deprecated TimeProvider를 통한 isExpired(LocalDateTime) 사용 권장
+     */
+    @Deprecated
+    public boolean isExpired() {
+        return expiredAt.isBefore(LocalDateTime.now(java.time.ZoneOffset.UTC));
+    }
+
+    /**
+     * 사용 가능 여부 (주어진 시간 기준)
+     * @param now 비교 기준 시간 (UTC)
+     */
+    public boolean isAvailable(LocalDateTime now) {
+        return !canceled && !isExpired(now) && availableAmount.isPositive();
+    }
+
+    /**
+     * 사용 가능 여부 (현재 시간 기준 - UTC)
+     * @deprecated TimeProvider를 통한 isAvailable(LocalDateTime) 사용 권장
+     */
+    @Deprecated
     public boolean isAvailable() {
         return !canceled && !isExpired() && availableAmount.isPositive();
     }

@@ -1,5 +1,6 @@
 package com.musinsa.pointsystem.infra.scheduler;
 
+import com.musinsa.pointsystem.common.time.TimeProvider;
 import com.musinsa.pointsystem.infra.persistence.repository.PointLedgerJpaRepository;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -20,11 +21,14 @@ import java.time.LocalDateTime;
 public class ExpiredPointCleanupScheduler {
 
     private final PointLedgerJpaRepository pointLedgerJpaRepository;
+    private final TimeProvider timeProvider;
     private final Counter cleanupCounter;
 
     public ExpiredPointCleanupScheduler(PointLedgerJpaRepository pointLedgerJpaRepository,
+                                         TimeProvider timeProvider,
                                          MeterRegistry meterRegistry) {
         this.pointLedgerJpaRepository = pointLedgerJpaRepository;
+        this.timeProvider = timeProvider;
         this.cleanupCounter = Counter.builder("point.expired.cleanup")
                 .description("Number of expired point ledgers cleaned up")
                 .register(meterRegistry);
@@ -37,7 +41,7 @@ public class ExpiredPointCleanupScheduler {
     @Transactional
     public void cleanupExpiredPoints() {
         log.info("만료 포인트 정리 시작");
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = timeProvider.now();
 
         try {
             int updatedCount = pointLedgerJpaRepository.markExpiredLedgersAsZeroBalance(now);

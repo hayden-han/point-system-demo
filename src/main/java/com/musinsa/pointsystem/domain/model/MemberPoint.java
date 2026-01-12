@@ -192,12 +192,14 @@ public record MemberPoint(
     /**
      * 사용 취소 (불변 - 새 객체 반환)
      * @param pointFactory 만료된 적립건 복원 시 신규 Ledger 생성에 사용
+     * @param now 현재 시간 (UTC) - 만료 여부 판단용
      */
     public RestoreResult cancelUse(List<PointUsageDetail> usageDetails,
                                    PointAmount cancelAmount,
                                    int defaultExpirationDays,
                                    UUID cancelTransactionId,
-                                   PointFactory pointFactory) {
+                                   PointFactory pointFactory,
+                                   LocalDateTime now) {
         // 취소 가능 금액 검증
         PointAmount totalCancelable = usageDetails.stream()
                 .map(PointUsageDetail::getCancelableAmount)
@@ -210,6 +212,14 @@ public record MemberPoint(
         // 적립건 ID → 적립건 매핑
         Map<UUID, PointLedger> ledgerMap = ledgers.stream()
                 .collect(Collectors.toMap(PointLedger::id, l -> l));
+
+        // usageDetails의 모든 ledgerId가 현재 ledgers에 존재하는지 검증
+        // (데이터 정합성 보장 - 분산락으로 보호되지만 추가 안전장치)
+        for (PointUsageDetail detail : usageDetails) {
+            if (!ledgerMap.containsKey(detail.ledgerId())) {
+                throw new PointLedgerNotFoundException(detail.ledgerId());
+            }
+        }
 
         List<PointLedger> restoredLedgers = new ArrayList<>();
         List<PointLedger> newLedgers = new ArrayList<>();
@@ -229,17 +239,17 @@ public record MemberPoint(
 
             PointLedger originalLedger = ledgerMap.get(usageDetail.ledgerId());
 
-            if (originalLedger != null && originalLedger.isExpired()) {
+            if (originalLedger.isExpired(now)) {
                 // 만료된 적립건 → 신규 적립건 생성 (Factory 사용)
                 PointLedger newLedger = pointFactory.createLedgerFromCancelUse(
                         memberId,
                         cancelResult.canceledAmount(),
                         originalLedger.earnType(),
-                        LocalDateTime.now().plusDays(defaultExpirationDays),
+                        now.plusDays(defaultExpirationDays),
                         cancelTransactionId
                 );
                 newLedgers.add(newLedger);
-            } else if (originalLedger != null) {
+            } else {
                 // 만료되지 않은 적립건 → 복구
                 PointLedger restored = originalLedger.restore(cancelResult.canceledAmount());
                 restoredLedgers.add(restored);

@@ -123,6 +123,15 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of("DUPLICATE_REQUEST", e.getMessage()));
     }
 
+    @ExceptionHandler(RequestInProgressException.class)
+    public ResponseEntity<ErrorResponse> handleRequestInProgress(RequestInProgressException e) {
+        log.info("요청 처리 중: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.ACCEPTED)
+                .header(HttpHeaders.RETRY_AFTER, String.valueOf(RETRY_AFTER_SECONDS))
+                .body(ErrorResponse.of("REQUEST_IN_PROGRESS",
+                        "요청이 처리 중입니다. " + RETRY_AFTER_SECONDS + "초 후 다시 시도해주세요."));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleException(Exception e) {
         log.error("예상치 못한 오류 발생", e);
