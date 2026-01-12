@@ -57,11 +57,20 @@ java -jar build/libs/point-system-0.0.1-SNAPSHOT.jar
 
 ## API 명세
 
+### Swagger UI (API 문서)
+
+```
+http://localhost:8080/swagger-ui.html
+http://localhost:8080/v3/api-docs
+```
+
 ### 기본 URL
 
 ```
 http://localhost:8080/api/v1
 ```
+
+> **Note:** 모든 ID 필드(memberId, ledgerId, transactionId)는 **UUID** 형식입니다. (UUIDv7 사용)
 
 ### 1. 포인트 적립
 
@@ -87,9 +96,9 @@ http://localhost:8080/api/v1
 **Response**
 ```json
 {
-  "ledgerId": 1,
-  "transactionId": 1,
-  "memberId": 1,
+  "ledgerId": "019424a1-7c8e-7000-8000-000000000001",
+  "transactionId": "019424a1-7c8e-7000-8000-000000000002",
+  "memberId": "019424a1-7c8e-7000-8000-000000000000",
   "earnedAmount": 1000,
   "totalBalance": 1000,
   "expiredAt": "2027-01-10T12:00:00"
@@ -105,9 +114,9 @@ http://localhost:8080/api/v1
 **Response**
 ```json
 {
-  "ledgerId": 1,
-  "transactionId": 2,
-  "memberId": 1,
+  "ledgerId": "019424a1-7c8e-7000-8000-000000000001",
+  "transactionId": "019424a1-7c8e-7000-8000-000000000003",
+  "memberId": "019424a1-7c8e-7000-8000-000000000000",
   "canceledAmount": 1000,
   "totalBalance": 0
 }
@@ -135,8 +144,8 @@ http://localhost:8080/api/v1
 **Response**
 ```json
 {
-  "transactionId": 3,
-  "memberId": 1,
+  "transactionId": "019424a1-7c8e-7000-8000-000000000004",
+  "memberId": "019424a1-7c8e-7000-8000-000000000000",
   "usedAmount": 500,
   "totalBalance": 500,
   "orderId": "ORDER-12345"
@@ -153,21 +162,21 @@ http://localhost:8080/api/v1
 **Request Body**
 ```json
 {
-  "transactionId": 3,
+  "transactionId": "019424a1-7c8e-7000-8000-000000000004",
   "cancelAmount": 300
 }
 ```
 
 | 필드 | 타입 | 필수 | 설명 |
 |------|------|------|------|
-| transactionId | Long | O | 원본 사용 트랜잭션 ID |
+| transactionId | UUID | O | 원본 사용 트랜잭션 ID |
 | cancelAmount | Long | O | 취소 금액 |
 
 **Response**
 ```json
 {
-  "transactionId": 4,
-  "memberId": 1,
+  "transactionId": "019424a1-7c8e-7000-8000-000000000005",
+  "memberId": "019424a1-7c8e-7000-8000-000000000000",
   "canceledAmount": 300,
   "totalBalance": 800
 }
@@ -182,7 +191,7 @@ http://localhost:8080/api/v1
 **Response**
 ```json
 {
-  "memberId": 1,
+  "memberId": "019424a1-7c8e-7000-8000-000000000000",
   "totalBalance": 800
 }
 ```
@@ -204,7 +213,7 @@ http://localhost:8080/api/v1
 {
   "content": [
     {
-      "transactionId": 1,
+      "transactionId": "019424a1-7c8e-7000-8000-000000000002",
       "type": "EARN",
       "amount": 1000,
       "orderId": null,
@@ -283,6 +292,41 @@ erDiagram
 | point_transaction | 포인트 변경 이력 |
 | point_usage_detail | 사용 상세 (1원 단위 추적) |
 
+## 모니터링
+
+### Health Check (Kubernetes Probes)
+
+| 엔드포인트 | 용도 |
+|-----------|------|
+| `/actuator/health/liveness` | Liveness Probe (컨테이너 생존 여부) |
+| `/actuator/health/readiness` | Readiness Probe (트래픽 수신 가능 여부) |
+
+### Prometheus 메트릭
+
+```
+http://localhost:8080/actuator/prometheus
+```
+
+HikariCP, JVM, HTTP 요청 등의 메트릭을 Prometheus 형식으로 제공합니다.
+
+## 인프라 구성
+
+### Primary/Replica DataSource
+
+- `@Transactional(readOnly = true)` → Replica DataSource
+- `@Transactional(readOnly = false)` → Primary DataSource
+
+로컬/테스트 환경에서는 동일한 H2 인메모리 DB를 사용하며, 프로덕션 환경에서는 AWS RDS Primary-Replica 구조를 지원합니다.
+
+### Connection Pool 설정 (HikariCP)
+
+| 설정 | Primary | Replica | 설명 |
+|------|---------|---------|------|
+| maximum-pool-size | 40 | 30 | 최대 커넥션 수 |
+| minimum-idle | 20 | 10 | 최소 유휴 커넥션 |
+
+> 100~1000 TPS 트래픽 환경에 최적화된 설정
+
 ## 참고 문서
 
 - [요구사항 정의서](./reference/requirements.md)
@@ -291,3 +335,4 @@ erDiagram
 - [동시성 제어](./reference/concurrency-control.md)
 - [ERD](./reference/erd.md)
 - [테스트 시나리오](./reference/test-scenarios.md)
+- [AWS 아키텍처](./reference/aws-architecture.md)
