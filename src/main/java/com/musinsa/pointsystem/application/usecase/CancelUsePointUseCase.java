@@ -14,6 +14,7 @@ import com.musinsa.pointsystem.domain.repository.MemberPointRepository;
 import com.musinsa.pointsystem.domain.repository.PointPolicyRepository;
 import com.musinsa.pointsystem.domain.repository.PointTransactionRepository;
 import com.musinsa.pointsystem.domain.repository.PointUsageDetailRepository;
+import com.musinsa.pointsystem.domain.service.PointDomainService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +29,7 @@ public class CancelUsePointUseCase {
     private final PointTransactionRepository pointTransactionRepository;
     private final PointUsageDetailRepository pointUsageDetailRepository;
     private final PointPolicyRepository pointPolicyRepository;
+    private final PointDomainService pointDomainService;
 
     @DistributedLock(key = "'lock:point:member:' + #command.memberId")
     @Transactional
@@ -47,7 +49,7 @@ public class CancelUsePointUseCase {
         ExpirationPolicyConfig expirationPolicy = pointPolicyRepository.getExpirationPolicyConfig();
 
         // 사용취소 트랜잭션 생성 및 저장
-        PointTransaction cancelTransaction = PointTransaction.createUseCancel(
+        PointTransaction cancelTransaction = pointDomainService.createUseCancelTransaction(
                 command.memberId(),
                 cancelAmount,
                 originalTransaction.orderId(),
@@ -59,8 +61,9 @@ public class CancelUsePointUseCase {
         MemberPoint memberPoint = memberPointRepository.findByMemberIdWithLedgers(command.memberId())
                 .orElseThrow(() -> new MemberPointNotFoundException(command.memberId()));
 
-        // Aggregate 메서드 호출 (불변 - 새 MemberPoint 반환)
-        MemberPoint.RestoreResult restoreResult = memberPoint.cancelUse(
+        // Domain Service를 통한 사용 취소 처리
+        MemberPoint.RestoreResult restoreResult = pointDomainService.cancelUse(
+                memberPoint,
                 usageDetails,
                 cancelAmount,
                 expirationPolicy.defaultExpirationDays(),

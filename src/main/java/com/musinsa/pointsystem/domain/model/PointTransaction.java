@@ -1,7 +1,5 @@
 package com.musinsa.pointsystem.domain.model;
 
-import com.musinsa.pointsystem.common.util.UuidGenerator;
-
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -51,58 +49,5 @@ public record PointTransaction(
 
     public LocalDateTime getTransactedAt() {
         return transactedAt;
-    }
-
-    // Static Factory Methods
-    public static PointTransaction createEarn(UUID memberId, PointAmount amount, UUID ledgerId) {
-        return new PointTransaction(
-                UuidGenerator.generate(),
-                memberId,
-                TransactionType.EARN,
-                amount,
-                null,
-                null,
-                ledgerId,
-                LocalDateTime.now()
-        );
-    }
-
-    public static PointTransaction createEarnCancel(UUID memberId, PointAmount amount, UUID ledgerId) {
-        return new PointTransaction(
-                UuidGenerator.generate(),
-                memberId,
-                TransactionType.EARN_CANCEL,
-                amount,
-                null,
-                null,
-                ledgerId,
-                LocalDateTime.now()
-        );
-    }
-
-    public static PointTransaction createUse(UUID memberId, PointAmount amount, OrderId orderId) {
-        return new PointTransaction(
-                UuidGenerator.generate(),
-                memberId,
-                TransactionType.USE,
-                amount,
-                orderId,
-                null,
-                null,
-                LocalDateTime.now()
-        );
-    }
-
-    public static PointTransaction createUseCancel(UUID memberId, PointAmount amount, OrderId orderId, UUID relatedTransactionId) {
-        return new PointTransaction(
-                UuidGenerator.generate(),
-                memberId,
-                TransactionType.USE_CANCEL,
-                amount,
-                orderId,
-                relatedTransactionId,
-                null,
-                LocalDateTime.now()
-        );
     }
 }

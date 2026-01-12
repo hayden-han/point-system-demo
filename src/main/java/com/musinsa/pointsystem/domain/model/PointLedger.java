@@ -1,6 +1,5 @@
 package com.musinsa.pointsystem.domain.model;
 
-import com.musinsa.pointsystem.common.util.UuidGenerator;
 import com.musinsa.pointsystem.domain.exception.PointLedgerAlreadyCanceledException;
 import com.musinsa.pointsystem.domain.exception.PointLedgerAlreadyUsedException;
 
@@ -73,38 +72,6 @@ public record PointLedger(
 
     public LocalDateTime getEarnedAt() {
         return earnedAt;
-    }
-
-    // Static Factory Methods
-    public static PointLedger create(UUID memberId, PointAmount amount, EarnType earnType, LocalDateTime expiredAt) {
-        return new PointLedger(
-                UuidGenerator.generate(),
-                memberId,
-                amount,
-                amount,
-                PointAmount.ZERO,
-                earnType,
-                null,
-                expiredAt,
-                false,
-                LocalDateTime.now()
-        );
-    }
-
-    public static PointLedger createFromCancelUse(UUID memberId, PointAmount amount, EarnType earnType,
-                                                   LocalDateTime expiredAt, UUID sourceTransactionId) {
-        return new PointLedger(
-                UuidGenerator.generate(),
-                memberId,
-                amount,
-                amount,
-                PointAmount.ZERO,
-                earnType,
-                sourceTransactionId,
-                expiredAt,
-                false,
-                LocalDateTime.now()
-        );
     }
 
     // 비즈니스 메서드

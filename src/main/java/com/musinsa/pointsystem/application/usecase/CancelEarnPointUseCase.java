@@ -9,6 +9,7 @@ import com.musinsa.pointsystem.domain.model.PointAmount;
 import com.musinsa.pointsystem.domain.model.PointTransaction;
 import com.musinsa.pointsystem.domain.repository.MemberPointRepository;
 import com.musinsa.pointsystem.domain.repository.PointTransactionRepository;
+import com.musinsa.pointsystem.domain.service.PointDomainService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +20,7 @@ public class CancelEarnPointUseCase {
 
     private final MemberPointRepository memberPointRepository;
     private final PointTransactionRepository pointTransactionRepository;
+    private final PointDomainService pointDomainService;
 
     @DistributedLock(key = "'lock:point:member:' + #command.memberId")
     @Transactional
@@ -27,8 +29,8 @@ public class CancelEarnPointUseCase {
         MemberPoint memberPoint = memberPointRepository.findByMemberIdWithLedgers(command.memberId())
                 .orElseThrow(() -> new MemberPointNotFoundException(command.memberId()));
 
-        // Aggregate 메서드 호출 (불변 - 새 MemberPoint 반환)
-        MemberPoint.CancelEarnResult cancelResult = memberPoint.cancelEarn(command.ledgerId());
+        // Domain Service를 통한 적립 취소 처리
+        MemberPoint.CancelEarnResult cancelResult = pointDomainService.cancelEarn(memberPoint, command.ledgerId());
 
         // 결과에서 새 객체 추출
         MemberPoint updatedMemberPoint = cancelResult.memberPoint();
@@ -38,7 +40,7 @@ public class CancelEarnPointUseCase {
         memberPointRepository.save(updatedMemberPoint);
 
         // 트랜잭션 기록
-        PointTransaction transaction = PointTransaction.createEarnCancel(
+        PointTransaction transaction = pointDomainService.createEarnCancelTransaction(
                 command.memberId(),
                 canceledAmount,
                 command.ledgerId()

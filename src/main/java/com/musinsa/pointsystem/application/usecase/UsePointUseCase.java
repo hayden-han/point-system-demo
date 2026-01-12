@@ -11,6 +11,7 @@ import com.musinsa.pointsystem.domain.model.PointUsageDetail;
 import com.musinsa.pointsystem.domain.repository.MemberPointRepository;
 import com.musinsa.pointsystem.domain.repository.PointTransactionRepository;
 import com.musinsa.pointsystem.domain.repository.PointUsageDetailRepository;
+import com.musinsa.pointsystem.domain.service.PointDomainService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +25,7 @@ public class UsePointUseCase {
     private final MemberPointRepository memberPointRepository;
     private final PointTransactionRepository pointTransactionRepository;
     private final PointUsageDetailRepository pointUsageDetailRepository;
+    private final PointDomainService pointDomainService;
 
     @DistributedLock(key = "'lock:point:member:' + #command.memberId")
     @Transactional
@@ -35,8 +37,8 @@ public class UsePointUseCase {
         // 회원 포인트 조회 (사용 가능한 Ledgers 포함)
         MemberPoint memberPoint = memberPointRepository.getOrCreateWithAvailableLedgers(command.memberId());
 
-        // Aggregate 메서드 호출 (불변 - 새 MemberPoint 반환)
-        MemberPoint.UsageResult usageResult = memberPoint.use(amount);
+        // Domain Service를 통한 사용 처리
+        MemberPoint.UsageResult usageResult = pointDomainService.use(memberPoint, amount);
 
         // 결과에서 새 객체 추출
         MemberPoint updatedMemberPoint = usageResult.memberPoint();
@@ -45,7 +47,7 @@ public class UsePointUseCase {
         memberPointRepository.save(updatedMemberPoint);
 
         // 트랜잭션 생성 및 저장
-        PointTransaction transaction = PointTransaction.createUse(
+        PointTransaction transaction = pointDomainService.createUseTransaction(
                 command.memberId(),
                 amount,
                 orderId
@@ -53,13 +55,10 @@ public class UsePointUseCase {
         PointTransaction savedTransaction = pointTransactionRepository.save(transaction);
 
         // 사용 상세 생성 및 저장
-        List<PointUsageDetail> usageDetails = usageResult.usageDetails().stream()
-                .map(detail -> PointUsageDetail.create(
-                        savedTransaction.id(),
-                        detail.ledgerId(),
-                        detail.usedAmount()
-                ))
-                .toList();
+        List<PointUsageDetail> usageDetails = pointDomainService.createUsageDetails(
+                savedTransaction.id(),
+                usageResult.usageDetails()
+        );
         pointUsageDetailRepository.saveAll(usageDetails);
 
         return UsePointResult.builder()

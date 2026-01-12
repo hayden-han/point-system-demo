@@ -1,6 +1,7 @@
 package com.musinsa.pointsystem.domain.model;
 
 import com.musinsa.pointsystem.domain.exception.*;
+import com.musinsa.pointsystem.domain.factory.PointFactory;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -55,45 +56,35 @@ public record MemberPoint(
     public record EarnResult(MemberPoint memberPoint, PointLedger ledger) {}
 
     /**
-     * 포인트 적립 (불변 - 새 객체 반환)
+     * 적립 검증 (금액, 최대 잔액)
      */
-    public EarnResult earn(PointAmount amount, EarnType earnType,
-                           LocalDateTime expiredAt, EarnPolicyConfig policy) {
+    public void validateEarn(PointAmount amount, EarnPolicyConfig policy) {
         validateEarnAmount(amount, policy);
         validateMaxBalance(amount, policy);
-
-        PointLedger ledger = PointLedger.create(memberId, amount, earnType, expiredAt);
-        List<PointLedger> newLedgers = new ArrayList<>(ledgers);
-        newLedgers.add(ledger);
-
-        MemberPoint updated = new MemberPoint(
-                memberId,
-                totalBalance.add(amount),
-                newLedgers
-        );
-        return new EarnResult(updated, ledger);
     }
 
     /**
-     * 만료일 검증 포함 적립 (불변 - 새 객체 반환)
+     * 적립 검증 (금액, 만료일, 최대 잔액)
      */
-    public EarnResult earnWithExpirationValidation(PointAmount amount, EarnType earnType,
-                                                    Integer expirationDays, EarnPolicyConfig policy) {
+    public void validateEarnWithExpiration(PointAmount amount, Integer expirationDays, EarnPolicyConfig policy) {
         validateEarnAmount(amount, policy);
         validateExpirationDays(expirationDays, policy);
         validateMaxBalance(amount, policy);
+    }
 
-        LocalDateTime expiredAt = policy.calculateExpirationDate(expirationDays);
-        PointLedger ledger = PointLedger.create(memberId, amount, earnType, expiredAt);
+    /**
+     * Ledger 추가 (불변 - 새 객체 반환)
+     * - DomainService에서 Factory로 생성한 Ledger를 전달받아 추가
+     */
+    public MemberPoint addLedger(PointLedger ledger) {
         List<PointLedger> newLedgers = new ArrayList<>(ledgers);
         newLedgers.add(ledger);
 
-        MemberPoint updated = new MemberPoint(
+        return new MemberPoint(
                 memberId,
-                totalBalance.add(amount),
+                totalBalance.add(ledger.earnedAmount()),
                 newLedgers
         );
-        return new EarnResult(updated, ledger);
     }
 
     // =====================================================
@@ -213,11 +204,13 @@ public record MemberPoint(
 
     /**
      * 사용 취소 (불변 - 새 객체 반환)
+     * @param pointFactory 만료된 적립건 복원 시 신규 Ledger 생성에 사용
      */
     public RestoreResult cancelUse(List<PointUsageDetail> usageDetails,
                                    PointAmount cancelAmount,
                                    int defaultExpirationDays,
-                                   UUID cancelTransactionId) {
+                                   UUID cancelTransactionId,
+                                   PointFactory pointFactory) {
         // 취소 가능 금액 검증
         PointAmount totalCancelable = usageDetails.stream()
                 .map(PointUsageDetail::getCancelableAmount)
@@ -250,8 +243,8 @@ public record MemberPoint(
             PointLedger originalLedger = ledgerMap.get(usageDetail.ledgerId());
 
             if (originalLedger != null && originalLedger.isExpired()) {
-                // 만료된 적립건 → 신규 적립건 생성
-                PointLedger newLedger = PointLedger.createFromCancelUse(
+                // 만료된 적립건 → 신규 적립건 생성 (Factory 사용)
+                PointLedger newLedger = pointFactory.createLedgerFromCancelUse(
                         memberId,
                         cancelResult.canceledAmount(),
                         originalLedger.earnType(),

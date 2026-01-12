@@ -23,10 +23,11 @@ class PointLedgerTest {
         @DisplayName("기본 적립건 생성")
         void create_shouldInitializeCorrectly() {
             // GIVEN
+            UUID id = UuidGenerator.generate();
             UUID memberId = UuidGenerator.generate();
 
             // WHEN
-            PointLedger ledger = PointLedger.create(memberId, PointAmount.of(1000L), EarnType.SYSTEM, LocalDateTime.now().plusDays(365));
+            PointLedger ledger = PointLedgerFixture.create(id, memberId, 1000L, EarnType.SYSTEM);
 
             // THEN
             assertThat(ledger.memberId()).isEqualTo(memberId);
@@ -37,15 +38,26 @@ class PointLedgerTest {
         }
 
         @Test
-        @DisplayName("사용취소로 인한 신규 적립건 생성")
-        void createFromCancelUse_shouldSetSourceTransactionId() {
+        @DisplayName("사용취소로 인한 신규 적립건 생성 (sourceTransactionId 포함)")
+        void createWithSourceTransactionId_shouldSetSourceTransactionId() {
             // GIVEN
+            UUID id = UuidGenerator.generate();
             UUID memberId = UuidGenerator.generate();
             UUID sourceTransactionId = UuidGenerator.generate();
 
-            // WHEN
-            PointLedger ledger = PointLedger.createFromCancelUse(
-                    memberId, PointAmount.of(500L), EarnType.SYSTEM, LocalDateTime.now().plusDays(365), sourceTransactionId);
+            // WHEN - 직접 생성자 호출로 sourceTransactionId 포함
+            PointLedger ledger = new PointLedger(
+                    id,
+                    memberId,
+                    PointAmount.of(500L),
+                    PointAmount.of(500L),
+                    PointAmount.ZERO,
+                    EarnType.SYSTEM,
+                    sourceTransactionId,
+                    LocalDateTime.now().plusDays(365),
+                    false,
+                    LocalDateTime.now()
+            );
 
             // THEN
             assertThat(ledger.getSourceTransactionId()).isEqualTo(sourceTransactionId);

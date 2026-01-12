@@ -1,7 +1,5 @@
 package com.musinsa.pointsystem.domain.model;
 
-import com.musinsa.pointsystem.common.util.UuidGenerator;
-
 import java.util.UUID;
 
 /**
@@ -42,17 +40,6 @@ public record PointUsageDetail(
 
     public PointAmount getCanceledAmount() {
         return canceledAmount;
-    }
-
-    // Static Factory Method
-    public static PointUsageDetail create(UUID transactionId, UUID ledgerId, PointAmount usedAmount) {
-        return new PointUsageDetail(
-                UuidGenerator.generate(),
-                transactionId,
-                ledgerId,
-                usedAmount,
-                PointAmount.ZERO
-        );
     }
 
     // 비즈니스 메서드
