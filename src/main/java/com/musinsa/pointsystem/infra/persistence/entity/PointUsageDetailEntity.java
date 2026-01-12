@@ -6,14 +6,13 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
 @Table(name = "point_usage_detail")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class PointUsageDetailEntity {
+public class PointUsageDetailEntity extends BaseEntity {
 
     @Id
     @Column(columnDefinition = "BINARY(16)")
@@ -31,12 +30,6 @@ public class PointUsageDetailEntity {
     @Column(name = "canceled_amount", nullable = false)
     private Long canceledAmount;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
-
     @Builder
     public PointUsageDetailEntity(UUID id, UUID transactionId, UUID ledgerId, Long usedAmount, Long canceledAmount) {
         this.id = id;
@@ -48,16 +41,5 @@ public class PointUsageDetailEntity {
 
     public void addCanceledAmount(Long amount) {
         this.canceledAmount += amount;
-    }
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
     }
 }

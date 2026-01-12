@@ -6,14 +6,17 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
 import java.util.UUID;
 
+/**
+ * 포인트 거래 이력 엔티티 (Append-only)
+ * - updatedAt 없음: 생성 후 수정되지 않음
+ */
 @Entity
 @Table(name = "point_transaction")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class PointTransactionEntity {
+public class PointTransactionEntity extends BaseTimeEntity {
 
     @Id
     @Column(columnDefinition = "BINARY(16)")
@@ -37,9 +40,6 @@ public class PointTransactionEntity {
     @Column(name = "ledger_id", columnDefinition = "BINARY(16)")
     private UUID ledgerId;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
     @Builder
     public PointTransactionEntity(UUID id, UUID memberId, String type, Long amount,
                                    String orderId, UUID relatedTransactionId, UUID ledgerId) {
@@ -50,10 +50,5 @@ public class PointTransactionEntity {
         this.orderId = orderId;
         this.relatedTransactionId = relatedTransactionId;
         this.ledgerId = ledgerId;
-    }
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
     }
 }

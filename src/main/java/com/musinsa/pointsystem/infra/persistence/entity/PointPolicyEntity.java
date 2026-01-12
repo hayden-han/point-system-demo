@@ -6,14 +6,13 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
 @Table(name = "point_policy")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class PointPolicyEntity {
+public class PointPolicyEntity extends BaseEntity {
 
     @Id
     @Column(columnDefinition = "BINARY(16)")
@@ -28,23 +27,10 @@ public class PointPolicyEntity {
     @Column(name = "description", length = 200)
     private String description;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
-
     @PrePersist
     protected void onCreate() {
         if (id == null) {
             id = UuidGenerator.generate();
         }
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
     }
 }

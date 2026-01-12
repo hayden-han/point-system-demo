@@ -13,7 +13,7 @@ import java.util.UUID;
 @Table(name = "point_ledger")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class PointLedgerEntity {
+public class PointLedgerEntity extends BaseEntity {
 
     @Id
     @Column(columnDefinition = "BINARY(16)")
@@ -43,12 +43,6 @@ public class PointLedgerEntity {
     @Column(name = "is_canceled", nullable = false)
     private Boolean isCanceled;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
-
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
-
     @Builder
     public PointLedgerEntity(UUID id, UUID memberId, Long earnedAmount, Long availableAmount,
                              Long usedAmount, String earnType, UUID sourceTransactionId,
@@ -76,16 +70,5 @@ public class PointLedgerEntity {
 
     public void setExpiredAt(LocalDateTime expiredAt) {
         this.expiredAt = expiredAt;
-    }
-
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
     }
 }
