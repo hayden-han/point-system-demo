@@ -7,7 +7,6 @@ import com.musinsa.pointsystem.common.util.UuidGenerator;
 import com.musinsa.pointsystem.domain.exception.InvalidEarnAmountException;
 import com.musinsa.pointsystem.domain.exception.InvalidExpirationException;
 import com.musinsa.pointsystem.domain.exception.MaxBalanceExceededException;
-import com.musinsa.pointsystem.domain.model.EarnType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -38,7 +37,7 @@ class EarnPointUseCaseTest extends IntegrationTestBase {
             EarnPointCommand command = EarnPointCommand.builder()
                     .memberId(memberId)
                     .amount(1000L)
-                    .earnType(EarnType.SYSTEM)
+                    .earnType("SYSTEM")
                     .build();
 
             // WHEN
@@ -61,7 +60,7 @@ class EarnPointUseCaseTest extends IntegrationTestBase {
             EarnPointCommand command = EarnPointCommand.builder()
                     .memberId(memberId)
                     .amount(500L)
-                    .earnType(EarnType.MANUAL)
+                    .earnType("MANUAL")
                     .build();
 
             // WHEN
@@ -81,7 +80,7 @@ class EarnPointUseCaseTest extends IntegrationTestBase {
             EarnPointCommand command = EarnPointCommand.builder()
                     .memberId(memberId)
                     .amount(1000L)
-                    .earnType(EarnType.SYSTEM)
+                    .earnType("SYSTEM")
                     .expirationDays(30)
                     .build();
 
@@ -103,7 +102,7 @@ class EarnPointUseCaseTest extends IntegrationTestBase {
             EarnPointCommand command = EarnPointCommand.builder()
                     .memberId(memberId)
                     .amount(1L)
-                    .earnType(EarnType.SYSTEM)
+                    .earnType("SYSTEM")
                     .build();
 
             // WHEN
@@ -122,7 +121,7 @@ class EarnPointUseCaseTest extends IntegrationTestBase {
             EarnPointCommand command = EarnPointCommand.builder()
                     .memberId(memberId)
                     .amount(100000L)
-                    .earnType(EarnType.SYSTEM)
+                    .earnType("SYSTEM")
                     .build();
 
             // WHEN
@@ -146,7 +145,7 @@ class EarnPointUseCaseTest extends IntegrationTestBase {
             EarnPointCommand command = EarnPointCommand.builder()
                     .memberId(memberId)
                     .amount(0L)
-                    .earnType(EarnType.SYSTEM)
+                    .earnType("SYSTEM")
                     .build();
 
             // WHEN & THEN
@@ -163,7 +162,7 @@ class EarnPointUseCaseTest extends IntegrationTestBase {
             EarnPointCommand command = EarnPointCommand.builder()
                     .memberId(memberId)
                     .amount(100001L)
-                    .earnType(EarnType.SYSTEM)
+                    .earnType("SYSTEM")
                     .build();
 
             // WHEN & THEN
@@ -186,7 +185,7 @@ class EarnPointUseCaseTest extends IntegrationTestBase {
             EarnPointCommand command = EarnPointCommand.builder()
                     .memberId(memberId)
                     .amount(100000L)
-                    .earnType(EarnType.SYSTEM)
+                    .earnType("SYSTEM")
                     .build();
 
             // 5번 적립 (9,500,000 + 500,000 = 10,000,000)
@@ -198,7 +197,7 @@ class EarnPointUseCaseTest extends IntegrationTestBase {
             EarnPointCommand overflowCommand = EarnPointCommand.builder()
                     .memberId(memberId)
                     .amount(1L)
-                    .earnType(EarnType.SYSTEM)
+                    .earnType("SYSTEM")
                     .build();
 
             // WHEN & THEN
@@ -215,7 +214,7 @@ class EarnPointUseCaseTest extends IntegrationTestBase {
             EarnPointCommand command = EarnPointCommand.builder()
                     .memberId(memberId)
                     .amount(1000L)
-                    .earnType(EarnType.SYSTEM)
+                    .earnType("SYSTEM")
                     .expirationDays(0)
                     .build();
 
@@ -233,7 +232,7 @@ class EarnPointUseCaseTest extends IntegrationTestBase {
             EarnPointCommand command = EarnPointCommand.builder()
                     .memberId(memberId)
                     .amount(1000L)
-                    .earnType(EarnType.SYSTEM)
+                    .earnType("SYSTEM")
                     .expirationDays(1825)
                     .build();
 

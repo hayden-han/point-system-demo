@@ -38,6 +38,9 @@ dependencies {
     // UUID v7 Generator
     implementation("com.fasterxml.uuid:java-uuid-generator:5.1.0")
 
+    // SpringDoc OpenAPI (Swagger UI)
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.4")
+
     // Lombok
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")

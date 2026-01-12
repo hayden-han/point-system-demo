@@ -8,7 +8,9 @@ import com.musinsa.pointsystem.domain.model.OrderId;
 import com.musinsa.pointsystem.domain.model.PointAmount;
 import com.musinsa.pointsystem.domain.model.PointTransaction;
 import com.musinsa.pointsystem.domain.model.PointUsageDetail;
-import com.musinsa.pointsystem.domain.service.MemberPointService;
+import com.musinsa.pointsystem.domain.repository.MemberPointRepository;
+import com.musinsa.pointsystem.domain.repository.PointTransactionRepository;
+import com.musinsa.pointsystem.domain.repository.PointUsageDetailRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,7 +21,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class UsePointUseCase {
 
-    private final MemberPointService memberPointService;
+    private final MemberPointRepository memberPointRepository;
+    private final PointTransactionRepository pointTransactionRepository;
+    private final PointUsageDetailRepository pointUsageDetailRepository;
 
     @DistributedLock(key = "'lock:point:member:' + #command.memberId")
     @Transactional
@@ -29,13 +33,13 @@ public class UsePointUseCase {
         PointAmount amount = PointAmount.of(command.getAmount());
 
         // 회원 포인트 조회 (사용 가능한 Ledgers 포함)
-        MemberPoint memberPoint = memberPointService.getOrCreateMemberPointWithAvailableLedgers(command.getMemberId());
+        MemberPoint memberPoint = memberPointRepository.getOrCreateWithAvailableLedgers(command.getMemberId());
 
         // Aggregate 메서드 호출 (잔액 검증 + 적립건 차감 + 잔액 업데이트)
         MemberPoint.UsageResult usageResult = memberPoint.use(amount);
 
         // MemberPoint와 Ledgers 함께 저장
-        memberPointService.saveMemberPoint(memberPoint);
+        memberPointRepository.save(memberPoint);
 
         // 트랜잭션 생성 및 저장
         PointTransaction transaction = PointTransaction.createUse(
@@ -43,7 +47,7 @@ public class UsePointUseCase {
                 amount,
                 orderId
         );
-        PointTransaction savedTransaction = memberPointService.saveTransaction(transaction);
+        PointTransaction savedTransaction = pointTransactionRepository.save(transaction);
 
         // 사용 상세 생성 및 저장
         List<PointUsageDetail> usageDetails = usageResult.usageDetails().stream()
@@ -53,7 +57,7 @@ public class UsePointUseCase {
                         detail.usedAmount()
                 ))
                 .toList();
-        memberPointService.saveUsageDetails(usageDetails);
+        pointUsageDetailRepository.saveAll(usageDetails);
 
         return UsePointResult.builder()
                 .transactionId(savedTransaction.getId())

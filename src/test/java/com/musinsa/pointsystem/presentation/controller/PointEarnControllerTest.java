@@ -3,7 +3,6 @@ package com.musinsa.pointsystem.presentation.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.musinsa.pointsystem.IntegrationTestBase;
 import com.musinsa.pointsystem.common.util.UuidGenerator;
-import com.musinsa.pointsystem.domain.model.EarnType;
 import com.musinsa.pointsystem.presentation.dto.request.EarnPointRequest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -47,7 +46,7 @@ class PointEarnControllerTest extends IntegrationTestBase {
             UUID memberId = UuidGenerator.generate();
             EarnPointRequest request = EarnPointRequest.builder()
                     .amount(1000L)
-                    .earnType(EarnType.SYSTEM)
+                    .earnType("SYSTEM")
                     .expirationDays(365)
                     .build();
 
@@ -68,7 +67,7 @@ class PointEarnControllerTest extends IntegrationTestBase {
             UUID memberId = UuidGenerator.generate();
             EarnPointRequest request = EarnPointRequest.builder()
                     .amount(500L)
-                    .earnType(EarnType.MANUAL)
+                    .earnType("MANUAL")
                     .expirationDays(30)
                     .build();
 
@@ -88,7 +87,7 @@ class PointEarnControllerTest extends IntegrationTestBase {
             UUID memberId = UuidGenerator.generate();
             EarnPointRequest request = EarnPointRequest.builder()
                     .amount(0L)
-                    .earnType(EarnType.SYSTEM)
+                    .earnType("SYSTEM")
                     .expirationDays(365)
                     .build();
 

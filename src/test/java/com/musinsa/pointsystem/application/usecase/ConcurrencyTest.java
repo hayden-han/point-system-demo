@@ -4,7 +4,6 @@ import com.musinsa.pointsystem.IntegrationTestBase;
 import com.musinsa.pointsystem.application.dto.EarnPointCommand;
 import com.musinsa.pointsystem.application.dto.UsePointCommand;
 import com.musinsa.pointsystem.application.exception.LockAcquisitionFailedException;
-import com.musinsa.pointsystem.domain.model.EarnType;
 import com.musinsa.pointsystem.domain.model.MemberPoint;
 import com.musinsa.pointsystem.domain.model.PointAmount;
 import com.musinsa.pointsystem.domain.repository.MemberPointRepository;
@@ -49,7 +48,7 @@ class ConcurrencyTest extends IntegrationTestBase {
     class ConcurrencyCases {
 
         @Test
-        @DisplayName("C-T01: 동시 적립 정합성")
+        @DisplayName("동시 적립 정합성")
         void concurrentEarn_shouldMaintainConsistency() throws InterruptedException {
             // GIVEN
             UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000005001");
@@ -66,7 +65,7 @@ class ConcurrencyTest extends IntegrationTestBase {
                         EarnPointCommand command = EarnPointCommand.builder()
                                 .memberId(memberId)
                                 .amount(amountPerEarn)
-                                .earnType(EarnType.SYSTEM)
+                                .earnType("SYSTEM")
                                 .build();
                         earnPointUseCase.execute(command);
                         successCount.incrementAndGet();
@@ -88,7 +87,7 @@ class ConcurrencyTest extends IntegrationTestBase {
         }
 
         @Test
-        @DisplayName("C-T02: 동시 사용 정합성")
+        @DisplayName("동시 사용 정합성")
         void concurrentUse_shouldMaintainConsistency() throws InterruptedException {
             // GIVEN
             UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000005002");
@@ -130,7 +129,7 @@ class ConcurrencyTest extends IntegrationTestBase {
         }
 
         @Test
-        @DisplayName("C-T03: 적립+사용 동시 정합성")
+        @DisplayName("적립+사용 동시 정합성")
         void concurrentEarnAndUse_shouldMaintainConsistency() throws InterruptedException {
             // GIVEN
             UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000005003");
@@ -152,7 +151,7 @@ class ConcurrencyTest extends IntegrationTestBase {
                         EarnPointCommand command = EarnPointCommand.builder()
                                 .memberId(memberId)
                                 .amount(earnAmount)
-                                .earnType(EarnType.SYSTEM)
+                                .earnType("SYSTEM")
                                 .build();
                         earnPointUseCase.execute(command);
                         earnSuccessCount.incrementAndGet();
@@ -194,7 +193,7 @@ class ConcurrencyTest extends IntegrationTestBase {
         }
 
         @Test
-        @DisplayName("C-T04: 락 획득 실패 재시도 성공")
+        @DisplayName("락 획득 실패 재시도 성공")
         void lockRetry_shouldSucceedEventually() throws InterruptedException, ExecutionException {
             // GIVEN
             UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000005004");
@@ -235,7 +234,7 @@ class ConcurrencyTest extends IntegrationTestBase {
         }
 
         @Test
-        @DisplayName("C-T05: 락 획득 최종 실패")
+        @DisplayName("락 획득 최종 실패")
         void lockAcquisitionFailed_shouldThrowException() throws InterruptedException {
             // GIVEN
             UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000005004");

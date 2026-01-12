@@ -1,6 +1,5 @@
 package com.musinsa.pointsystem.application.dto;
 
-import com.musinsa.pointsystem.domain.model.EarnType;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -11,6 +10,6 @@ import java.util.UUID;
 public class EarnPointCommand {
     private final UUID memberId;
     private final Long amount;
-    private final EarnType earnType;
+    private final String earnType;  // Domain EarnType이 아닌 문자열로 변경
     private final Integer expirationDays;
 }

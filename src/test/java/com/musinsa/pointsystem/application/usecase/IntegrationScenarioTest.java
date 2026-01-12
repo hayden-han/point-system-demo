@@ -3,7 +3,6 @@ package com.musinsa.pointsystem.application.usecase;
 import com.musinsa.pointsystem.IntegrationTestBase;
 import com.musinsa.pointsystem.application.dto.*;
 import com.musinsa.pointsystem.common.util.UuidGenerator;
-import com.musinsa.pointsystem.domain.model.EarnType;
 import com.musinsa.pointsystem.domain.model.MemberPoint;
 import com.musinsa.pointsystem.domain.model.PointAmount;
 import com.musinsa.pointsystem.domain.model.PointLedger;
@@ -62,7 +61,7 @@ class IntegrationScenarioTest extends IntegrationTestBase {
             EarnPointCommand earnCommandA = EarnPointCommand.builder()
                     .memberId(memberId)
                     .amount(1000L)
-                    .earnType(EarnType.SYSTEM)
+                    .earnType("SYSTEM")
                     .build();
 
             // WHEN
@@ -77,7 +76,7 @@ class IntegrationScenarioTest extends IntegrationTestBase {
             EarnPointCommand earnCommandB = EarnPointCommand.builder()
                     .memberId(memberId)
                     .amount(500L)
-                    .earnType(EarnType.SYSTEM)
+                    .earnType("SYSTEM")
                     .build();
 
             // WHEN
