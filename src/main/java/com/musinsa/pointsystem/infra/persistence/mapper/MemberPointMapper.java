@@ -28,7 +28,22 @@ public class MemberPointMapper {
     }
 
     /**
-     * Entity → Domain (ledgers 포함)
+     * Entity → Domain (Fetch Join으로 로드된 ledgers 포함)
+     */
+    public MemberPoint toDomainWithLedgers(MemberPointEntity entity) {
+        List<PointLedger> ledgers = entity.getLedgers() != null
+                ? entity.getLedgers().stream().map(pointLedgerMapper::toDomain).toList()
+                : List.of();
+
+        return new MemberPoint(
+                entity.getMemberId(),
+                PointAmount.of(entity.getTotalBalance()),
+                ledgers
+        );
+    }
+
+    /**
+     * Entity → Domain (외부에서 전달된 ledgers 포함)
      */
     public MemberPoint toDomainWithLedgers(MemberPointEntity entity, List<PointLedgerEntity> ledgerEntities) {
         List<PointLedger> ledgers = ledgerEntities.stream()

@@ -6,6 +6,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -20,6 +22,13 @@ public class MemberPointEntity {
 
     @Column(name = "total_balance", nullable = false)
     private Long totalBalance;
+
+    /**
+     * 읽기 전용 관계 - Ledger 저장은 PointLedgerJpaRepository에서 직접 처리
+     */
+    @OneToMany(fetch = FetchType.LAZY)
+    @JoinColumn(name = "member_id", insertable = false, updatable = false)
+    private List<PointLedgerEntity> ledgers = new ArrayList<>();
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

@@ -30,20 +30,14 @@ public class MemberPointRepositoryImpl implements MemberPointRepository {
 
     @Override
     public Optional<MemberPoint> findByMemberIdWithLedgers(UUID memberId) {
-        return jpaRepository.findById(memberId)
-                .map(entity -> {
-                    List<PointLedgerEntity> ledgerEntities = pointLedgerJpaRepository.findByMemberId(memberId);
-                    return mapper.toDomainWithLedgers(entity, ledgerEntities);
-                });
+        return jpaRepository.findByIdWithLedgers(memberId)
+                .map(mapper::toDomainWithLedgers);
     }
 
     @Override
     public Optional<MemberPoint> findByMemberIdWithAvailableLedgers(UUID memberId) {
-        return jpaRepository.findById(memberId)
-                .map(entity -> {
-                    List<PointLedgerEntity> ledgerEntities = pointLedgerJpaRepository.findAvailableByMemberId(memberId);
-                    return mapper.toDomainWithLedgers(entity, ledgerEntities);
-                });
+        return jpaRepository.findByIdWithAvailableLedgers(memberId)
+                .map(mapper::toDomainWithLedgers);
     }
 
     @Override
@@ -125,31 +119,22 @@ public class MemberPointRepositoryImpl implements MemberPointRepository {
 
     @Override
     public MemberPoint getOrCreateWithLedgers(UUID memberId) {
-        Optional<MemberPointEntity> entityOpt = jpaRepository.findById(memberId);
-
-        if (entityOpt.isPresent()) {
-            List<PointLedgerEntity> ledgerEntities = pointLedgerJpaRepository.findByMemberId(memberId);
-            return mapper.toDomainWithLedgers(entityOpt.get(), ledgerEntities);
-        } else {
-            MemberPoint newMemberPoint = MemberPoint.create(memberId);
-            MemberPointEntity entity = mapper.toEntity(newMemberPoint);
-            MemberPointEntity savedEntity = jpaRepository.save(entity);
-            return mapper.toDomainWithLedgers(savedEntity, List.of());
-        }
+        return jpaRepository.findByIdWithLedgers(memberId)
+                .map(mapper::toDomainWithLedgers)
+                .orElseGet(() -> createNewMemberPoint(memberId));
     }
 
     @Override
     public MemberPoint getOrCreateWithAvailableLedgers(UUID memberId) {
-        Optional<MemberPointEntity> entityOpt = jpaRepository.findById(memberId);
+        return jpaRepository.findByIdWithAvailableLedgers(memberId)
+                .map(mapper::toDomainWithLedgers)
+                .orElseGet(() -> createNewMemberPoint(memberId));
+    }
 
-        if (entityOpt.isPresent()) {
-            List<PointLedgerEntity> ledgerEntities = pointLedgerJpaRepository.findAvailableByMemberId(memberId);
-            return mapper.toDomainWithLedgers(entityOpt.get(), ledgerEntities);
-        } else {
-            MemberPoint newMemberPoint = MemberPoint.create(memberId);
-            MemberPointEntity entity = mapper.toEntity(newMemberPoint);
-            MemberPointEntity savedEntity = jpaRepository.save(entity);
-            return mapper.toDomainWithLedgers(savedEntity, List.of());
-        }
+    private MemberPoint createNewMemberPoint(UUID memberId) {
+        MemberPoint newMemberPoint = MemberPoint.create(memberId);
+        MemberPointEntity entity = mapper.toEntity(newMemberPoint);
+        MemberPointEntity savedEntity = jpaRepository.save(entity);
+        return mapper.toDomainWithLedgers(savedEntity);
     }
 }
