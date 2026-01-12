@@ -1,6 +1,7 @@
 package com.musinsa.pointsystem.domain.model;
 
 import com.musinsa.pointsystem.common.util.UuidGenerator;
+import com.musinsa.pointsystem.domain.exception.InsufficientPointException;
 import com.musinsa.pointsystem.fixture.MemberPointFixture;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -92,8 +93,7 @@ class MemberPointTest {
 
             // WHEN & THEN
             assertThatThrownBy(() -> memberPoint.decreaseBalance(PointAmount.of(600L)))
-                    .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("잔액이 부족");
+                    .isInstanceOf(InsufficientPointException.class);
         }
 
         @Test

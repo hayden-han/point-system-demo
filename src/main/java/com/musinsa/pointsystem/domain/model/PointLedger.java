@@ -1,6 +1,8 @@
 package com.musinsa.pointsystem.domain.model;
 
 import com.musinsa.pointsystem.common.util.UuidGenerator;
+import com.musinsa.pointsystem.domain.exception.PointLedgerAlreadyCanceledException;
+import com.musinsa.pointsystem.domain.exception.PointLedgerAlreadyUsedException;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -70,9 +72,17 @@ public class PointLedger {
         return !isCanceled && earnedAmount.equals(availableAmount);
     }
 
+    /**
+     * 적립 취소 수행
+     * - 이미 취소된 경우: PointLedgerAlreadyCanceledException
+     * - 일부/전체 사용된 경우: PointLedgerAlreadyUsedException
+     */
     public void cancel() {
-        if (!canCancel()) {
-            throw new IllegalStateException("이미 사용된 적립건은 취소할 수 없습니다.");
+        if (isCanceled) {
+            throw new PointLedgerAlreadyCanceledException(id);
+        }
+        if (!earnedAmount.equals(availableAmount)) {
+            throw new PointLedgerAlreadyUsedException(id);
         }
         this.isCanceled = true;
         this.availableAmount = PointAmount.ZERO;

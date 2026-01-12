@@ -3,7 +3,6 @@ package com.musinsa.pointsystem.application.usecase;
 import com.musinsa.pointsystem.application.dto.UsePointCommand;
 import com.musinsa.pointsystem.application.dto.UsePointResult;
 import com.musinsa.pointsystem.application.port.DistributedLock;
-import com.musinsa.pointsystem.domain.exception.InsufficientPointException;
 import com.musinsa.pointsystem.domain.model.MemberPoint;
 import com.musinsa.pointsystem.domain.model.OrderId;
 import com.musinsa.pointsystem.domain.model.PointAmount;
@@ -40,10 +39,6 @@ public class UsePointUseCase {
 
         MemberPoint memberPoint = memberPointRepository.getOrCreate(command.getMemberId());
 
-        if (!memberPoint.hasEnoughBalance(amount)) {
-            throw new InsufficientPointException(amount.getValue(), memberPoint.getTotalBalance().getValue());
-        }
-
         // 사용 가능한 적립건 조회 (우선순위: 수기지급 > 만료일 짧은 순)
         List<PointLedger> availableLedgers = pointLedgerRepository.findAvailableByMemberId(command.getMemberId());
 
@@ -71,7 +66,8 @@ public class UsePointUseCase {
         pointLedgerRepository.saveAll(usageResult.updatedLedgers());
         pointUsageDetailRepository.saveAll(usageDetails);
 
-        // 회원 잔액 업데이트
+        // 회원 잔액 업데이트 (도메인 모델 내에서 잔액 부족 검증)
+        // - 잔액 부족 시: InsufficientPointException
         memberPoint.decreaseBalance(amount);
         MemberPoint savedMemberPoint = memberPointRepository.save(memberPoint);
 

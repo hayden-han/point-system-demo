@@ -2,8 +2,6 @@ package com.musinsa.pointsystem.application.usecase;
 
 import com.musinsa.pointsystem.application.dto.CancelEarnPointCommand;
 import com.musinsa.pointsystem.application.dto.CancelEarnPointResult;
-import com.musinsa.pointsystem.domain.exception.PointLedgerAlreadyCanceledException;
-import com.musinsa.pointsystem.domain.exception.PointLedgerAlreadyUsedException;
 import com.musinsa.pointsystem.domain.exception.PointLedgerNotFoundException;
 import com.musinsa.pointsystem.domain.model.MemberPoint;
 import com.musinsa.pointsystem.domain.model.PointAmount;
@@ -28,17 +26,13 @@ public class CancelEarnPointUseCase {
     @DistributedLock(key = "'lock:point:member:' + #command.memberId")
     @Transactional
     public CancelEarnPointResult execute(CancelEarnPointCommand command) {
+        // 적립건 조회
         PointLedger pointLedger = pointLedgerRepository.findById(command.getLedgerId())
                 .orElseThrow(() -> new PointLedgerNotFoundException(command.getLedgerId()));
 
-        if (pointLedger.isCanceled()) {
-            throw new PointLedgerAlreadyCanceledException(command.getLedgerId());
-        }
-
-        if (!pointLedger.canCancel()) {
-            throw new PointLedgerAlreadyUsedException(command.getLedgerId());
-        }
-
+        // 적립 취소 수행 (도메인 모델 내에서 비즈니스 규칙 검증)
+        // - 이미 취소된 경우: PointLedgerAlreadyCanceledException
+        // - 사용된 경우: PointLedgerAlreadyUsedException
         PointAmount canceledAmount = pointLedger.getEarnedAmount();
         pointLedger.cancel();
         pointLedgerRepository.save(pointLedger);

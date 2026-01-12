@@ -1,5 +1,6 @@
 package com.musinsa.pointsystem.domain.model;
 
+import com.musinsa.pointsystem.domain.exception.InsufficientPointException;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -27,9 +28,13 @@ public class MemberPoint {
         this.totalBalance = this.totalBalance.add(amount);
     }
 
+    /**
+     * 잔액 차감
+     * - 잔액 부족 시: InsufficientPointException
+     */
     public void decreaseBalance(PointAmount amount) {
         if (this.totalBalance.isLessThan(amount)) {
-            throw new IllegalStateException("잔액이 부족합니다.");
+            throw new InsufficientPointException(amount.getValue(), this.totalBalance.getValue());
         }
         this.totalBalance = this.totalBalance.subtract(amount);
     }

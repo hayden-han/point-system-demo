@@ -1,6 +1,7 @@
 package com.musinsa.pointsystem.domain.model;
 
 import com.musinsa.pointsystem.common.util.UuidGenerator;
+import com.musinsa.pointsystem.domain.exception.PointLedgerAlreadyUsedException;
 import com.musinsa.pointsystem.fixture.PointLedgerFixture;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -127,7 +128,7 @@ class PointLedgerTest {
 
             // WHEN & THEN
             assertThatThrownBy(() -> ledger.cancel())
-                    .isInstanceOf(IllegalStateException.class);
+                    .isInstanceOf(PointLedgerAlreadyUsedException.class);
         }
     }
 

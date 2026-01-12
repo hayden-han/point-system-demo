@@ -1,5 +1,6 @@
 package com.musinsa.pointsystem.domain.service;
 
+import com.musinsa.pointsystem.domain.exception.InvalidCancelAmountException;
 import com.musinsa.pointsystem.domain.model.EarnType;
 import com.musinsa.pointsystem.domain.model.PointAmount;
 import com.musinsa.pointsystem.domain.model.PointLedger;
@@ -44,6 +45,7 @@ public class PointRestorePolicy {
      * @param cancelAmount 취소할 금액
      * @param defaultExpirationDays 신규 적립 시 기본 만료일
      * @param cancelTransactionId 취소 트랜잭션 ID
+     * @throws InvalidCancelAmountException 취소 금액이 취소 가능 금액을 초과할 경우
      */
     public RestoreResult restore(
             List<PointUsageDetail> usageDetails,
@@ -53,6 +55,15 @@ public class PointRestorePolicy {
             UUID cancelTransactionId,
             UUID memberId
     ) {
+        // 취소 가능 금액 검증
+        PointAmount totalCancelable = usageDetails.stream()
+                .map(PointUsageDetail::getCancelableAmount)
+                .reduce(PointAmount.ZERO, PointAmount::add);
+
+        if (cancelAmount.isGreaterThan(totalCancelable)) {
+            throw new InvalidCancelAmountException(cancelAmount.getValue(), totalCancelable.getValue());
+        }
+
         List<PointLedger> restoredLedgers = new ArrayList<>();
         List<NewLedgerInfo> newLedgers = new ArrayList<>();
         List<PointUsageDetail> updatedUsageDetails = new ArrayList<>();

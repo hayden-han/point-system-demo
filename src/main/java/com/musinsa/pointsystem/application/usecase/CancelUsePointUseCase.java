@@ -3,7 +3,6 @@ package com.musinsa.pointsystem.application.usecase;
 import com.musinsa.pointsystem.application.dto.CancelUsePointCommand;
 import com.musinsa.pointsystem.application.dto.CancelUsePointResult;
 import com.musinsa.pointsystem.application.port.DistributedLock;
-import com.musinsa.pointsystem.domain.exception.InvalidCancelAmountException;
 import com.musinsa.pointsystem.domain.exception.PointTransactionNotFoundException;
 import com.musinsa.pointsystem.domain.model.ExpirationPolicyConfig;
 import com.musinsa.pointsystem.domain.model.MemberPoint;
@@ -46,15 +45,6 @@ public class CancelUsePointUseCase {
         // 취소 가능한 사용 상세 조회 (만료일 긴 것부터)
         List<PointUsageDetail> usageDetails = pointUsageDetailRepository
                 .findCancelableByTransactionId(command.getTransactionId());
-
-        // 취소 가능 금액 검증
-        PointAmount totalCancelable = usageDetails.stream()
-                .map(PointUsageDetail::getCancelableAmount)
-                .reduce(PointAmount.ZERO, PointAmount::add);
-
-        if (cancelAmount.isGreaterThan(totalCancelable)) {
-            throw new InvalidCancelAmountException(cancelAmount.getValue(), totalCancelable.getValue());
-        }
 
         // 정책 조회 (1회 쿼리)
         ExpirationPolicyConfig expirationPolicy = pointPolicyRepository.getExpirationPolicyConfig();
