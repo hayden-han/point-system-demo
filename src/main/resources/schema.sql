@@ -79,28 +79,3 @@ CREATE TABLE IF NOT EXISTS point_usage_detail (
 
 CREATE INDEX IF NOT EXISTS idx_usage_transaction ON point_usage_detail (transaction_id);
 CREATE INDEX IF NOT EXISTS idx_usage_ledger ON point_usage_detail (ledger_id);
-
--- =============================================================================
--- 이벤트 소싱 테이블
--- =============================================================================
-
--- Point Events (이벤트 저장소)
-CREATE TABLE IF NOT EXISTS point_events (
-    id BINARY(16) PRIMARY KEY,
-    aggregate_id BINARY(16) NOT NULL,
-    event_type VARCHAR(50) NOT NULL,
-    event_data TEXT NOT NULL,
-    version BIGINT NOT NULL,
-    occurred_at TIMESTAMP NOT NULL,
-    CONSTRAINT uk_point_events_aggregate_version UNIQUE (aggregate_id, version)
-);
-
-CREATE INDEX IF NOT EXISTS idx_point_events_aggregate_version ON point_events (aggregate_id, version);
-
--- Point Snapshots (스냅샷 저장소)
-CREATE TABLE IF NOT EXISTS point_snapshots (
-    aggregate_id BINARY(16) PRIMARY KEY,
-    snapshot_data TEXT NOT NULL,
-    version BIGINT NOT NULL,
-    created_at TIMESTAMP NOT NULL
-);
