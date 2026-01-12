@@ -2,23 +2,42 @@ spring:
   profiles:
     active: local
 
+  # Read/Write 분리 DataSource 설정
+  # @Transactional(readOnly = true) → Replica
+  # @Transactional(readOnly = false) → Primary
+  # 프로덕션 환경에서는 application-prod.yml에서 Primary/Replica URL을 분리 설정
   datasource:
-    driver-class-name: org.h2.Driver
-    url: jdbc:h2:mem:pointdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-    username: sa
-    password:
-    # HikariCP - 100~1000 TPS 트래픽 대응 설정
-    # 계산 근거: 평균 쿼리 시간 50ms 가정, 1000 TPS × 0.05s = 50 동시 커넥션 필요
-    # 여유분 포함하여 최대 60, 평상시 30 유지
-    hikari:
-      pool-name: PointSystemPool
-      maximum-pool-size: 60
-      minimum-idle: 30
-      connection-timeout: 3000       # 3초 대기 후 실패 (Fail Fast)
-      validation-timeout: 1000       # 1초 내 연결 검증
-      idle-timeout: 300000           # 5분 유휴 시 해제
-      max-lifetime: 1800000          # 30분 후 커넥션 갱신
-      leak-detection-threshold: 30000  # 30초 이상 미반환 시 경고
+    # Primary (Write) - 기본 설정
+    primary:
+      driver-class-name: org.h2.Driver
+      url: jdbc:h2:mem:pointdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+      username: sa
+      password:
+      hikari:
+        pool-name: PrimaryPool
+        maximum-pool-size: 40
+        minimum-idle: 20
+        connection-timeout: 3000
+        validation-timeout: 1000
+        idle-timeout: 300000
+        max-lifetime: 1800000
+        leak-detection-threshold: 30000
+
+    # Replica (Read) - 로컬/테스트에서는 Primary와 동일 DB
+    replica:
+      driver-class-name: org.h2.Driver
+      url: jdbc:h2:mem:pointdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+      username: sa
+      password:
+      hikari:
+        pool-name: ReplicaPool
+        maximum-pool-size: 30
+        minimum-idle: 10
+        connection-timeout: 3000
+        validation-timeout: 1000
+        idle-timeout: 300000
+        max-lifetime: 1800000
+        read-only: true
 
   jpa:
     hibernate:
@@ -32,9 +51,12 @@ spring:
 
   sql:
     init:
-      mode: always
-      schema-locations: classpath:schema.sql
-      data-locations: classpath:data.sql
+      mode: never  # DataSourceConfig에서 직접 초기화
+
+# SQL 초기화 설정 (DataSourceConfig에서 사용)
+datasource-init:
+  schema-location: classpath:schema.sql
+  data-location: classpath:data.sql
 
   h2:
     console:
