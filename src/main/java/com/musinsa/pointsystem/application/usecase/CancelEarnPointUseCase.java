@@ -2,7 +2,6 @@ package com.musinsa.pointsystem.application.usecase;
 
 import com.musinsa.pointsystem.application.dto.CancelEarnPointCommand;
 import com.musinsa.pointsystem.application.dto.CancelEarnPointResult;
-import com.musinsa.pointsystem.domain.exception.PointLedgerNotFoundException;
 import com.musinsa.pointsystem.domain.model.MemberPoint;
 import com.musinsa.pointsystem.domain.model.PointAmount;
 import com.musinsa.pointsystem.domain.model.PointTransaction;
@@ -24,8 +23,7 @@ public class CancelEarnPointUseCase {
     @Transactional
     public CancelEarnPointResult execute(CancelEarnPointCommand command) {
         // 회원 포인트 조회 (Ledgers 포함)
-        MemberPoint memberPoint = memberPointRepository.findByMemberIdWithLedgers(command.getMemberId())
-                .orElseThrow(() -> new PointLedgerNotFoundException(command.getLedgerId()));
+        MemberPoint memberPoint = memberPointRepository.getByMemberIdWithLedgers(command.getMemberId());
 
         // Aggregate 메서드 호출 (검증 + 취소 + 잔액 업데이트)
         PointAmount canceledAmount = memberPoint.cancelEarn(command.getLedgerId());
