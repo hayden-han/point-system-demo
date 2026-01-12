@@ -23,7 +23,7 @@ public class MemberPointEntity extends BaseEntity {
     private Long totalBalance;
 
     /**
-     * 읽기 전용 관계 - Ledger 저장은 PointLedgerJpaRepository에서 직접 처리
+     * 읽기 전용 관계 - Ledger 저장은 MemberPointRepositoryImpl.saveLedgers()에서 처리
      */
     @OneToMany(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id", insertable = false, updatable = false)

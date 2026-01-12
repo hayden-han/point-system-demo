@@ -48,6 +48,8 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.H2Dialect
+        jdbc:
+          time_zone: UTC             # DB에 UTC로 저장 (서버 타임존 KST와 무관)
 
   sql:
     init:
