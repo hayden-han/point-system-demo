@@ -127,11 +127,11 @@ class UsePointUseCaseTest extends IntegrationTestBase {
             // MANUAL에서 먼저 사용되었는지 확인
             List<PointLedger> ledgers = pointLedgerRepository.findAvailableByMemberId(memberId);
             PointLedger manualLedger = ledgers.stream()
-                    .filter(l -> l.getId().equals(manualLedgerId))
+                    .filter(l -> l.id().equals(manualLedgerId))
                     .findFirst()
                     .orElseThrow();
             PointLedger systemLedger = ledgers.stream()
-                    .filter(l -> l.getId().equals(systemLedgerId))
+                    .filter(l -> l.id().equals(systemLedgerId))
                     .findFirst()
                     .orElseThrow();
 
@@ -161,11 +161,11 @@ class UsePointUseCaseTest extends IntegrationTestBase {
             // 만료일 짧은 ledger에서 먼저 사용되었는지 확인
             List<PointLedger> ledgers = pointLedgerRepository.findAvailableByMemberId(memberId);
             PointLedger shortExpLedger = ledgers.stream()
-                    .filter(l -> l.getId().equals(shortExpLedgerId))
+                    .filter(l -> l.id().equals(shortExpLedgerId))
                     .findFirst()
                     .orElseThrow();
             PointLedger longExpLedger = ledgers.stream()
-                    .filter(l -> l.getId().equals(longExpLedgerId))
+                    .filter(l -> l.id().equals(longExpLedgerId))
                     .findFirst()
                     .orElseThrow();
 
@@ -196,11 +196,11 @@ class UsePointUseCaseTest extends IntegrationTestBase {
             // MANUAL에서 먼저 사용되었는지 확인
             List<PointLedger> ledgers = pointLedgerRepository.findAvailableByMemberId(memberId);
             PointLedger manualLedger = ledgers.stream()
-                    .filter(l -> l.getId().equals(manualLedgerId))
+                    .filter(l -> l.id().equals(manualLedgerId))
                     .findFirst()
                     .orElseThrow();
             PointLedger systemLedger = ledgers.stream()
-                    .filter(l -> l.getId().equals(systemLedgerId))
+                    .filter(l -> l.id().equals(systemLedgerId))
                     .findFirst()
                     .orElseThrow();
 

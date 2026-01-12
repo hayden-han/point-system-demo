@@ -3,7 +3,6 @@ package com.musinsa.pointsystem.application.usecase;
 import com.musinsa.pointsystem.application.dto.CancelEarnPointCommand;
 import com.musinsa.pointsystem.application.dto.CancelEarnPointResult;
 import com.musinsa.pointsystem.application.port.DistributedLock;
-import com.musinsa.pointsystem.domain.exception.MemberPointNotFoundException;
 import com.musinsa.pointsystem.domain.model.MemberPoint;
 import com.musinsa.pointsystem.domain.model.PointAmount;
 import com.musinsa.pointsystem.domain.model.PointTransaction;
@@ -25,9 +24,8 @@ public class CancelEarnPointUseCase {
     @DistributedLock(key = "'lock:point:member:' + #command.memberId")
     @Transactional
     public CancelEarnPointResult execute(CancelEarnPointCommand command) {
-        // 회원 포인트 조회 (Ledgers 포함)
-        MemberPoint memberPoint = memberPointRepository.findByMemberIdWithLedgers(command.memberId())
-                .orElseThrow(() -> new MemberPointNotFoundException(command.memberId()));
+        // 회원 포인트 조회 (모든 Ledgers 포함 - 적립취소 대상 Ledger 필요)
+        MemberPoint memberPoint = memberPointRepository.getByMemberIdWithAllLedgers(command.memberId());
 
         // Domain Service를 통한 적립 취소 처리
         MemberPoint.CancelEarnResult cancelResult = pointAccrualManager.cancelEarn(memberPoint, command.ledgerId());

@@ -34,8 +34,8 @@ public class UsePointUseCase {
         OrderId orderId = OrderId.of(command.orderId());
         PointAmount amount = PointAmount.of(command.amount());
 
-        // 회원 포인트 조회 (사용 가능한 Ledgers 포함)
-        MemberPoint memberPoint = memberPointRepository.getOrCreateWithAvailableLedgers(command.memberId());
+        // 회원 포인트 조회 (사용 가능한 Ledgers만 - DB에서 필터링/정렬 완료)
+        MemberPoint memberPoint = memberPointRepository.getOrCreateWithAvailableLedgersForUse(command.memberId());
 
         // Domain Service를 통한 사용 처리
         MemberPoint.UsageResult usageResult = pointUsageManager.use(memberPoint, amount);

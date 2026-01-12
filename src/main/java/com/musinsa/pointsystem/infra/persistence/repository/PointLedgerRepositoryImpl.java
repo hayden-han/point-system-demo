@@ -55,7 +55,7 @@ public class PointLedgerRepositoryImpl implements PointLedgerRepository {
 
     @Override
     public List<PointLedger> findAvailableByMemberId(UUID memberId) {
-        return jpaRepository.findAvailableByMemberId(memberId).stream()
+        return jpaRepository.findAvailableByMemberIdOrderByPriority(memberId).stream()
                 .map(mapper::toDomain)
                 .collect(Collectors.toList());
     }

@@ -28,16 +28,34 @@ public class MemberPointRepositoryImpl implements MemberPointRepository {
                 .map(mapper::toDomain);
     }
 
+    /**
+     * MemberPoint와 모든 Ledgers를 별도 쿼리로 조회
+     * - JOIN FETCH 대신 별도 쿼리 사용으로 N+1 문제 방지
+     * - DB에서 정렬 완료
+     */
     @Override
-    public Optional<MemberPoint> findByMemberIdWithLedgers(UUID memberId) {
-        return jpaRepository.findByIdWithLedgers(memberId)
-                .map(mapper::toDomainWithLedgers);
+    public Optional<MemberPoint> findByMemberIdWithAllLedgers(UUID memberId) {
+        return jpaRepository.findById(memberId)
+                .map(entity -> {
+                    List<PointLedgerEntity> ledgers = pointLedgerJpaRepository
+                            .findByMemberIdOrderByEarnedAtDesc(memberId);
+                    return mapper.toDomainWithLedgers(entity, ledgers);
+                });
     }
 
+    /**
+     * MemberPoint와 사용 가능한 Ledgers만 별도 쿼리로 조회
+     * - DB에서 필터링 및 우선순위 정렬 완료
+     * - 메모리에서 추가 정렬 불필요
+     */
     @Override
-    public Optional<MemberPoint> findByMemberIdWithAvailableLedgers(UUID memberId) {
-        return jpaRepository.findByIdWithAvailableLedgers(memberId)
-                .map(mapper::toDomainWithLedgers);
+    public Optional<MemberPoint> findByMemberIdWithAvailableLedgersForUse(UUID memberId) {
+        return jpaRepository.findById(memberId)
+                .map(entity -> {
+                    List<PointLedgerEntity> ledgers = pointLedgerJpaRepository
+                            .findAvailableByMemberIdOrderByPriority(memberId);
+                    return mapper.toDomainWithLedgers(entity, ledgers);
+                });
     }
 
     @Override
@@ -62,6 +80,8 @@ public class MemberPointRepositoryImpl implements MemberPointRepository {
 
     /**
      * Ledgers 배치 저장 (신규/기존 구분)
+     * - 기존 엔티티는 Dirty Checking으로 자동 업데이트
+     * - 신규 엔티티만 saveAll로 배치 저장
      */
     private void saveLedgers(List<PointLedger> ledgers) {
         if (ledgers.isEmpty()) {
@@ -81,7 +101,7 @@ public class MemberPointRepositoryImpl implements MemberPointRepository {
         for (PointLedger ledger : ledgers) {
             PointLedgerEntity existingEntity = existingEntityMap.get(ledger.id());
             if (existingEntity != null) {
-                // 기존 엔티티 업데이트
+                // 기존 엔티티 업데이트 (Dirty Checking)
                 existingEntity.updateAvailableAmount(
                         ledger.availableAmount().value(),
                         ledger.usedAmount().value()
@@ -99,9 +119,6 @@ public class MemberPointRepositoryImpl implements MemberPointRepository {
         if (!newEntities.isEmpty()) {
             pointLedgerJpaRepository.saveAll(newEntities);
         }
-
-        // 기존 엔티티는 변경감지(Dirty Checking)로 자동 업데이트됨
-        // 명시적 saveAll 호출 불필요
     }
 
     @Override
@@ -116,23 +133,21 @@ public class MemberPointRepositoryImpl implements MemberPointRepository {
     }
 
     @Override
-    public MemberPoint getOrCreateWithLedgers(UUID memberId) {
-        return jpaRepository.findByIdWithLedgers(memberId)
-                .map(mapper::toDomainWithLedgers)
+    public MemberPoint getOrCreateWithAllLedgers(UUID memberId) {
+        return findByMemberIdWithAllLedgers(memberId)
                 .orElseGet(() -> createNewMemberPoint(memberId));
     }
 
     @Override
-    public MemberPoint getOrCreateWithAvailableLedgers(UUID memberId) {
-        return jpaRepository.findByIdWithAvailableLedgers(memberId)
-                .map(mapper::toDomainWithLedgers)
+    public MemberPoint getOrCreateWithAvailableLedgersForUse(UUID memberId) {
+        return findByMemberIdWithAvailableLedgersForUse(memberId)
                 .orElseGet(() -> createNewMemberPoint(memberId));
     }
 
     private MemberPoint createNewMemberPoint(UUID memberId) {
         MemberPoint newMemberPoint = MemberPoint.create(memberId);
         MemberPointEntity entity = mapper.toEntity(newMemberPoint);
-        MemberPointEntity savedEntity = jpaRepository.save(entity);
-        return mapper.toDomainWithLedgers(savedEntity);
+        jpaRepository.save(entity);
+        return newMemberPoint;
     }
 }

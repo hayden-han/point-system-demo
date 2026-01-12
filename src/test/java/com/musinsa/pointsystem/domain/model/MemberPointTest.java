@@ -167,7 +167,7 @@ class MemberPointTest {
             PointLedger found = memberPoint.findLedgerById(ledgerId);
 
             // THEN
-            assertThat(found.getId()).isEqualTo(ledgerId);
+            assertThat(found.id()).isEqualTo(ledgerId);
         }
     }
 }

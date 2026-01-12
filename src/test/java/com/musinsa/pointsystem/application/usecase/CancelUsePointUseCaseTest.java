@@ -240,7 +240,7 @@ class CancelUsePointUseCaseTest extends IntegrationTestBase {
             // WHEN & THEN
             assertThatThrownBy(() -> cancelUsePointUseCase.execute(command))
                     .isInstanceOf(InvalidCancelAmountException.class)
-                    .hasMessageContaining("취소 가능 금액을 초과");
+                    .hasMessageContaining("취소 가능 금액 초과");
         }
 
         @Test
@@ -275,7 +275,7 @@ class CancelUsePointUseCaseTest extends IntegrationTestBase {
             // WHEN & THEN
             assertThatThrownBy(() -> cancelUsePointUseCase.execute(command))
                     .isInstanceOf(PointTransactionNotFoundException.class)
-                    .hasMessageContaining("트랜잭션을 찾을 수 없습니다");
+                    .hasMessageContaining("트랜잭션 없음");
         }
     }
 }

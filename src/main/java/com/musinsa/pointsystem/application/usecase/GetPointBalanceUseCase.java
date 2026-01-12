@@ -19,8 +19,8 @@ public class GetPointBalanceUseCase {
     public PointBalanceResult execute(UUID memberId) {
         MemberPoint memberPoint = memberPointRepository.getOrCreate(memberId);
         return PointBalanceResult.builder()
-                .memberId(memberPoint.getMemberId())
-                .totalBalance(memberPoint.getTotalBalance().getValue())
+                .memberId(memberPoint.memberId())
+                .totalBalance(memberPoint.totalBalance().getValue())
                 .build();
     }
 }

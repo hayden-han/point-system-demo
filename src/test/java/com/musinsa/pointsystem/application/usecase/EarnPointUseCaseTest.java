@@ -203,7 +203,7 @@ class EarnPointUseCaseTest extends IntegrationTestBase {
             // WHEN & THEN
             assertThatThrownBy(() -> earnPointUseCase.execute(overflowCommand))
                     .isInstanceOf(MaxBalanceExceededException.class)
-                    .hasMessageContaining("최대 보유 가능 금액");
+                    .hasMessageContaining("최대 보유 금액 초과");
         }
 
         @Test

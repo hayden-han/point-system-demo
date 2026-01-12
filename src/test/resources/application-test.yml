@@ -2,7 +2,8 @@ spring:
   datasource:
     primary:
       driver-class-name: org.h2.Driver
-      url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+      # LOCK_MODE=1 - MySQL REPEATABLE_READ와 유사한 동작
+      url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;LOCK_MODE=1
       username: sa
       password:
       hikari:
@@ -11,7 +12,7 @@ spring:
         minimum-idle: 1
     replica:
       driver-class-name: org.h2.Driver
-      url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+      url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;LOCK_MODE=1
       username: sa
       password:
       hikari:
@@ -29,6 +30,9 @@ spring:
         dialect: org.hibernate.dialect.H2Dialect
         jdbc:
           time_zone: UTC
+        # 프로덕션 MySQL과 동일한 Isolation Level 사용
+        connection:
+          isolation: 4  # TRANSACTION_REPEATABLE_READ
 
   sql:
     init:

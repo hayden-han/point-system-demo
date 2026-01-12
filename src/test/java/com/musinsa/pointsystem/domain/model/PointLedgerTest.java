@@ -34,7 +34,7 @@ class PointLedgerTest {
             assertThat(ledger.earnedAmount().getValue()).isEqualTo(1000L);
             assertThat(ledger.availableAmount().getValue()).isEqualTo(1000L);
             assertThat(ledger.usedAmount().getValue()).isEqualTo(0L);
-            assertThat(ledger.isCanceled()).isFalse();
+            assertThat(ledger.canceled()).isFalse();
         }
 
         @Test
@@ -60,7 +60,7 @@ class PointLedgerTest {
             );
 
             // THEN
-            assertThat(ledger.getSourceTransactionId()).isEqualTo(sourceTransactionId);
+            assertThat(ledger.sourceTransactionId()).isEqualTo(sourceTransactionId);
             assertThat(ledger.availableAmount().getValue()).isEqualTo(500L);
         }
     }
@@ -126,9 +126,9 @@ class PointLedgerTest {
             PointLedger canceledLedger = ledger.cancel();
 
             // THEN
-            assertThat(canceledLedger.isCanceled()).isTrue();
+            assertThat(canceledLedger.canceled()).isTrue();
             assertThat(canceledLedger.availableAmount().getValue()).isEqualTo(0L);
-            assertThat(ledger.isCanceled()).isFalse(); // 원본 불변
+            assertThat(ledger.canceled()).isFalse(); // 원본 불변
         }
 
         @Test

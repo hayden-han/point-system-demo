@@ -39,14 +39,14 @@ public class GetPointHistoryUseCase {
 
     private PointTransactionResult toResult(PointTransaction transaction) {
         return PointTransactionResult.builder()
-                .transactionId(transaction.getId())
-                .memberId(transaction.getMemberId())
-                .type(transaction.getType().name())
-                .amount(transaction.getAmount().getValue())
-                .orderId(transaction.getOrderId() != null ? transaction.getOrderId().getValue() : null)
-                .relatedTransactionId(transaction.getRelatedTransactionId())
-                .ledgerId(transaction.getLedgerId())
-                .transactedAt(transaction.getTransactedAt())
+                .transactionId(transaction.id())
+                .memberId(transaction.memberId())
+                .type(transaction.type().name())
+                .amount(transaction.amount().getValue())
+                .orderId(transaction.orderId() != null ? transaction.orderId().getValue() : null)
+                .relatedTransactionId(transaction.relatedTransactionId())
+                .ledgerId(transaction.ledgerId())
+                .transactedAt(transaction.transactedAt())
                 .build();
     }
 }

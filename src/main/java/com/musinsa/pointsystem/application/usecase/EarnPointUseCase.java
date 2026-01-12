@@ -36,8 +36,8 @@ public class EarnPointUseCase {
         // 정책 조회
         EarnPolicyConfig policy = pointPolicyRepository.getEarnPolicyConfig();
 
-        // 회원 포인트 조회 (Ledgers 포함)
-        MemberPoint memberPoint = memberPointRepository.getOrCreateWithLedgers(command.memberId());
+        // 회원 포인트 조회 (모든 Ledgers 포함 - 적립 시 잔액 검증 필요)
+        MemberPoint memberPoint = memberPointRepository.getOrCreateWithAllLedgers(command.memberId());
 
         // Domain Service를 통한 적립 처리
         MemberPoint.EarnResult earnResult = pointAccrualManager.earnWithExpirationValidation(

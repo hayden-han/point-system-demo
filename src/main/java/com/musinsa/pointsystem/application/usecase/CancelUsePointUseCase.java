@@ -3,8 +3,6 @@ package com.musinsa.pointsystem.application.usecase;
 import com.musinsa.pointsystem.application.dto.CancelUsePointCommand;
 import com.musinsa.pointsystem.application.dto.CancelUsePointResult;
 import com.musinsa.pointsystem.application.port.DistributedLock;
-import com.musinsa.pointsystem.domain.exception.MemberPointNotFoundException;
-import com.musinsa.pointsystem.domain.exception.PointTransactionNotFoundException;
 import com.musinsa.pointsystem.domain.model.ExpirationPolicyConfig;
 import com.musinsa.pointsystem.domain.model.MemberPoint;
 import com.musinsa.pointsystem.domain.model.PointAmount;
@@ -34,9 +32,8 @@ public class CancelUsePointUseCase {
     @DistributedLock(key = "'lock:point:member:' + #command.memberId")
     @Transactional
     public CancelUsePointResult execute(CancelUsePointCommand command) {
-        // 원본 트랜잭션 조회
-        PointTransaction originalTransaction = pointTransactionRepository.findById(command.transactionId())
-                .orElseThrow(() -> new PointTransactionNotFoundException(command.transactionId()));
+        // 원본 트랜잭션 조회 (없으면 PointTransactionNotFoundException 발생)
+        PointTransaction originalTransaction = pointTransactionRepository.getById(command.transactionId());
 
         // DTO → 도메인 타입 변환
         PointAmount cancelAmount = PointAmount.of(command.cancelAmount());
@@ -57,9 +54,8 @@ public class CancelUsePointUseCase {
         );
         PointTransaction savedCancelTransaction = pointTransactionRepository.save(cancelTransaction);
 
-        // 회원 포인트 조회 (Ledgers 포함)
-        MemberPoint memberPoint = memberPointRepository.findByMemberIdWithLedgers(command.memberId())
-                .orElseThrow(() -> new MemberPointNotFoundException(command.memberId()));
+        // 회원 포인트 조회 (모든 Ledgers 포함 - 복원 대상 Ledger 필요)
+        MemberPoint memberPoint = memberPointRepository.getByMemberIdWithAllLedgers(command.memberId());
 
         // Domain Service를 통한 사용 취소 처리
         MemberPoint.RestoreResult restoreResult = pointUsageManager.cancelUse(
