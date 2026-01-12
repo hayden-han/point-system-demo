@@ -21,7 +21,7 @@ public class PointLedgerFixture {
                 null,
                 LocalDateTime.now().plusDays(365),
                 false,
-                LocalDateTime.now()
+                LocalDateTime.now()  // earnedAt
         );
     }
 
@@ -37,7 +37,7 @@ public class PointLedgerFixture {
                 null,
                 LocalDateTime.now().plusDays(365),
                 false,
-                LocalDateTime.now()
+                LocalDateTime.now()  // earnedAt
         );
     }
 
@@ -54,7 +54,7 @@ public class PointLedgerFixture {
                 null,
                 expiredAt,
                 false,
-                LocalDateTime.now()
+                LocalDateTime.now()  // earnedAt
         );
     }
 
@@ -70,7 +70,7 @@ public class PointLedgerFixture {
                 null,
                 LocalDateTime.now().plusDays(365),
                 false,
-                LocalDateTime.now()
+                LocalDateTime.now()  // earnedAt
         );
     }
 
@@ -85,7 +85,7 @@ public class PointLedgerFixture {
                 null,
                 LocalDateTime.now().plusDays(365),
                 false,
-                LocalDateTime.now()
+                LocalDateTime.now()  // earnedAt
         );
     }
 
@@ -100,7 +100,7 @@ public class PointLedgerFixture {
                 null,
                 LocalDateTime.now().plusDays(365),
                 true,
-                LocalDateTime.now()
+                LocalDateTime.now()  // earnedAt
         );
     }
 
@@ -116,7 +116,7 @@ public class PointLedgerFixture {
                 null,
                 LocalDateTime.now().minusDays(1),
                 false,
-                LocalDateTime.now().minusDays(366)
+                LocalDateTime.now().minusDays(366)  // earnedAt (만료된 시점 기준)
         );
     }
 

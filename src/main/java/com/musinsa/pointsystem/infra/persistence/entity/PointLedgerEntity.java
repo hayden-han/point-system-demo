@@ -43,10 +43,13 @@ public class PointLedgerEntity extends BaseEntity {
     @Column(name = "is_canceled", nullable = false)
     private Boolean isCanceled;
 
+    @Column(name = "earned_at", nullable = false)
+    private LocalDateTime earnedAt;
+
     @Builder
     public PointLedgerEntity(UUID id, UUID memberId, Long earnedAmount, Long availableAmount,
                              Long usedAmount, String earnType, UUID sourceTransactionId,
-                             LocalDateTime expiredAt, Boolean isCanceled) {
+                             LocalDateTime expiredAt, Boolean isCanceled, LocalDateTime earnedAt) {
         this.id = id;
         this.memberId = memberId;
         this.earnedAmount = earnedAmount;
@@ -56,6 +59,7 @@ public class PointLedgerEntity extends BaseEntity {
         this.sourceTransactionId = sourceTransactionId;
         this.expiredAt = expiredAt;
         this.isCanceled = isCanceled;
+        this.earnedAt = earnedAt;
     }
 
     public void updateAvailableAmount(Long availableAmount, Long usedAmount) {

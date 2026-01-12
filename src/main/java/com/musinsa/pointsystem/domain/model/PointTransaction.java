@@ -18,7 +18,7 @@ public record PointTransaction(
         OrderId orderId,
         UUID relatedTransactionId,
         UUID ledgerId,
-        LocalDateTime createdAt
+        LocalDateTime transactedAt
 ) {
     // 기존 코드 호환성을 위한 getter 메서드들
     public UUID getId() {
@@ -49,8 +49,8 @@ public record PointTransaction(
         return ledgerId;
     }
 
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
+    public LocalDateTime getTransactedAt() {
+        return transactedAt;
     }
 
     // Static Factory Methods

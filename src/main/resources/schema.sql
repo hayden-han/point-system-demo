@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS point_ledger (
     source_transaction_id BINARY(16),
     expired_at TIMESTAMP NOT NULL,
     is_canceled BOOLEAN NOT NULL DEFAULT FALSE,
+    earned_at TIMESTAMP NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT chk_earned_positive CHECK (earned_amount > 0),
@@ -57,6 +58,7 @@ CREATE TABLE IF NOT EXISTS point_transaction (
     order_id VARCHAR(100),
     related_transaction_id BINARY(16),
     ledger_id BINARY(16),
+    transacted_at TIMESTAMP NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

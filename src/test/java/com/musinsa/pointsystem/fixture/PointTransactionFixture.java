@@ -19,7 +19,7 @@ public class PointTransactionFixture {
                 null,
                 null,
                 ledgerId,
-                LocalDateTime.now()
+                LocalDateTime.now()  // transactedAt
         );
     }
 
@@ -32,7 +32,7 @@ public class PointTransactionFixture {
                 null,
                 null,
                 ledgerId,
-                LocalDateTime.now()
+                LocalDateTime.now()  // transactedAt
         );
     }
 
@@ -45,7 +45,7 @@ public class PointTransactionFixture {
                 OrderId.of(orderId),
                 null,
                 null,
-                LocalDateTime.now()
+                LocalDateTime.now()  // transactedAt
         );
     }
 
@@ -59,7 +59,7 @@ public class PointTransactionFixture {
                 OrderId.of(orderId),
                 relatedTransactionId,
                 null,
-                LocalDateTime.now()
+                LocalDateTime.now()  // transactedAt
         );
     }
 }

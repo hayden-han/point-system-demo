@@ -14,8 +14,7 @@ public class PointUsageDetailMapper {
                 entity.getTransactionId(),
                 entity.getLedgerId(),
                 PointAmount.of(entity.getUsedAmount()),
-                PointAmount.of(entity.getCanceledAmount()),
-                entity.getCreatedAt()
+                PointAmount.of(entity.getCanceledAmount())
         );
     }
 

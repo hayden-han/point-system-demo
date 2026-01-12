@@ -46,7 +46,7 @@ public class GetPointHistoryUseCase {
                 .orderId(transaction.getOrderId() != null ? transaction.getOrderId().getValue() : null)
                 .relatedTransactionId(transaction.getRelatedTransactionId())
                 .ledgerId(transaction.getLedgerId())
-                .createdAt(transaction.getCreatedAt())
+                .createdAt(transaction.getTransactedAt())
                 .build();
     }
 }

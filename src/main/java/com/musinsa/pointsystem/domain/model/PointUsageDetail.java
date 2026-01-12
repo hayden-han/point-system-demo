@@ -2,7 +2,6 @@ package com.musinsa.pointsystem.domain.model;
 
 import com.musinsa.pointsystem.common.util.UuidGenerator;
 
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
@@ -15,8 +14,7 @@ public record PointUsageDetail(
         UUID transactionId,
         UUID ledgerId,
         PointAmount usedAmount,
-        PointAmount canceledAmount,
-        LocalDateTime createdAt
+        PointAmount canceledAmount
 ) {
     // Compact constructor - 기본값 설정
     public PointUsageDetail {
@@ -46,10 +44,6 @@ public record PointUsageDetail(
         return canceledAmount;
     }
 
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
     // Static Factory Method
     public static PointUsageDetail create(UUID transactionId, UUID ledgerId, PointAmount usedAmount) {
         return new PointUsageDetail(
@@ -57,8 +51,7 @@ public record PointUsageDetail(
                 transactionId,
                 ledgerId,
                 usedAmount,
-                PointAmount.ZERO,
-                LocalDateTime.now()
+                PointAmount.ZERO
         );
     }
 
@@ -83,8 +76,7 @@ public record PointUsageDetail(
                 transactionId,
                 ledgerId,
                 usedAmount,
-                canceledAmount.add(cancelAmount),
-                createdAt
+                canceledAmount.add(cancelAmount)
         );
         return new CancelResult(updated, cancelAmount);
     }

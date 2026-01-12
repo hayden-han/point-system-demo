@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
@@ -40,9 +41,13 @@ public class PointTransactionEntity extends BaseTimeEntity {
     @Column(name = "ledger_id", columnDefinition = "BINARY(16)")
     private UUID ledgerId;
 
+    @Column(name = "transacted_at", nullable = false)
+    private LocalDateTime transactedAt;
+
     @Builder
     public PointTransactionEntity(UUID id, UUID memberId, String type, Long amount,
-                                   String orderId, UUID relatedTransactionId, UUID ledgerId) {
+                                   String orderId, UUID relatedTransactionId, UUID ledgerId,
+                                   LocalDateTime transactedAt) {
         this.id = id;
         this.memberId = memberId;
         this.type = type;
@@ -50,5 +55,6 @@ public class PointTransactionEntity extends BaseTimeEntity {
         this.orderId = orderId;
         this.relatedTransactionId = relatedTransactionId;
         this.ledgerId = ledgerId;
+        this.transactedAt = transactedAt;
     }
 }

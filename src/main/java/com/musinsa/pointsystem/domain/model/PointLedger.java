@@ -22,7 +22,7 @@ public record PointLedger(
         UUID sourceTransactionId,
         LocalDateTime expiredAt,
         boolean canceled,
-        LocalDateTime createdAt
+        LocalDateTime earnedAt
 ) {
     // Compact constructor - 기본값 설정
     public PointLedger {
@@ -71,8 +71,8 @@ public record PointLedger(
         return canceled;
     }
 
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
+    public LocalDateTime getEarnedAt() {
+        return earnedAt;
     }
 
     // Static Factory Methods
@@ -138,7 +138,7 @@ public record PointLedger(
         }
         return new PointLedger(
                 id, memberId, earnedAmount, PointAmount.ZERO, usedAmount,
-                earnType, sourceTransactionId, expiredAt, true, createdAt
+                earnType, sourceTransactionId, expiredAt, true, earnedAt
         );
     }
 
@@ -151,7 +151,7 @@ public record PointLedger(
                 id, memberId, earnedAmount,
                 availableAmount.subtract(useAmount),
                 usedAmount.add(useAmount),
-                earnType, sourceTransactionId, expiredAt, canceled, createdAt
+                earnType, sourceTransactionId, expiredAt, canceled, earnedAt
         );
         return new UseResult(updated, useAmount);
     }
@@ -172,7 +172,7 @@ public record PointLedger(
                 id, memberId, earnedAmount,
                 availableAmount.add(amount),
                 usedAmount.subtract(amount),
-                earnType, sourceTransactionId, expiredAt, canceled, createdAt
+                earnType, sourceTransactionId, expiredAt, canceled, earnedAt
         );
     }
 

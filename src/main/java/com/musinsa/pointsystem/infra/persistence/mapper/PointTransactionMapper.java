@@ -19,7 +19,7 @@ public class PointTransactionMapper {
                 entity.getOrderId() != null ? OrderId.of(entity.getOrderId()) : null,
                 entity.getRelatedTransactionId(),
                 entity.getLedgerId(),
-                entity.getCreatedAt()
+                entity.getTransactedAt()
         );
     }
 
@@ -32,6 +32,7 @@ public class PointTransactionMapper {
                 .orderId(domain.getOrderId() != null ? domain.getOrderId().getValue() : null)
                 .relatedTransactionId(domain.getRelatedTransactionId())
                 .ledgerId(domain.getLedgerId())
+                .transactedAt(domain.getTransactedAt())
                 .build();
     }
 }

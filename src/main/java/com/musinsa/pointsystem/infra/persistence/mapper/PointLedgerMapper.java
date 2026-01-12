@@ -20,7 +20,7 @@ public class PointLedgerMapper {
                 entity.getSourceTransactionId(),
                 entity.getExpiredAt(),
                 entity.getIsCanceled(),
-                entity.getCreatedAt()
+                entity.getEarnedAt()
         );
     }
 
@@ -35,6 +35,7 @@ public class PointLedgerMapper {
                 .sourceTransactionId(domain.getSourceTransactionId())
                 .expiredAt(domain.getExpiredAt())
                 .isCanceled(domain.isCanceled())
+                .earnedAt(domain.getEarnedAt())
                 .build();
     }
 }
