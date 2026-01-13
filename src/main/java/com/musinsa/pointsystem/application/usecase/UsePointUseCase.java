@@ -8,10 +8,8 @@ import com.musinsa.pointsystem.domain.model.MemberPoint;
 import com.musinsa.pointsystem.domain.model.OrderId;
 import com.musinsa.pointsystem.domain.model.PointAmount;
 import com.musinsa.pointsystem.domain.model.PointTransaction;
-import com.musinsa.pointsystem.domain.model.PointUsageDetail;
 import com.musinsa.pointsystem.domain.repository.MemberPointRepository;
 import com.musinsa.pointsystem.domain.repository.PointTransactionRepository;
-import com.musinsa.pointsystem.domain.repository.PointUsageDetailRepository;
 import com.musinsa.pointsystem.domain.service.PointUsageManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,7 +17,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -28,7 +25,6 @@ public class UsePointUseCase {
 
     private final MemberPointRepository memberPointRepository;
     private final PointTransactionRepository pointTransactionRepository;
-    private final PointUsageDetailRepository pointUsageDetailRepository;
     private final PointUsageManager pointUsageManager;
     private final TimeProvider timeProvider;
 
@@ -58,7 +54,7 @@ public class UsePointUseCase {
         // MemberPoint + Ledgers + Entries 저장 (v2)
         memberPointRepository.saveWithEntries(updatedMemberPoint);
 
-        // 트랜잭션 생성 및 저장 (레거시 호환)
+        // 트랜잭션 생성 및 저장 (히스토리 API 호환)
         PointTransaction transaction = pointUsageManager.createUseTransaction(
                 command.memberId(),
                 amount,
@@ -66,16 +62,9 @@ public class UsePointUseCase {
         );
         PointTransaction savedTransaction = pointTransactionRepository.save(transaction);
 
-        // 사용 상세 생성 및 저장 (레거시 호환)
-        List<PointUsageDetail> usageDetails = pointUsageManager.createUsageDetails(
-                savedTransaction.id(),
-                usageResult.usageDetails()
-        );
-        pointUsageDetailRepository.saveAll(usageDetails);
-
         log.info("포인트 사용 완료. memberId={}, transactionId={}, usedAmount={}, totalBalance={}, usedLedgerCount={}",
                 command.memberId(), savedTransaction.id(), amount.getValue(),
-                updatedMemberPoint.getTotalBalance(now).getValue(), usageDetails.size());
+                updatedMemberPoint.getTotalBalance(now).getValue(), usageResult.usageDetails().size());
 
         return UsePointResult.builder()
                 .transactionId(savedTransaction.id())

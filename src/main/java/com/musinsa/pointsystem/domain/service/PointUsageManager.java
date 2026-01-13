@@ -6,7 +6,6 @@ import com.musinsa.pointsystem.domain.model.*;
 import com.musinsa.pointsystem.domain.port.IdGenerator;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -45,7 +44,6 @@ public class PointUsageManager {
 
     /**
      * 사용 취소 (v2: LedgerEntry 기반)
-     * - PointUsageDetail 불필요
      * - orderId로 해당 주문의 사용 내역 추적
      */
     public MemberPoint.CancelUseResult cancelUseV2(MemberPoint memberPoint,
@@ -58,69 +56,13 @@ public class PointUsageManager {
     }
 
     // =====================================================
-    // 레거시 메서드 (deprecated)
+    // 트랜잭션 생성 (히스토리 API 호환용)
     // =====================================================
 
     /**
-     * @deprecated useV2() 사용 권장
+     * 사용 트랜잭션 생성 (히스토리 API 호환용)
      */
-    @Deprecated
-    public MemberPoint.UsageResult use(MemberPoint memberPoint, PointAmount amount) {
-        return memberPoint.use(amount);
-    }
-
-    /**
-     * @deprecated v2에서는 LedgerEntry로 대체
-     */
-    @Deprecated
-    public List<PointUsageDetail> createUsageDetails(UUID transactionId,
-                                                      List<MemberPoint.UsageDetail> usageDetails) {
-        return usageDetails.stream()
-                .map(detail -> pointFactory.createUsageDetail(
-                        transactionId,
-                        detail.ledgerId(),
-                        detail.usedAmount()
-                ))
-                .toList();
-    }
-
-    /**
-     * @deprecated cancelUseV2() 사용 권장
-     */
-    @Deprecated
-    public MemberPoint.RestoreResult cancelUse(MemberPoint memberPoint,
-                                                List<PointUsageDetail> usageDetails,
-                                                PointAmount cancelAmount,
-                                                int defaultExpirationDays,
-                                                UUID cancelTransactionId) {
-        return memberPoint.cancelUse(
-                usageDetails,
-                cancelAmount,
-                defaultExpirationDays,
-                cancelTransactionId,
-                pointFactory,
-                timeProvider.now()
-        );
-    }
-
-    // =====================================================
-    // 트랜잭션 생성 (레거시 - 향후 제거 예정)
-    // =====================================================
-
-    /**
-     * @deprecated v2에서는 LedgerEntry로 대체
-     */
-    @Deprecated
     public PointTransaction createUseTransaction(UUID memberId, PointAmount amount, OrderId orderId) {
         return pointFactory.createUseTransaction(memberId, amount, orderId);
-    }
-
-    /**
-     * @deprecated v2에서는 LedgerEntry로 대체
-     */
-    @Deprecated
-    public PointTransaction createUseCancelTransaction(UUID memberId, PointAmount amount,
-                                                        OrderId orderId, UUID relatedTransactionId) {
-        return pointFactory.createUseCancelTransaction(memberId, amount, orderId, relatedTransactionId);
     }
 }

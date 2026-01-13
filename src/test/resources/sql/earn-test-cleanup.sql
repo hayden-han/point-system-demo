@@ -1,8 +1,5 @@
 -- 적립 테스트 데이터 정리 (UUID 기반)
 DELETE FROM ledger_entry;
-DELETE FROM point_usage_detail WHERE transaction_id IN (
-    SELECT id FROM point_transaction WHERE member_id = X'00000000000000000000000000001001'
-);
 DELETE FROM point_transaction WHERE member_id = X'00000000000000000000000000001001';
 DELETE FROM point_ledger WHERE member_id = X'00000000000000000000000000001001';
 DELETE FROM member_point WHERE member_id = X'00000000000000000000000000001001';

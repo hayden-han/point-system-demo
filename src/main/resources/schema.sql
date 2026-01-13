@@ -80,18 +80,3 @@ CREATE INDEX IF NOT EXISTS idx_transaction_member ON point_transaction (member_i
 CREATE INDEX IF NOT EXISTS idx_transaction_order ON point_transaction (order_id);
 CREATE INDEX IF NOT EXISTS idx_transaction_related ON point_transaction (related_transaction_id);
 CREATE INDEX IF NOT EXISTS idx_transaction_ledger ON point_transaction (ledger_id);
-
--- Point Usage Detail (사용 상세)
-CREATE TABLE IF NOT EXISTS point_usage_detail (
-    id BINARY(16) PRIMARY KEY,
-    transaction_id BINARY(16) NOT NULL,
-    ledger_id BINARY(16) NOT NULL,
-    used_amount BIGINT NOT NULL,
-    canceled_amount BIGINT NOT NULL DEFAULT 0,
-    created_at DATETIME NOT NULL,
-    updated_at DATETIME NOT NULL,
-    CONSTRAINT chk_canceled_range CHECK (canceled_amount >= 0 AND canceled_amount <= used_amount)
-);
-
-CREATE INDEX IF NOT EXISTS idx_usage_transaction ON point_usage_detail (transaction_id);
-CREATE INDEX IF NOT EXISTS idx_usage_ledger ON point_usage_detail (ledger_id);

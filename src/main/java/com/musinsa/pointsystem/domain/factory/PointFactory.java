@@ -152,23 +152,6 @@ public class PointFactory {
         );
     }
 
-    // === PointUsageDetail 생성 (레거시 - 향후 제거 예정) ===
-
-    /**
-     * 포인트 사용 상세 생성
-     * @deprecated v2에서는 LedgerEntry로 대체
-     */
-    @Deprecated
-    public PointUsageDetail createUsageDetail(UUID transactionId, UUID ledgerId, PointAmount usedAmount) {
-        return new PointUsageDetail(
-                idGenerator.generate(),
-                transactionId,
-                ledgerId,
-                usedAmount,
-                PointAmount.ZERO
-        );
-    }
-
     // === 헬퍼 메서드 ===
 
     public IdGenerator getIdGenerator() {
