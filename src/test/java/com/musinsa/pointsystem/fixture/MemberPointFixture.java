@@ -11,50 +11,44 @@ import java.util.UUID;
 public class MemberPointFixture {
 
     public static MemberPoint createDefault() {
-        return new MemberPoint(
-                UuidGenerator.generate(),
-                PointAmount.ZERO,
-                List.of()
-        );
+        return MemberPoint.create(UuidGenerator.generate());
     }
 
     public static MemberPoint create(UUID memberId) {
-        return new MemberPoint(
-                memberId,
-                PointAmount.ZERO,
-                List.of()
-        );
+        return MemberPoint.create(memberId);
     }
 
     public static MemberPoint createWithBalance(UUID memberId, Long balance) {
-        return new MemberPoint(
-                memberId,
-                PointAmount.of(balance),
-                List.of()
-        );
+        // v2: balance는 Ledger들의 합으로 계산되므로 단일 Ledger 생성
+        PointLedger ledger = PointLedgerFixture.create(
+                UuidGenerator.generate(), memberId, balance,
+                com.musinsa.pointsystem.domain.model.EarnType.SYSTEM);
+        return MemberPoint.of(memberId, List.of(ledger));
     }
 
+    public static MemberPoint createWithLedgers(UUID memberId, List<PointLedger> ledgers) {
+        return MemberPoint.of(memberId, ledgers);
+    }
+
+    /**
+     * @deprecated v2에서는 balance가 Ledger에서 계산되므로 createWithLedgers 사용
+     */
+    @Deprecated
     public static MemberPoint createWithLedgers(UUID memberId, Long balance, List<PointLedger> ledgers) {
-        return new MemberPoint(
-                memberId,
-                PointAmount.of(balance),
-                ledgers
-        );
+        return MemberPoint.of(memberId, ledgers);
     }
 
     public static MemberPoint createNearMaxBalance(UUID memberId, Long maxBalance) {
-        return new MemberPoint(
-                memberId,
-                PointAmount.of(maxBalance - 1L),
-                List.of()
-        );
+        PointLedger ledger = PointLedgerFixture.create(
+                UuidGenerator.generate(), memberId, maxBalance - 1L,
+                com.musinsa.pointsystem.domain.model.EarnType.SYSTEM);
+        return MemberPoint.of(memberId, List.of(ledger));
     }
 
     public static MemberPoint createAtMaxBalance(UUID memberId, Long maxBalance) {
-        return new MemberPoint(
-                memberId,
-                PointAmount.of(maxBalance),
-                List.of()
-        );
+        PointLedger ledger = PointLedgerFixture.create(
+                UuidGenerator.generate(), memberId, maxBalance,
+                com.musinsa.pointsystem.domain.model.EarnType.SYSTEM);
+        return MemberPoint.of(memberId, List.of(ledger));
     }
 }

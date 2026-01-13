@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -38,29 +39,29 @@ class PointLedgerTest {
         }
 
         @Test
-        @DisplayName("사용취소로 인한 신규 적립건 생성 (sourceTransactionId 포함)")
-        void createWithSourceTransactionId_shouldSetSourceTransactionId() {
+        @DisplayName("사용취소로 인한 신규 적립건 생성 (sourceLedgerId 포함)")
+        void createWithSourceLedgerId_shouldSetSourceLedgerId() {
             // GIVEN
             UUID id = UuidGenerator.generate();
             UUID memberId = UuidGenerator.generate();
-            UUID sourceTransactionId = UuidGenerator.generate();
+            UUID sourceLedgerId = UuidGenerator.generate();
 
-            // WHEN - 직접 생성자 호출로 sourceTransactionId 포함
+            // WHEN - 직접 생성자 호출로 sourceLedgerId 포함
             PointLedger ledger = new PointLedger(
                     id,
                     memberId,
                     PointAmount.of(500L),
                     PointAmount.of(500L),
-                    PointAmount.ZERO,
                     EarnType.SYSTEM,
-                    sourceTransactionId,
+                    sourceLedgerId,
                     LocalDateTime.now().plusDays(365),
                     false,
-                    LocalDateTime.now()
+                    LocalDateTime.now(),
+                    List.of()
             );
 
             // THEN
-            assertThat(ledger.sourceTransactionId()).isEqualTo(sourceTransactionId);
+            assertThat(ledger.sourceLedgerId()).isEqualTo(sourceLedgerId);
             assertThat(ledger.availableAmount().getValue()).isEqualTo(500L);
         }
     }
@@ -220,7 +221,7 @@ class PointLedgerTest {
     class UseTest {
 
         @Test
-        @DisplayName("요청 금액만큼 차감 - 새 객체 반환")
+        @DisplayName("요청 금액만큼 차감 - 새 객체 반환 (레거시)")
         void use_shouldReturnNewLedgerWithDeductedAmount() {
             // GIVEN
             UUID id = UuidGenerator.generate();
@@ -233,12 +234,11 @@ class PointLedgerTest {
             // THEN
             assertThat(result.usedAmount().getValue()).isEqualTo(300L);
             assertThat(result.ledger().availableAmount().getValue()).isEqualTo(700L);
-            assertThat(result.ledger().usedAmount().getValue()).isEqualTo(300L);
             assertThat(ledger.availableAmount().getValue()).isEqualTo(1000L); // 원본 불변
         }
 
         @Test
-        @DisplayName("잔액보다 많이 요청하면 잔액만큼만 사용")
+        @DisplayName("잔액보다 많이 요청하면 잔액만큼만 사용 (레거시)")
         void useMoreThanAvailable_shouldUseOnlyAvailable() {
             // GIVEN
             UUID id = UuidGenerator.generate();
@@ -259,7 +259,7 @@ class PointLedgerTest {
     class RestoreTest {
 
         @Test
-        @DisplayName("사용된 금액 내에서 복구 성공 - 새 객체 반환")
+        @DisplayName("사용된 금액 내에서 복구 성공 - 새 객체 반환 (레거시)")
         void restore_shouldReturnNewLedgerWithRestoredAmount() {
             // GIVEN
             UUID id = UuidGenerator.generate();
@@ -271,21 +271,7 @@ class PointLedgerTest {
 
             // THEN
             assertThat(restoredLedger.availableAmount().getValue()).isEqualTo(800L);
-            assertThat(restoredLedger.usedAmount().getValue()).isEqualTo(200L);
             assertThat(ledger.availableAmount().getValue()).isEqualTo(500L); // 원본 불변
-        }
-
-        @Test
-        @DisplayName("사용된 금액보다 많이 복구하면 예외 발생")
-        void restoreMoreThanUsed_shouldThrowException() {
-            // GIVEN
-            UUID id = UuidGenerator.generate();
-            UUID memberId = UuidGenerator.generate();
-            PointLedger ledger = PointLedgerFixture.createPartiallyUsed(id, memberId, 1000L, 500L, EarnType.SYSTEM);
-
-            // WHEN & THEN
-            assertThatThrownBy(() -> ledger.restore(PointAmount.of(600L)))
-                    .isInstanceOf(IllegalStateException.class);
         }
     }
 

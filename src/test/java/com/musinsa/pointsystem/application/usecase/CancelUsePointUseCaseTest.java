@@ -3,7 +3,6 @@ package com.musinsa.pointsystem.application.usecase;
 import com.musinsa.pointsystem.IntegrationTestBase;
 import com.musinsa.pointsystem.application.dto.CancelUsePointCommand;
 import com.musinsa.pointsystem.application.dto.CancelUsePointResult;
-import com.musinsa.pointsystem.common.util.UuidGenerator;
 import com.musinsa.pointsystem.domain.exception.InvalidCancelAmountException;
 import com.musinsa.pointsystem.domain.exception.PointTransactionNotFoundException;
 import com.musinsa.pointsystem.domain.model.PointLedger;
@@ -40,13 +39,13 @@ class CancelUsePointUseCaseTest extends IntegrationTestBase {
         @Test
         @DisplayName("CU-T01: 전액 사용취소")
         void fullCancel_success() {
-            // GIVEN - SQL로 member_id, 사용 1000원 (transaction_id) 생성됨
+            // GIVEN - SQL로 member_id, 사용 1000원 (ORDER-CU-T01) 생성됨
             UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000004001");
-            UUID transactionId = UUID.fromString("00000000-0000-0000-0000-000000004002");
+            String orderId = "ORDER-CU-T01";
             UUID ledgerId = UUID.fromString("00000000-0000-0000-0000-000000004001");
             CancelUsePointCommand command = CancelUsePointCommand.builder()
                     .memberId(memberId)
-                    .transactionId(transactionId)
+                    .orderId(orderId)
                     .cancelAmount(1000L)
                     .build();
 
@@ -59,8 +58,8 @@ class CancelUsePointUseCaseTest extends IntegrationTestBase {
             assertThat(result.totalBalance()).isEqualTo(1000L);
             assertThat(result.orderId()).isEqualTo("ORDER-CU-T01");
 
-            // 적립건 복구 확인
-            PointLedger ledger = pointLedgerRepository.findById(ledgerId).orElseThrow();
+            // 적립건 복구 확인 (entries 포함 조회)
+            PointLedger ledger = pointLedgerRepository.findByIdWithEntries(ledgerId).orElseThrow();
             assertThat(ledger.availableAmount().getValue()).isEqualTo(1000L);
             assertThat(ledger.usedAmount().getValue()).isEqualTo(0L);
         }
@@ -68,13 +67,13 @@ class CancelUsePointUseCaseTest extends IntegrationTestBase {
         @Test
         @DisplayName("CU-T02: 부분 사용취소")
         void partialCancel_success() {
-            // GIVEN - SQL로 member_id, 사용 1000원 (transaction_id) 생성됨
+            // GIVEN - SQL로 member_id, 사용 1000원 (ORDER-CU-T02) 생성됨
             UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000004002");
-            UUID transactionId = UUID.fromString("00000000-0000-0000-0000-000000004004");
+            String orderId = "ORDER-CU-T02";
             UUID ledgerId = UUID.fromString("00000000-0000-0000-0000-000000004002");
             CancelUsePointCommand command = CancelUsePointCommand.builder()
                     .memberId(memberId)
-                    .transactionId(transactionId)
+                    .orderId(orderId)
                     .cancelAmount(500L)
                     .build();
 
@@ -85,8 +84,8 @@ class CancelUsePointUseCaseTest extends IntegrationTestBase {
             assertThat(result.canceledAmount()).isEqualTo(500L);
             assertThat(result.totalBalance()).isEqualTo(500L);
 
-            // 적립건 부분 복구 확인
-            PointLedger ledger = pointLedgerRepository.findById(ledgerId).orElseThrow();
+            // 적립건 부분 복구 확인 (entries 포함 조회)
+            PointLedger ledger = pointLedgerRepository.findByIdWithEntries(ledgerId).orElseThrow();
             assertThat(ledger.availableAmount().getValue()).isEqualTo(500L);
             assertThat(ledger.usedAmount().getValue()).isEqualTo(500L);
         }
@@ -97,10 +96,10 @@ class CancelUsePointUseCaseTest extends IntegrationTestBase {
             // GIVEN - SQL로 member_id, A 500 사용 + B 300 사용, 총 800원 사용됨
             // 현재 잔액 200 (B에 200 남음), 600 취소 요청
             UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000004003");
-            UUID transactionId = UUID.fromString("00000000-0000-0000-0000-000000004007");
+            String orderId = "ORDER-CU-T03";
             CancelUsePointCommand command = CancelUsePointCommand.builder()
                     .memberId(memberId)
-                    .transactionId(transactionId)
+                    .orderId(orderId)
                     .cancelAmount(600L)
                     .build();
 
@@ -130,11 +129,11 @@ class CancelUsePointUseCaseTest extends IntegrationTestBase {
         void notExpiredRestore_success() {
             // GIVEN - SQL로 member_id, 미만료 적립건에서 500원 사용됨
             UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000004004");
-            UUID transactionId = UUID.fromString("00000000-0000-0000-0000-000000004009");
+            String orderId = "ORDER-CU-T04";
             UUID ledgerId = UUID.fromString("00000000-0000-0000-0000-000000004005");
             CancelUsePointCommand command = CancelUsePointCommand.builder()
                     .memberId(memberId)
-                    .transactionId(transactionId)
+                    .orderId(orderId)
                     .cancelAmount(500L)
                     .build();
 
@@ -145,8 +144,8 @@ class CancelUsePointUseCaseTest extends IntegrationTestBase {
             assertThat(result.canceledAmount()).isEqualTo(500L);
             assertThat(result.totalBalance()).isEqualTo(500L);
 
-            // 원본 적립건 복구 확인
-            PointLedger ledger = pointLedgerRepository.findById(ledgerId).orElseThrow();
+            // 원본 적립건 복구 확인 (entries 포함 조회)
+            PointLedger ledger = pointLedgerRepository.findByIdWithEntries(ledgerId).orElseThrow();
             assertThat(ledger.availableAmount().getValue()).isEqualTo(500L);
         }
 
@@ -155,11 +154,11 @@ class CancelUsePointUseCaseTest extends IntegrationTestBase {
         void expiredRestore_createsNewLedger() {
             // GIVEN - SQL로 member_id, 만료된 적립건에서 500원 사용됨
             UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000004005");
-            UUID transactionId = UUID.fromString("00000000-0000-0000-0000-000000004011");
+            String orderId = "ORDER-CU-T05";
             UUID expiredLedgerId = UUID.fromString("00000000-0000-0000-0000-000000004006");
             CancelUsePointCommand command = CancelUsePointCommand.builder()
                     .memberId(memberId)
-                    .transactionId(transactionId)
+                    .orderId(orderId)
                     .cancelAmount(500L)
                     .build();
 
@@ -171,7 +170,7 @@ class CancelUsePointUseCaseTest extends IntegrationTestBase {
             assertThat(result.totalBalance()).isEqualTo(500L);
 
             // 신규 적립건 생성 확인 (원본 적립건은 만료 상태 유지)
-            PointLedger originalLedger = pointLedgerRepository.findById(expiredLedgerId).orElseThrow();
+            PointLedger originalLedger = pointLedgerRepository.findByIdWithEntries(expiredLedgerId).orElseThrow();
             assertThat(originalLedger.isExpired()).isTrue();
             assertThat(originalLedger.availableAmount().getValue()).isEqualTo(0L);
 
@@ -184,15 +183,19 @@ class CancelUsePointUseCaseTest extends IntegrationTestBase {
         @Test
         @DisplayName("CU-T06: 혼합 (만료+미만료) 복구")
         void mixedRestore_success() {
-            // GIVEN - SQL로 member_id, A(만료) 500 + B(미만료) 300 사용됨
+            // GIVEN - SQL로 member_id
+            // A(만료): 500원 earned, 500원 used (available 0)
+            // B(미만료): 500원 earned, 300원 used (available 200)
+            // 총 800원 사용됨 (A 500 + B 300), 현재 잔액 200
             // 800 취소 시: B 300 복구 + A 500 신규 적립
+            // 결과: B(500) + 신규(500) = 1000
             UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000004006");
-            UUID transactionId = UUID.fromString("00000000-0000-0000-0000-000000004014");
+            String orderId = "ORDER-CU-T06";
             UUID expiredLedgerId = UUID.fromString("00000000-0000-0000-0000-000000004007");
             UUID notExpiredLedgerId = UUID.fromString("00000000-0000-0000-0000-000000004008");
             CancelUsePointCommand command = CancelUsePointCommand.builder()
                     .memberId(memberId)
-                    .transactionId(transactionId)
+                    .orderId(orderId)
                     .cancelAmount(800L)
                     .build();
 
@@ -201,19 +204,17 @@ class CancelUsePointUseCaseTest extends IntegrationTestBase {
 
             // THEN
             assertThat(result.canceledAmount()).isEqualTo(800L);
-            assertThat(result.totalBalance()).isEqualTo(800L);
+            // 취소 후 총 잔액: 기존 200 + 취소 800 = 1000
+            assertThat(result.totalBalance()).isEqualTo(1000L);
 
             // 미만료 적립건 복구 확인 (200 + 300 = 500)
-            PointLedger notExpiredLedger = pointLedgerRepository.findById(notExpiredLedgerId).orElseThrow();
+            PointLedger notExpiredLedger = pointLedgerRepository.findByIdWithEntries(notExpiredLedgerId).orElseThrow();
             assertThat(notExpiredLedger.availableAmount().getValue()).isEqualTo(500L);
 
-            // 만료 적립건은 복구되지 않고 그대로
-            PointLedger expiredLedger = pointLedgerRepository.findById(expiredLedgerId).orElseThrow();
+            // 만료 적립건은 복구되지 않고 그대로 (available 그대로 0)
+            PointLedger expiredLedger = pointLedgerRepository.findByIdWithEntries(expiredLedgerId).orElseThrow();
             assertThat(expiredLedger.isExpired()).isTrue();
             assertThat(expiredLedger.availableAmount().getValue()).isEqualTo(0L);
-
-            // 잔액 검증으로 단순화
-            assertThat(result.totalBalance()).isEqualTo(800L);
         }
     }
 
@@ -228,12 +229,12 @@ class CancelUsePointUseCaseTest extends IntegrationTestBase {
         @Test
         @DisplayName("CU-T07: 취소 가능 금액 초과 실패")
         void exceedCancelAmount_shouldThrowException() {
-            // GIVEN - SQL로 member_id, 사용 1000원 (transaction_id)
+            // GIVEN - SQL로 member_id, 사용 1000원 (ORDER-CU-T07)
             UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000004007");
-            UUID transactionId = UUID.fromString("00000000-0000-0000-0000-000000004016");
+            String orderId = "ORDER-CU-T07";
             CancelUsePointCommand command = CancelUsePointCommand.builder()
                     .memberId(memberId)
-                    .transactionId(transactionId)
+                    .orderId(orderId)
                     .cancelAmount(1500L)
                     .build();
 
@@ -246,12 +247,12 @@ class CancelUsePointUseCaseTest extends IntegrationTestBase {
         @Test
         @DisplayName("CU-T08: 이미 전액 취소된 건 재취소 실패")
         void alreadyCanceled_shouldThrowException() {
-            // GIVEN - SQL로 member_id, 이미 전액 취소됨 (transaction_id)
+            // GIVEN - SQL로 member_id, 이미 전액 취소됨 (ORDER-CU-T08)
             UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000004008");
-            UUID transactionId = UUID.fromString("00000000-0000-0000-0000-000000004018");
+            String orderId = "ORDER-CU-T08";
             CancelUsePointCommand command = CancelUsePointCommand.builder()
                     .memberId(memberId)
-                    .transactionId(transactionId)
+                    .orderId(orderId)
                     .cancelAmount(100L)
                     .build();
 
@@ -261,14 +262,14 @@ class CancelUsePointUseCaseTest extends IntegrationTestBase {
         }
 
         @Test
-        @DisplayName("CU-T09: 존재하지 않는 트랜잭션 실패")
-        void transactionNotFound_shouldThrowException() {
-            // GIVEN - 존재하지 않는 트랜잭션 ID
+        @DisplayName("CU-T09: 존재하지 않는 주문 실패")
+        void orderNotFound_shouldThrowException() {
+            // GIVEN - 존재하지 않는 주문 ID
             UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000004001");
-            UUID transactionId = UuidGenerator.generate();
+            String orderId = "NON-EXISTENT-ORDER";
             CancelUsePointCommand command = CancelUsePointCommand.builder()
                     .memberId(memberId)
-                    .transactionId(transactionId)
+                    .orderId(orderId)
                     .cancelAmount(100L)
                     .build();
 

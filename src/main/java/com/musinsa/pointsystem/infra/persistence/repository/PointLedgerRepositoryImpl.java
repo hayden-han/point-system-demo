@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 public class PointLedgerRepositoryImpl implements PointLedgerRepository {
 
     private final PointLedgerJpaRepository jpaRepository;
+    private final LedgerEntryJpaRepository entryJpaRepository;
     private final PointLedgerMapper mapper;
 
     @Override
@@ -44,6 +45,15 @@ public class PointLedgerRepositoryImpl implements PointLedgerRepository {
     public Optional<PointLedger> findById(UUID id) {
         return jpaRepository.findById(id)
                 .map(mapper::toDomain);
+    }
+
+    @Override
+    public Optional<PointLedger> findByIdWithEntries(UUID id) {
+        return jpaRepository.findById(id)
+                .map(entity -> {
+                    var entries = entryJpaRepository.findByLedgerIdOrderByCreatedAtAsc(id);
+                    return mapper.toDomain(entity, entries);
+                });
     }
 
     @Override

@@ -3,7 +3,9 @@ package com.musinsa.pointsystem.domain.service;
 import com.musinsa.pointsystem.common.time.TimeProvider;
 import com.musinsa.pointsystem.domain.factory.PointFactory;
 import com.musinsa.pointsystem.domain.model.*;
+import com.musinsa.pointsystem.domain.port.IdGenerator;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -25,21 +27,52 @@ public class PointUsageManager {
     }
 
     // =====================================================
-    // 사용 (Use)
+    // 사용 (Use) - v2
     // =====================================================
 
     /**
-     * 포인트 사용
-     * - MemberPoint.use()는 ID 생성이 불필요하므로 그대로 위임
+     * 포인트 사용 (v2: orderId, LedgerEntry 자동 생성)
      */
+    public MemberPoint.UsageResult useV2(MemberPoint memberPoint, PointAmount amount, String orderId) {
+        LocalDateTime now = timeProvider.now();
+        IdGenerator idGenerator = pointFactory.getIdGenerator();
+        return memberPoint.use(amount, orderId, idGenerator, now);
+    }
+
+    // =====================================================
+    // 사용취소 (Cancel Use) - v2
+    // =====================================================
+
+    /**
+     * 사용 취소 (v2: LedgerEntry 기반)
+     * - PointUsageDetail 불필요
+     * - orderId로 해당 주문의 사용 내역 추적
+     */
+    public MemberPoint.CancelUseResult cancelUseV2(MemberPoint memberPoint,
+                                                     String orderId,
+                                                     PointAmount cancelAmount,
+                                                     int defaultExpirationDays) {
+        LocalDateTime now = timeProvider.now();
+        IdGenerator idGenerator = pointFactory.getIdGenerator();
+        return memberPoint.cancelUse(orderId, cancelAmount, now, idGenerator, defaultExpirationDays);
+    }
+
+    // =====================================================
+    // 레거시 메서드 (deprecated)
+    // =====================================================
+
+    /**
+     * @deprecated useV2() 사용 권장
+     */
+    @Deprecated
     public MemberPoint.UsageResult use(MemberPoint memberPoint, PointAmount amount) {
         return memberPoint.use(amount);
     }
 
     /**
-     * 사용 상세 생성
-     * - PointTransaction 저장 후 호출
+     * @deprecated v2에서는 LedgerEntry로 대체
      */
+    @Deprecated
     public List<PointUsageDetail> createUsageDetails(UUID transactionId,
                                                       List<MemberPoint.UsageDetail> usageDetails) {
         return usageDetails.stream()
@@ -51,14 +84,10 @@ public class PointUsageManager {
                 .toList();
     }
 
-    // =====================================================
-    // 사용취소 (Cancel Use)
-    // =====================================================
-
     /**
-     * 사용 취소
-     * - 만료된 적립건에 대해 신규 Ledger 생성이 필요
+     * @deprecated cancelUseV2() 사용 권장
      */
+    @Deprecated
     public MemberPoint.RestoreResult cancelUse(MemberPoint memberPoint,
                                                 List<PointUsageDetail> usageDetails,
                                                 PointAmount cancelAmount,
@@ -75,13 +104,21 @@ public class PointUsageManager {
     }
 
     // =====================================================
-    // 트랜잭션 생성
+    // 트랜잭션 생성 (레거시 - 향후 제거 예정)
     // =====================================================
 
+    /**
+     * @deprecated v2에서는 LedgerEntry로 대체
+     */
+    @Deprecated
     public PointTransaction createUseTransaction(UUID memberId, PointAmount amount, OrderId orderId) {
         return pointFactory.createUseTransaction(memberId, amount, orderId);
     }
 
+    /**
+     * @deprecated v2에서는 LedgerEntry로 대체
+     */
+    @Deprecated
     public PointTransaction createUseCancelTransaction(UUID memberId, PointAmount amount,
                                                         OrderId orderId, UUID relatedTransactionId) {
         return pointFactory.createUseCancelTransaction(memberId, amount, orderId, relatedTransactionId);

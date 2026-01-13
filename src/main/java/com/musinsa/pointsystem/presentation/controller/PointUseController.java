@@ -99,7 +99,7 @@ public class PointUseController {
         return idempotencySupport.executeWithIdempotency(idempotencyKey, CancelUsePointResponse.class, () -> {
             CancelUsePointCommand command = CancelUsePointCommand.builder()
                     .memberId(memberId)
-                    .transactionId(request.transactionId())
+                    .orderId(request.orderId())
                     .cancelAmount(request.cancelAmount())
                     .build();
 

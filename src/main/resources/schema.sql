@@ -50,6 +50,19 @@ CREATE TABLE IF NOT EXISTS point_ledger (
 CREATE INDEX IF NOT EXISTS idx_ledger_member_available ON point_ledger (member_id, is_canceled, expired_at, earn_type, available_amount);
 CREATE INDEX IF NOT EXISTS idx_ledger_source_tx ON point_ledger (source_transaction_id);
 
+-- Ledger Entry (적립건 변동 이력) - v2
+CREATE TABLE IF NOT EXISTS ledger_entry (
+    id BINARY(16) PRIMARY KEY,
+    ledger_id BINARY(16) NOT NULL,
+    type VARCHAR(20) NOT NULL,
+    amount BIGINT NOT NULL,
+    order_id VARCHAR(100),
+    created_at DATETIME NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_entry_ledger ON ledger_entry (ledger_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_entry_order ON ledger_entry (order_id);
+
 -- Point Transaction (포인트 트랜잭션)
 CREATE TABLE IF NOT EXISTS point_transaction (
     id BINARY(16) PRIMARY KEY,

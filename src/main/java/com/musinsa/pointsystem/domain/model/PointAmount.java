@@ -77,6 +77,14 @@ public record PointAmount(long value) implements Comparable<PointAmount> {
         return this.value >= other.value ? this : other;
     }
 
+    /**
+     * 부호 반전 (LedgerEntry 생성 시 사용)
+     * 반환값은 long으로, PointAmount는 음수를 허용하지 않으므로 long 타입 반환
+     */
+    public long negate() {
+        return -this.value;
+    }
+
     @Override
     public int compareTo(PointAmount other) {
         return Long.compare(this.value, other.value);

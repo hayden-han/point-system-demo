@@ -1,13 +1,10 @@
 package com.musinsa.pointsystem.application.usecase;
 
 import com.musinsa.pointsystem.IntegrationTestBase;
-import com.musinsa.pointsystem.domain.model.MemberPoint;
-import com.musinsa.pointsystem.domain.model.PointAmount;
-import com.musinsa.pointsystem.domain.model.PointLedger;
-import com.musinsa.pointsystem.domain.model.PointUsageDetail;
+import com.musinsa.pointsystem.domain.model.*;
+import com.musinsa.pointsystem.domain.repository.LedgerEntryRepository;
 import com.musinsa.pointsystem.domain.repository.MemberPointRepository;
 import com.musinsa.pointsystem.domain.repository.PointLedgerRepository;
-import com.musinsa.pointsystem.domain.repository.PointUsageDetailRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -15,11 +12,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.jdbc.SqlGroup;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * 데이터 정합성 검증 테스트 (v2 구조)
+ * - LedgerEntry 기반 검증
+ */
 class DataConsistencyTest extends IntegrationTestBase {
 
     @Autowired
@@ -29,7 +31,7 @@ class DataConsistencyTest extends IntegrationTestBase {
     private PointLedgerRepository pointLedgerRepository;
 
     @Autowired
-    private PointUsageDetailRepository pointUsageDetailRepository;
+    private LedgerEntryRepository ledgerEntryRepository;
 
     @Nested
     @DisplayName("정합성 검증 테스트")
@@ -40,13 +42,14 @@ class DataConsistencyTest extends IntegrationTestBase {
     class ConsistencyCases {
 
         @Test
-        @DisplayName("V-T01: 잔액 정합성 - member_point.total_balance == SUM(valid ledger.available_amount)")
+        @DisplayName("V-T01: 잔액 정합성 - getTotalBalance(now) == SUM(valid ledger.available_amount)")
         void balanceConsistency_shouldMatch() {
             // GIVEN
             UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000007001");
+            LocalDateTime now = LocalDateTime.now();
 
             // WHEN
-            MemberPoint memberPoint = memberPointRepository.findByMemberId(memberId).orElseThrow();
+            MemberPoint memberPoint = memberPointRepository.findByMemberIdWithAllLedgersAndEntries(memberId).orElseThrow();
             List<PointLedger> availableLedgers = pointLedgerRepository.findAvailableByMemberId(memberId);
             long sumOfAvailable = availableLedgers.stream()
                     .map(ledger -> ledger.availableAmount().getValue())
@@ -54,20 +57,21 @@ class DataConsistencyTest extends IntegrationTestBase {
                     .sum();
 
             // THEN
-            assertThat(memberPoint.totalBalance()).isEqualTo(PointAmount.of(1500L));
-            assertThat(sumOfAvailable).isEqualTo(memberPoint.totalBalance().getValue());
+            PointAmount totalBalance = memberPoint.getTotalBalance(now);
+            assertThat(totalBalance).isEqualTo(PointAmount.of(1500L));
+            assertThat(sumOfAvailable).isEqualTo(totalBalance.getValue());
             // 유효한 적립건은 2개 (7001: 800, 7002: 700)
             assertThat(availableLedgers).hasSize(2);
         }
 
         @Test
-        @DisplayName("V-T02: 적립건 정합성 - earned_amount == available_amount + used_amount")
+        @DisplayName("V-T02: 적립건 정합성 - earned_amount == available_amount + usedAmount()")
         void ledgerConsistency_shouldMatch() {
             // GIVEN
             UUID ledgerId = UUID.fromString("00000000-0000-0000-0000-000000007005");
 
-            // WHEN
-            PointLedger ledger = pointLedgerRepository.findById(ledgerId).orElseThrow();
+            // WHEN (entries 포함 조회)
+            PointLedger ledger = pointLedgerRepository.findByIdWithEntries(ledgerId).orElseThrow();
 
             // THEN
             assertThat(ledger.earnedAmount()).isEqualTo(PointAmount.of(1000L));
@@ -78,49 +82,50 @@ class DataConsistencyTest extends IntegrationTestBase {
         }
 
         @Test
-        @DisplayName("V-T03: 사용상세 정합성 - SUM(usage_detail.used_amount - canceled_amount) == 실제 사용금액")
-        void usageDetailConsistency_shouldMatch() {
-            // GIVEN
-            UUID transactionId = UUID.fromString("00000000-0000-0000-0000-000000007006");
+        @DisplayName("V-T03: Entry 기반 사용 정합성 - 같은 orderId의 USE Entry 합계 == 실제 사용금액")
+        void entryUsageConsistency_shouldMatch() {
+            // GIVEN - ORDER-V-T03로 두 적립건에서 각각 500씩 총 1000원 사용
+            String orderId = "ORDER-V-T03";
 
             // WHEN
-            List<PointUsageDetail> usageDetails = pointUsageDetailRepository.findByTransactionId(transactionId);
-            long sumOfUsed = usageDetails.stream()
-                    .map(detail -> detail.usedAmount().getValue())
-                    .mapToLong(v -> v)
-                    .sum();
-            long sumOfCanceled = usageDetails.stream()
-                    .map(detail -> detail.canceledAmount().getValue())
-                    .mapToLong(v -> v)
+            List<LedgerEntry> entries = ledgerEntryRepository.findByOrderId(orderId);
+            long sumOfUse = entries.stream()
+                    .filter(e -> e.type() == EntryType.USE)
+                    .mapToLong(e -> Math.abs(e.amount()))
                     .sum();
 
             // THEN
-            assertThat(sumOfUsed).isEqualTo(1000L);
-            assertThat(sumOfCanceled).isEqualTo(0L);
-            // 두 적립건에서 각각 500씩 사용
-            assertThat(usageDetails).hasSize(2);
-            usageDetails.forEach(detail ->
-                assertThat(detail.usedAmount()).isEqualTo(PointAmount.of(500L))
-            );
+            assertThat(sumOfUse).isEqualTo(1000L);
+            // 두 적립건에서 각각 500씩 USE Entry
+            long useEntryCount = entries.stream()
+                    .filter(e -> e.type() == EntryType.USE)
+                    .count();
+            assertThat(useEntryCount).isEqualTo(2);
         }
 
         @Test
-        @DisplayName("V-T04: 취소 정합성 - canceled_amount <= used_amount")
-        void cancelConsistency_shouldBeValid() {
-            // GIVEN
-            UUID transactionId = UUID.fromString("00000000-0000-0000-0000-000000007008");
+        @DisplayName("V-T04: Entry 기반 취소 정합성 - USE_CANCEL 합계 <= USE 합계")
+        void entryCancelConsistency_shouldBeValid() {
+            // GIVEN - ORDER-V-T04로 1000원 사용, 300원 취소
+            String orderId = "ORDER-V-T04";
 
             // WHEN
-            List<PointUsageDetail> usageDetails = pointUsageDetailRepository.findByTransactionId(transactionId);
+            List<LedgerEntry> entries = ledgerEntryRepository.findByOrderId(orderId);
+            long sumOfUse = entries.stream()
+                    .filter(e -> e.type() == EntryType.USE)
+                    .mapToLong(e -> Math.abs(e.amount()))
+                    .sum();
+            long sumOfCancel = entries.stream()
+                    .filter(e -> e.type() == EntryType.USE_CANCEL)
+                    .mapToLong(LedgerEntry::amount)
+                    .sum();
 
             // THEN
-            assertThat(usageDetails).hasSize(1);
-            PointUsageDetail detail = usageDetails.get(0);
-
-            assertThat(detail.usedAmount()).isEqualTo(PointAmount.of(1000L));
-            assertThat(detail.canceledAmount()).isEqualTo(PointAmount.of(300L));
-            assertThat(detail.canceledAmount().getValue()).isLessThanOrEqualTo(detail.usedAmount().getValue());
-            assertThat(detail.getCancelableAmount()).isEqualTo(PointAmount.of(700L));
+            assertThat(sumOfUse).isEqualTo(1000L);
+            assertThat(sumOfCancel).isEqualTo(300L);
+            assertThat(sumOfCancel).isLessThanOrEqualTo(sumOfUse);
+            // 취소 가능 금액 = 사용 - 취소 = 700
+            assertThat(sumOfUse - sumOfCancel).isEqualTo(700L);
         }
     }
 }

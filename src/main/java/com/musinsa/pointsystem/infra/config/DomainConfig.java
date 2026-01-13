@@ -22,8 +22,8 @@ public class DomainConfig {
     }
 
     @Bean
-    public PointAccrualManager pointAccrualManager(PointFactory pointFactory) {
-        return new PointAccrualManager(pointFactory);
+    public PointAccrualManager pointAccrualManager(PointFactory pointFactory, TimeProvider timeProvider) {
+        return new PointAccrualManager(pointFactory, timeProvider);
     }
 
     @Bean

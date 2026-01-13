@@ -18,11 +18,12 @@ public class MemberPointMapper {
 
     /**
      * Entity → Domain (ledgers 없이)
+     * @deprecated v2에서는 totalBalance가 조회 시 계산되므로 ledgers 포함 버전 사용 권장
      */
+    @Deprecated
     public MemberPoint toDomain(MemberPointEntity entity) {
-        return new MemberPoint(
+        return MemberPoint.of(
                 entity.getMemberId(),
-                PointAmount.of(entity.getTotalBalance()),
                 List.of()
         );
     }
@@ -35,11 +36,7 @@ public class MemberPointMapper {
                 ? entity.getLedgers().stream().map(pointLedgerMapper::toDomain).toList()
                 : List.of();
 
-        return new MemberPoint(
-                entity.getMemberId(),
-                PointAmount.of(entity.getTotalBalance()),
-                ledgers
-        );
+        return MemberPoint.of(entity.getMemberId(), ledgers);
     }
 
     /**
@@ -50,13 +47,24 @@ public class MemberPointMapper {
                 .map(pointLedgerMapper::toDomain)
                 .toList();
 
-        return new MemberPoint(
-                entity.getMemberId(),
-                PointAmount.of(entity.getTotalBalance()),
-                ledgers
-        );
+        return MemberPoint.of(entity.getMemberId(), ledgers);
     }
 
+    /**
+     * Ledger 엔티티 목록만으로 MemberPoint 생성 (v2)
+     */
+    public MemberPoint toDomainFromLedgers(java.util.UUID memberId, List<PointLedgerEntity> ledgerEntities) {
+        List<PointLedger> ledgers = ledgerEntities.stream()
+                .map(pointLedgerMapper::toDomain)
+                .toList();
+
+        return MemberPoint.of(memberId, ledgers);
+    }
+
+    /**
+     * @deprecated v2에서는 member_point 테이블 제거 예정
+     */
+    @Deprecated
     public MemberPointEntity toEntity(MemberPoint domain) {
         return new MemberPointEntity(domain.memberId(), domain.totalBalance().value());
     }

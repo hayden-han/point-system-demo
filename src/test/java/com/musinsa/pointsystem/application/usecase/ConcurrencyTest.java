@@ -16,9 +16,8 @@ import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.jdbc.SqlGroup;
-import org.springframework.transaction.annotation.Isolation;
-import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -90,11 +89,12 @@ class ConcurrencyTest extends IntegrationTestBase {
             executor.shutdown();
 
             // THEN
-            MemberPoint memberPoint = memberPointRepository.findByMemberId(memberId).orElseThrow();
+            LocalDateTime now = LocalDateTime.now();
+            MemberPoint memberPoint = memberPointRepository.findByMemberIdWithAllLedgersAndEntries(memberId).orElseThrow();
             long expectedBalance = successCount.get() * amountPerEarn;
 
             // 성공한 만큼 정확히 잔액이 증가했는지 검증
-            assertThat(memberPoint.totalBalance()).isEqualTo(PointAmount.of(expectedBalance));
+            assertThat(memberPoint.getTotalBalance(now)).isEqualTo(PointAmount.of(expectedBalance));
 
             // 최소 1건 이상 성공해야 함
             assertThat(successCount.get()).isGreaterThanOrEqualTo(1);
@@ -146,14 +146,15 @@ class ConcurrencyTest extends IntegrationTestBase {
             executor.shutdown();
 
             // THEN
-            MemberPoint memberPoint = memberPointRepository.findByMemberId(memberId).orElseThrow();
+            LocalDateTime now = LocalDateTime.now();
+            MemberPoint memberPoint = memberPointRepository.findByMemberIdWithAllLedgersAndEntries(memberId).orElseThrow();
             long expectedBalance = initialBalance - (successCount.get() * amountPerUse);
 
             // 성공한 만큼 정확히 잔액이 감소했는지 검증
-            assertThat(memberPoint.totalBalance()).isEqualTo(PointAmount.of(expectedBalance));
+            assertThat(memberPoint.getTotalBalance(now)).isEqualTo(PointAmount.of(expectedBalance));
 
             // 잔액은 음수가 될 수 없음
-            assertThat(memberPoint.totalBalance().getValue()).isGreaterThanOrEqualTo(0L);
+            assertThat(memberPoint.getTotalBalance(now).getValue()).isGreaterThanOrEqualTo(0L);
 
             // 최대 성공 가능 횟수 = initialBalance / amountPerUse = 20
             int maxPossibleSuccess = (int) (initialBalance / amountPerUse);
@@ -224,16 +225,17 @@ class ConcurrencyTest extends IntegrationTestBase {
             executor.shutdown();
 
             // THEN
-            MemberPoint memberPoint = memberPointRepository.findByMemberId(memberId).orElseThrow();
+            LocalDateTime now = LocalDateTime.now();
+            MemberPoint memberPoint = memberPointRepository.findByMemberIdWithAllLedgersAndEntries(memberId).orElseThrow();
             long expectedBalance = initialBalance
                     + (earnSuccessCount.get() * earnAmount)
                     - (useSuccessCount.get() * useAmount);
 
             // 계산된 예상 잔액과 실제 잔액이 일치해야 함
-            assertThat(memberPoint.totalBalance()).isEqualTo(PointAmount.of(expectedBalance));
+            assertThat(memberPoint.getTotalBalance(now)).isEqualTo(PointAmount.of(expectedBalance));
 
             // 잔액은 음수가 될 수 없음
-            assertThat(memberPoint.totalBalance().getValue()).isGreaterThanOrEqualTo(0L);
+            assertThat(memberPoint.getTotalBalance(now).getValue()).isGreaterThanOrEqualTo(0L);
 
             // 최소 1건 이상의 적립이 성공해야 함
             assertThat(earnSuccessCount.get()).isGreaterThanOrEqualTo(1);

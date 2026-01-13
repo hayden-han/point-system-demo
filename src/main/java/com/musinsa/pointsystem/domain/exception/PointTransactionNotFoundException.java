@@ -10,4 +10,8 @@ public class PointTransactionNotFoundException extends PointException {
         super(USER_MESSAGE,
               String.format("트랜잭션 없음. transactionId=%s", transactionId));
     }
+
+    public PointTransactionNotFoundException(String message) {
+        super(USER_MESSAGE, message);
+    }
 }

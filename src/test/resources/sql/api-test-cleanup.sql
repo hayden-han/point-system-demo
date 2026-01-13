@@ -1,4 +1,5 @@
 -- API 통합 테스트 데이터 정리 (UUID 기반)
+DELETE FROM ledger_entry;
 DELETE FROM point_usage_detail WHERE transaction_id IN (
     SELECT id FROM point_transaction WHERE member_id IN (
         X'00000000000000000000000000008001', X'00000000000000000000000000008002',

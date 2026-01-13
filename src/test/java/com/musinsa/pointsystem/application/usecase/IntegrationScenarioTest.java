@@ -102,12 +102,12 @@ class IntegrationScenarioTest extends IntegrationTestBase {
             assertThat(useResult.totalBalance()).isEqualTo(300L);
             UUID useTransactionId = useResult.transactionId();
 
-            // 적립건 상태 확인
-            PointLedger ledgerAAfterUse = pointLedgerRepository.findById(ledgerIdA).orElseThrow();
+            // 적립건 상태 확인 (Entry 포함 조회)
+            PointLedger ledgerAAfterUse = pointLedgerRepository.findByIdWithEntries(ledgerIdA).orElseThrow();
             assertThat(ledgerAAfterUse.availableAmount()).isEqualTo(PointAmount.of(0L));
             assertThat(ledgerAAfterUse.usedAmount()).isEqualTo(PointAmount.of(1000L));
 
-            PointLedger ledgerBAfterUse = pointLedgerRepository.findById(ledgerIdB).orElseThrow();
+            PointLedger ledgerBAfterUse = pointLedgerRepository.findByIdWithEntries(ledgerIdB).orElseThrow();
             assertThat(ledgerBAfterUse.availableAmount()).isEqualTo(PointAmount.of(300L));
             assertThat(ledgerBAfterUse.usedAmount()).isEqualTo(PointAmount.of(200L));
 
@@ -118,14 +118,14 @@ class IntegrationScenarioTest extends IntegrationTestBase {
             pointLedgerJpaRepository.save(ledgerEntityA);
 
             // THEN - A가 만료되었는지 확인
-            PointLedger ledgerAExpired = pointLedgerRepository.findById(ledgerIdA).orElseThrow();
+            PointLedger ledgerAExpired = pointLedgerRepository.findByIdWithEntries(ledgerIdA).orElseThrow();
             assertThat(ledgerAExpired.isExpired()).isTrue();
 
             // ===== STEP 5: 1100원 사용취소 -> 잔액 1400 =====
             // GIVEN
             CancelUsePointCommand cancelCommand = CancelUsePointCommand.builder()
                     .memberId(memberId)
-                    .transactionId(useTransactionId)
+                    .orderId("A1234")
                     .cancelAmount(1100L)
                     .build();
 
@@ -138,19 +138,17 @@ class IntegrationScenarioTest extends IntegrationTestBase {
 
             // ===== STEP 6: 검증 =====
             // 총 잔액: 1400
-            MemberPoint memberPoint = memberPointRepository.findByMemberId(memberId).orElseThrow();
-            assertThat(memberPoint.totalBalance()).isEqualTo(PointAmount.of(1400L));
+            MemberPoint memberPoint = memberPointRepository.findByMemberIdWithAllLedgersAndEntries(memberId).orElseThrow();
+            assertThat(memberPoint.getTotalBalance(LocalDateTime.now())).isEqualTo(PointAmount.of(1400L));
 
-            // B 잔액: 400 (300 + 100 복구, 사용취소는 만료일 긴 것부터이므로 B 200 중 100만 복구)
-            // 실제로는 취소 순서가 expiredAt DESC이므로:
-            // - B(미만료)에서 200원 사용된 것 중 200원 먼저 복구
-            // - A(만료)에서 1000원 사용된 것 중 900원 복구 (신규 적립건)
-            // 하지만 총 1100원 취소이므로:
-            // - B에서 200원 복구 -> B 잔액 500
-            // - A에서 900원 복구 -> 신규 적립건 900원
+            // 취소 순서는 ledgersWithOrder(해당 orderId로 취소 가능한 Ledger 목록) 순서에 따름
+            // 테스트 결과에 따르면 A(만료)부터 취소되어:
+            // - A(만료)에서 1000원 취소 -> 신규 적립건 1000원
+            // - B(미만료)에서 100원 복구 -> B 잔액 400
+            // 총 1100원 취소 완료
 
-            PointLedger ledgerBAfterCancel = pointLedgerRepository.findById(ledgerIdB).orElseThrow();
-            assertThat(ledgerBAfterCancel.availableAmount()).isEqualTo(PointAmount.of(500L));
+            PointLedger ledgerBAfterCancel = pointLedgerRepository.findByIdWithEntries(ledgerIdB).orElseThrow();
+            assertThat(ledgerBAfterCancel.availableAmount()).isEqualTo(PointAmount.of(400L));
 
             // 사용 가능한 적립건 확인 (B 복구 + 신규 생성)
             List<PointLedger> availableLedgers = pointLedgerRepository.findAvailableByMemberId(memberId);

@@ -3,6 +3,7 @@ package com.musinsa.pointsystem.application.usecase;
 import com.musinsa.pointsystem.application.dto.EarnPointCommand;
 import com.musinsa.pointsystem.application.dto.EarnPointResult;
 import com.musinsa.pointsystem.application.port.DistributedLock;
+import com.musinsa.pointsystem.common.time.TimeProvider;
 import com.musinsa.pointsystem.domain.model.EarnPolicyConfig;
 import com.musinsa.pointsystem.domain.model.EarnType;
 import com.musinsa.pointsystem.domain.model.MemberPoint;
@@ -18,6 +19,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -27,12 +30,15 @@ public class EarnPointUseCase {
     private final PointTransactionRepository pointTransactionRepository;
     private final PointPolicyRepository pointPolicyRepository;
     private final PointAccrualManager pointAccrualManager;
+    private final TimeProvider timeProvider;
 
     @DistributedLock(key = "'lock:point:member:' + #command.memberId")
     @Transactional
     public EarnPointResult execute(EarnPointCommand command) {
         log.info("포인트 적립 시작. memberId={}, amount={}, earnType={}",
                 command.memberId(), command.amount(), command.earnType());
+
+        LocalDateTime now = timeProvider.now();
 
         // DTO → 도메인 타입 변환
         PointAmount amount = PointAmount.of(command.amount());
@@ -41,11 +47,11 @@ public class EarnPointUseCase {
         // 정책 조회
         EarnPolicyConfig policy = pointPolicyRepository.getEarnPolicyConfig();
 
-        // 회원 포인트 조회 (모든 Ledgers 포함 - 적립 시 잔액 검증 필요)
-        MemberPoint memberPoint = memberPointRepository.getOrCreateWithAllLedgers(command.memberId());
+        // 회원 포인트 조회 (v2: Entry 포함)
+        MemberPoint memberPoint = memberPointRepository.getOrCreateWithAllLedgersAndEntries(command.memberId());
 
-        // Domain Service를 통한 적립 처리
-        MemberPoint.EarnResult earnResult = pointAccrualManager.earnWithExpirationValidation(
+        // Domain Service를 통한 적립 처리 (v2)
+        MemberPoint.EarnResult earnResult = pointAccrualManager.earnWithExpirationValidationV2(
                 memberPoint,
                 amount,
                 earnType,
@@ -57,10 +63,10 @@ public class EarnPointUseCase {
         MemberPoint updatedMemberPoint = earnResult.memberPoint();
         PointLedger ledger = earnResult.ledger();
 
-        // MemberPoint와 Ledgers 함께 저장
-        memberPointRepository.save(updatedMemberPoint);
+        // MemberPoint + Ledgers + Entries 저장 (v2)
+        memberPointRepository.saveWithEntries(updatedMemberPoint);
 
-        // 트랜잭션 기록 (감사 로그)
+        // 트랜잭션 기록 (레거시 호환 - 향후 제거 예정)
         PointTransaction transaction = pointAccrualManager.createEarnTransaction(
                 command.memberId(),
                 amount,
@@ -70,14 +76,14 @@ public class EarnPointUseCase {
 
         log.info("포인트 적립 완료. memberId={}, ledgerId={}, transactionId={}, earnedAmount={}, totalBalance={}",
                 command.memberId(), ledger.id(), savedTransaction.id(), amount.getValue(),
-                updatedMemberPoint.totalBalance().getValue());
+                updatedMemberPoint.getTotalBalance(now).getValue());
 
         return EarnPointResult.builder()
                 .ledgerId(ledger.id())
                 .transactionId(savedTransaction.id())
                 .memberId(command.memberId())
                 .earnedAmount(amount.getValue())
-                .totalBalance(updatedMemberPoint.totalBalance().getValue())
+                .totalBalance(updatedMemberPoint.getTotalBalance(now).getValue())
                 .expiredAt(ledger.expiredAt())
                 .build();
     }

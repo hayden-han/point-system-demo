@@ -2,7 +2,6 @@ package com.musinsa.pointsystem.presentation.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.musinsa.pointsystem.IntegrationTestBase;
-import com.musinsa.pointsystem.common.util.UuidGenerator;
 import com.musinsa.pointsystem.presentation.dto.request.CancelUsePointRequest;
 import com.musinsa.pointsystem.presentation.dto.request.UsePointRequest;
 import org.junit.jupiter.api.DisplayName;
@@ -138,11 +137,10 @@ class PointUseControllerTest extends IntegrationTestBase {
         @Test
         @DisplayName("포인트 사용을 전액 취소한다")
         void shouldCancelFullUsage() throws Exception {
-            // GIVEN
+            // GIVEN - ORDER-USE-CTRL-TEST로 2000원 사용됨
             UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000008305");
-            UUID transactionId = UUID.fromString("00000000-0000-0000-0000-000000008305");
             CancelUsePointRequest request = CancelUsePointRequest.builder()
-                    .transactionId(transactionId)
+                    .orderId("ORDER-USE-CTRL-TEST")
                     .cancelAmount(2000L)
                     .build();
 
@@ -159,11 +157,10 @@ class PointUseControllerTest extends IntegrationTestBase {
         @Test
         @DisplayName("포인트 사용을 부분 취소한다")
         void shouldCancelPartialUsage() throws Exception {
-            // GIVEN
+            // GIVEN - ORDER-USE-CTRL-TEST로 2000원 사용됨
             UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000008305");
-            UUID transactionId = UUID.fromString("00000000-0000-0000-0000-000000008305");
             CancelUsePointRequest request = CancelUsePointRequest.builder()
-                    .transactionId(transactionId)
+                    .orderId("ORDER-USE-CTRL-TEST")
                     .cancelAmount(1000L)
                     .build();
 
@@ -178,13 +175,12 @@ class PointUseControllerTest extends IntegrationTestBase {
         }
 
         @Test
-        @DisplayName("존재하지 않는 거래 취소 시 404를 반환한다")
-        void shouldReturn404ForNonExistentTransaction() throws Exception {
+        @DisplayName("존재하지 않는 주문 취소 시 404를 반환한다")
+        void shouldReturn404ForNonExistentOrder() throws Exception {
             // GIVEN
             UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000008305");
-            UUID transactionId = UuidGenerator.generate();
             CancelUsePointRequest request = CancelUsePointRequest.builder()
-                    .transactionId(transactionId)
+                    .orderId("NON-EXISTENT-ORDER")
                     .cancelAmount(1000L)
                     .build();
 
@@ -200,9 +196,8 @@ class PointUseControllerTest extends IntegrationTestBase {
         void shouldReturn400ForZeroOrNegativeCancelAmount() throws Exception {
             // GIVEN
             UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000008305");
-            UUID transactionId = UUID.fromString("00000000-0000-0000-0000-000000008305");
             CancelUsePointRequest request = CancelUsePointRequest.builder()
-                    .transactionId(transactionId)
+                    .orderId("ORDER-USE-CTRL-TEST")
                     .cancelAmount(0L)
                     .build();
 

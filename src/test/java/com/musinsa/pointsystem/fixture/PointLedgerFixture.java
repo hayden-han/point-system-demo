@@ -6,6 +6,7 @@ import com.musinsa.pointsystem.domain.model.PointAmount;
 import com.musinsa.pointsystem.domain.model.PointLedger;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 public class PointLedgerFixture {
@@ -16,12 +17,12 @@ public class PointLedgerFixture {
                 UuidGenerator.generate(),
                 PointAmount.of(1000L),
                 PointAmount.of(1000L),
-                PointAmount.ZERO,
                 EarnType.SYSTEM,
                 null,
                 LocalDateTime.now().plusDays(365),
                 false,
-                LocalDateTime.now()  // earnedAt
+                LocalDateTime.now(),
+                List.of()
         );
     }
 
@@ -32,12 +33,12 @@ public class PointLedgerFixture {
                 memberId,
                 pointAmount,
                 pointAmount,
-                PointAmount.ZERO,
                 earnType,
                 null,
                 LocalDateTime.now().plusDays(365),
                 false,
-                LocalDateTime.now()  // earnedAt
+                LocalDateTime.now(),
+                List.of()
         );
     }
 
@@ -49,12 +50,30 @@ public class PointLedgerFixture {
                 memberId,
                 pointAmount,
                 pointAmount,
-                PointAmount.ZERO,
                 earnType,
                 null,
                 expiredAt,
                 false,
-                LocalDateTime.now()  // earnedAt
+                LocalDateTime.now(),
+                List.of()
+        );
+    }
+
+    public static PointLedger createWithExpiration(UUID id, UUID memberId, Long amount,
+                                                    EarnType earnType, LocalDateTime expiredAt,
+                                                    LocalDateTime earnedAt) {
+        PointAmount pointAmount = PointAmount.of(amount);
+        return new PointLedger(
+                id,
+                memberId,
+                pointAmount,
+                pointAmount,
+                earnType,
+                null,
+                expiredAt,
+                false,
+                earnedAt,
+                List.of()
         );
     }
 
@@ -65,12 +84,12 @@ public class PointLedgerFixture {
                 memberId,
                 PointAmount.of(earnedAmount),
                 PointAmount.of(earnedAmount - usedAmount),
-                PointAmount.of(usedAmount),
                 earnType,
                 null,
                 LocalDateTime.now().plusDays(365),
                 false,
-                LocalDateTime.now()  // earnedAt
+                LocalDateTime.now(),
+                List.of()
         );
     }
 
@@ -80,12 +99,12 @@ public class PointLedgerFixture {
                 memberId,
                 PointAmount.of(amount),
                 PointAmount.ZERO,
-                PointAmount.of(amount),
                 earnType,
                 null,
                 LocalDateTime.now().plusDays(365),
                 false,
-                LocalDateTime.now()  // earnedAt
+                LocalDateTime.now(),
+                List.of()
         );
     }
 
@@ -95,12 +114,12 @@ public class PointLedgerFixture {
                 memberId,
                 PointAmount.of(amount),
                 PointAmount.ZERO,
-                PointAmount.ZERO,
                 earnType,
                 null,
                 LocalDateTime.now().plusDays(365),
                 true,
-                LocalDateTime.now()  // earnedAt
+                LocalDateTime.now(),
+                List.of()
         );
     }
 
@@ -111,12 +130,12 @@ public class PointLedgerFixture {
                 memberId,
                 pointAmount,
                 pointAmount,
-                PointAmount.ZERO,
                 earnType,
                 null,
                 LocalDateTime.now().minusDays(1),
                 false,
-                LocalDateTime.now().minusDays(366)  // earnedAt (만료된 시점 기준)
+                LocalDateTime.now().minusDays(366),
+                List.of()
         );
     }
 

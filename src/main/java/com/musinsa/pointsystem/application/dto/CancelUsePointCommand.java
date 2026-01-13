@@ -7,6 +7,6 @@ import java.util.UUID;
 @Builder
 public record CancelUsePointCommand(
         UUID memberId,
-        UUID transactionId,
+        String orderId,
         Long cancelAmount
 ) {}
