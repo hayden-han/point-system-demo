@@ -41,15 +41,27 @@ public interface PointLedgerJpaRepository extends JpaRepository<PointLedgerEntit
     List<PointLedgerEntity> findByMemberId(UUID memberId);
 
     /**
-     * 만료된 적립건의 잔액을 0으로 설정
+     * 만료된 적립건의 잔액을 0으로 설정 (청크 단위 처리)
      * @param now 현재 시각
+     * @param limit 한 번에 처리할 최대 건수 (락 경합 방지)
      * @return 업데이트된 레코드 수
      */
     @Modifying
-    @Query("UPDATE PointLedgerEntity pl " +
-           "SET pl.availableAmount = 0, pl.usedAmount = pl.earnedAmount " +
+    @Query(value = "UPDATE point_ledger " +
+           "SET available_amount = 0, used_amount = earned_amount " +
+           "WHERE expired_at < :now " +
+           "AND available_amount > 0 " +
+           "AND is_canceled = false " +
+           "LIMIT :limit",
+           nativeQuery = true)
+    int markExpiredLedgersAsZeroBalanceWithLimit(@Param("now") LocalDateTime now, @Param("limit") int limit);
+
+    /**
+     * 만료된 적립건 수 조회
+     */
+    @Query("SELECT COUNT(pl) FROM PointLedgerEntity pl " +
            "WHERE pl.expiredAt < :now " +
            "AND pl.availableAmount > 0 " +
            "AND pl.isCanceled = false")
-    int markExpiredLedgersAsZeroBalance(@Param("now") LocalDateTime now);
+    long countExpiredLedgers(@Param("now") LocalDateTime now);
 }

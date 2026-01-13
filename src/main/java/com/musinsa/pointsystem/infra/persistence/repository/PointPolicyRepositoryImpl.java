@@ -5,6 +5,7 @@ import com.musinsa.pointsystem.domain.model.ExpirationPolicyConfig;
 import com.musinsa.pointsystem.domain.model.PointAmount;
 import com.musinsa.pointsystem.domain.model.PointPolicy;
 import com.musinsa.pointsystem.domain.repository.PointPolicyRepository;
+import com.musinsa.pointsystem.infra.cache.PolicyCacheRepository;
 import com.musinsa.pointsystem.infra.persistence.entity.PointPolicyEntity;
 import com.musinsa.pointsystem.infra.persistence.entity.QPointPolicyEntity;
 import com.musinsa.pointsystem.infra.persistence.mapper.PointPolicyMapper;
@@ -24,6 +25,7 @@ public class PointPolicyRepositoryImpl implements PointPolicyRepository {
     private final PointPolicyJpaRepository jpaRepository;
     private final PointPolicyMapper mapper;
     private final JPAQueryFactory queryFactory;
+    private final PolicyCacheRepository policyCacheRepository;
 
     private static final QPointPolicyEntity pointPolicy = QPointPolicyEntity.pointPolicyEntity;
 
@@ -42,6 +44,12 @@ public class PointPolicyRepositoryImpl implements PointPolicyRepository {
 
     @Override
     public EarnPolicyConfig getEarnPolicyConfig() {
+        // 1. 캐시 조회
+        return policyCacheRepository.getEarnPolicyConfig()
+                .orElseGet(this::loadAndCacheEarnPolicyConfig);
+    }
+
+    private EarnPolicyConfig loadAndCacheEarnPolicyConfig() {
         List<String> keys = List.of(
                 PointPolicy.EARN_MIN_AMOUNT,
                 PointPolicy.EARN_MAX_AMOUNT,
@@ -61,7 +69,7 @@ public class PointPolicyRepositoryImpl implements PointPolicyRepository {
                         PointPolicyEntity::getPolicyValue
                 ));
 
-        return new EarnPolicyConfig(
+        EarnPolicyConfig config = new EarnPolicyConfig(
                 PointAmount.of(policyMap.get(PointPolicy.EARN_MIN_AMOUNT)),
                 PointAmount.of(policyMap.get(PointPolicy.EARN_MAX_AMOUNT)),
                 PointAmount.of(policyMap.get(PointPolicy.BALANCE_MAX_AMOUNT)),
@@ -69,11 +77,25 @@ public class PointPolicyRepositoryImpl implements PointPolicyRepository {
                 policyMap.get(PointPolicy.EXPIRATION_MIN_DAYS).intValue(),
                 policyMap.get(PointPolicy.EXPIRATION_MAX_DAYS).intValue()
         );
+
+        // 캐시에 저장
+        policyCacheRepository.putEarnPolicyConfig(config);
+        return config;
     }
 
     @Override
     public ExpirationPolicyConfig getExpirationPolicyConfig() {
+        // 1. 캐시 조회
+        return policyCacheRepository.getExpirationPolicyConfig()
+                .orElseGet(this::loadAndCacheExpirationPolicyConfig);
+    }
+
+    private ExpirationPolicyConfig loadAndCacheExpirationPolicyConfig() {
         Long defaultDays = getValueByKey(PointPolicy.EXPIRATION_DEFAULT_DAYS);
-        return ExpirationPolicyConfig.of(defaultDays.intValue());
+        ExpirationPolicyConfig config = ExpirationPolicyConfig.of(defaultDays.intValue());
+
+        // 캐시에 저장
+        policyCacheRepository.putExpirationPolicyConfig(config);
+        return config;
     }
 }

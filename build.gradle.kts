@@ -30,6 +30,9 @@ dependencies {
     // Prometheus Metrics
     runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 
+    // Cache (Redis 기반)
+    implementation("org.springframework.boot:spring-boot-starter-cache")
+
     // Database
     runtimeOnly("com.h2database:h2")
 

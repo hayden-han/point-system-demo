@@ -97,8 +97,13 @@ management:
         enabled: true
 
 # 분산락 설정
+# TTL 설정 근거:
+# - 정상 트랜잭션 수행시간: 100ms~2초
+# - 네트워크 지연/DB 부하 고려: 최대 10초
+# - 안전 마진 포함하여 60초로 설정
+# - 너무 길면 장애 시 락 유지 시간이 길어지는 문제
 distributed-lock:
   wait-time-ms: 3000        # 락 획득 최대 대기 시간 (ms)
-  lease-time-ms: 30000      # 락 자동 해제 시간 (ms), -1이면 Watchdog 자동 연장
+  lease-time-ms: 60000      # 락 자동 해제 시간 (ms) - 정상 트랜잭션의 30배 여유
   max-retry-attempts: 4     # 최대 재시도 횟수
   retry-delays-ms: 0,200,500,1000  # 시도별 대기 시간 (ms)
