@@ -13,6 +13,7 @@ import com.musinsa.pointsystem.domain.repository.PointTransactionRepository;
 import com.musinsa.pointsystem.domain.repository.PointUsageDetailRepository;
 import com.musinsa.pointsystem.domain.service.PointUsageManager;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +21,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UsePointUseCase {
 
     private final MemberPointRepository memberPointRepository;
@@ -30,6 +32,9 @@ public class UsePointUseCase {
     @DistributedLock(key = "'lock:point:member:' + #command.memberId")
     @Transactional
     public UsePointResult execute(UsePointCommand command) {
+        log.info("포인트 사용 시작. memberId={}, amount={}, orderId={}",
+                command.memberId(), command.amount(), command.orderId());
+
         // DTO → 도메인 타입 변환 (OrderId VO에서 null/빈값 검증 수행)
         OrderId orderId = OrderId.of(command.orderId());
         PointAmount amount = PointAmount.of(command.amount());
@@ -60,6 +65,10 @@ public class UsePointUseCase {
                 usageResult.usageDetails()
         );
         pointUsageDetailRepository.saveAll(usageDetails);
+
+        log.info("포인트 사용 완료. memberId={}, transactionId={}, usedAmount={}, totalBalance={}, usedLedgerCount={}",
+                command.memberId(), savedTransaction.id(), amount.getValue(),
+                updatedMemberPoint.totalBalance().getValue(), usageDetails.size());
 
         return UsePointResult.builder()
                 .transactionId(savedTransaction.id())

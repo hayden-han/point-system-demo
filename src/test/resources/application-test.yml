@@ -49,3 +49,9 @@ datasource-init:
 
 server:
   port: 0
+
+# Embedded Redis 설정 (테스트용)
+redis:
+  embedded:
+    enabled: true
+    port: 6371

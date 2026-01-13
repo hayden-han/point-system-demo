@@ -10,11 +10,13 @@ import com.musinsa.pointsystem.domain.repository.MemberPointRepository;
 import com.musinsa.pointsystem.domain.repository.PointTransactionRepository;
 import com.musinsa.pointsystem.domain.service.PointAccrualManager;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class CancelEarnPointUseCase {
 
     private final MemberPointRepository memberPointRepository;
@@ -24,6 +26,9 @@ public class CancelEarnPointUseCase {
     @DistributedLock(key = "'lock:point:member:' + #command.memberId")
     @Transactional
     public CancelEarnPointResult execute(CancelEarnPointCommand command) {
+        log.info("포인트 적립취소 시작. memberId={}, ledgerId={}",
+                command.memberId(), command.ledgerId());
+
         // 회원 포인트 조회 (모든 Ledgers 포함 - 적립취소 대상 Ledger 필요)
         MemberPoint memberPoint = memberPointRepository.getByMemberIdWithAllLedgers(command.memberId());
 
@@ -44,6 +49,10 @@ public class CancelEarnPointUseCase {
                 command.ledgerId()
         );
         PointTransaction savedTransaction = pointTransactionRepository.save(transaction);
+
+        log.info("포인트 적립취소 완료. memberId={}, ledgerId={}, transactionId={}, canceledAmount={}, totalBalance={}",
+                command.memberId(), command.ledgerId(), savedTransaction.id(),
+                canceledAmount.getValue(), updatedMemberPoint.totalBalance().getValue());
 
         return CancelEarnPointResult.builder()
                 .ledgerId(command.ledgerId())

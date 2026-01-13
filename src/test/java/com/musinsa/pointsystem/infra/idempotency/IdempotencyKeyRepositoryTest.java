@@ -1,12 +1,12 @@
 package com.musinsa.pointsystem.infra.idempotency;
 
+import com.musinsa.pointsystem.IntegrationTestBase;
 import com.musinsa.pointsystem.infra.idempotency.IdempotencyKeyRepository.AcquireResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -17,8 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest
-class IdempotencyKeyRepositoryTest {
+class IdempotencyKeyRepositoryTest extends IntegrationTestBase {
 
     @Autowired
     private IdempotencyKeyRepository repository;

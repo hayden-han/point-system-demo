@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RedissonConfig {
 
-    @Value("${redis.embedded.port:6370}")
+    @Value("${redis.embedded.port:6371}")
     private int redisPort;
 
     @Bean

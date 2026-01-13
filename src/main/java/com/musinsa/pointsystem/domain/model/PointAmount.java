@@ -5,14 +5,19 @@ package com.musinsa.pointsystem.domain.model;
  * - 불변(immutable) record
  * - 0 이상의 값만 허용
  * - 금액 연산 메서드 제공
+ * - 오버플로우 방지
  */
 public record PointAmount(long value) implements Comparable<PointAmount> {
 
     public static final PointAmount ZERO = new PointAmount(0L);
+    public static final long MAX_VALUE = 100_000_000_000L;  // 1000억 (시스템 최대값)
 
     public PointAmount {
         if (value < 0) {
             throw new IllegalArgumentException("금액은 0 이상이어야 합니다: " + value);
+        }
+        if (value > MAX_VALUE) {
+            throw new IllegalArgumentException("금액이 시스템 최대값을 초과합니다: " + value);
         }
     }
 
@@ -29,7 +34,11 @@ public record PointAmount(long value) implements Comparable<PointAmount> {
     }
 
     public PointAmount add(PointAmount other) {
-        return new PointAmount(this.value + other.value);
+        long result = this.value + other.value;
+        if (result < 0 || result > MAX_VALUE) {
+            throw new ArithmeticException("금액 덧셈 결과가 허용 범위를 벗어납니다: " + this.value + " + " + other.value);
+        }
+        return new PointAmount(result);
     }
 
     public PointAmount subtract(PointAmount other) {

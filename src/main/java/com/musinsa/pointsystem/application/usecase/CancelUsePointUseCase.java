@@ -14,6 +14,7 @@ import com.musinsa.pointsystem.domain.repository.PointTransactionRepository;
 import com.musinsa.pointsystem.domain.repository.PointUsageDetailRepository;
 import com.musinsa.pointsystem.domain.service.PointUsageManager;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +22,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class CancelUsePointUseCase {
 
     private final MemberPointRepository memberPointRepository;
@@ -32,6 +34,9 @@ public class CancelUsePointUseCase {
     @DistributedLock(key = "'lock:point:member:' + #command.memberId")
     @Transactional
     public CancelUsePointResult execute(CancelUsePointCommand command) {
+        log.info("포인트 사용취소 시작. memberId={}, transactionId={}, cancelAmount={}",
+                command.memberId(), command.transactionId(), command.cancelAmount());
+
         // 1. 원본 트랜잭션 조회 (없으면 PointTransactionNotFoundException 발생)
         PointTransaction originalTransaction = pointTransactionRepository.getById(command.transactionId());
 
@@ -76,6 +81,10 @@ public class CancelUsePointUseCase {
 
         // 사용 상세 저장
         pointUsageDetailRepository.saveAll(restoreResult.updatedUsageDetails());
+
+        log.info("포인트 사용취소 완료. memberId={}, transactionId={}, canceledAmount={}, totalBalance={}, restoredLedgerCount={}",
+                command.memberId(), savedCancelTransaction.id(), cancelAmount.getValue(),
+                updatedMemberPoint.totalBalance().getValue(), restoreResult.updatedUsageDetails().size());
 
         return CancelUsePointResult.builder()
                 .transactionId(savedCancelTransaction.id())

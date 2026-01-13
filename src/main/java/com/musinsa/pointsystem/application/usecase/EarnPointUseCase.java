@@ -14,11 +14,13 @@ import com.musinsa.pointsystem.domain.repository.PointPolicyRepository;
 import com.musinsa.pointsystem.domain.repository.PointTransactionRepository;
 import com.musinsa.pointsystem.domain.service.PointAccrualManager;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class EarnPointUseCase {
 
     private final MemberPointRepository memberPointRepository;
@@ -29,6 +31,9 @@ public class EarnPointUseCase {
     @DistributedLock(key = "'lock:point:member:' + #command.memberId")
     @Transactional
     public EarnPointResult execute(EarnPointCommand command) {
+        log.info("포인트 적립 시작. memberId={}, amount={}, earnType={}",
+                command.memberId(), command.amount(), command.earnType());
+
         // DTO → 도메인 타입 변환
         PointAmount amount = PointAmount.of(command.amount());
         EarnType earnType = EarnType.valueOf(command.earnType());
@@ -62,6 +67,10 @@ public class EarnPointUseCase {
                 ledger.id()
         );
         PointTransaction savedTransaction = pointTransactionRepository.save(transaction);
+
+        log.info("포인트 적립 완료. memberId={}, ledgerId={}, transactionId={}, earnedAmount={}, totalBalance={}",
+                command.memberId(), ledger.id(), savedTransaction.id(), amount.getValue(),
+                updatedMemberPoint.totalBalance().getValue());
 
         return EarnPointResult.builder()
                 .ledgerId(ledger.id())

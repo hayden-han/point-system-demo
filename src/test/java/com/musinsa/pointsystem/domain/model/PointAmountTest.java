@@ -36,6 +36,22 @@ class PointAmountTest {
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("0 이상");
         }
+
+        @Test
+        @DisplayName("최대값(1000억)으로 생성 성공")
+        void createWithMaxValue() {
+            PointAmount amount = PointAmount.of(PointAmount.MAX_VALUE);
+
+            assertThat(amount.value()).isEqualTo(100_000_000_000L);
+        }
+
+        @Test
+        @DisplayName("최대값 초과 시 예외 발생")
+        void createExceedingMaxValueThrowsException() {
+            assertThatThrownBy(() -> PointAmount.of(PointAmount.MAX_VALUE + 1))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("시스템 최대값");
+        }
     }
 
     @Nested
@@ -72,6 +88,36 @@ class PointAmountTest {
 
             assertThatThrownBy(() -> a.subtract(b))
                     .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        @DisplayName("덧셈 결과가 최대값 초과 시 예외 발생")
+        void addResultExceedingMaxValueThrowsException() {
+            PointAmount a = PointAmount.of(PointAmount.MAX_VALUE);
+            PointAmount b = PointAmount.of(1L);
+
+            assertThatThrownBy(() -> a.add(b))
+                    .isInstanceOf(ArithmeticException.class)
+                    .hasMessageContaining("허용 범위를 벗어납니다");
+        }
+
+        @Test
+        @DisplayName("덧셈 결과가 정확히 최대값이면 성공")
+        void addResultExactlyMaxValue() {
+            PointAmount a = PointAmount.of(PointAmount.MAX_VALUE - 1000L);
+            PointAmount b = PointAmount.of(1000L);
+
+            PointAmount result = a.add(b);
+
+            assertThat(result.value()).isEqualTo(PointAmount.MAX_VALUE);
+        }
+
+        @Test
+        @DisplayName("0 + 0 = 0")
+        void addZeroToZero() {
+            PointAmount result = PointAmount.ZERO.add(PointAmount.ZERO);
+
+            assertThat(result.isZero()).isTrue();
         }
 
         @Test

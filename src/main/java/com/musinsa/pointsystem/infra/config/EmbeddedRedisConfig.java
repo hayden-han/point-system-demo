@@ -13,7 +13,7 @@ import java.io.IOException;
 @Profile({"local", "test"})
 public class EmbeddedRedisConfig {
 
-    @Value("${redis.embedded.port:6370}")
+    @Value("${redis.embedded.port:6371}")
     private int redisPort;
 
     private RedisServer redisServer;
