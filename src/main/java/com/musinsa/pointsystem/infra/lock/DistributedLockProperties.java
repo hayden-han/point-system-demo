@@ -14,7 +14,7 @@ import java.util.List;
 public class DistributedLockProperties {
 
     private long waitTimeMs = 3000;
-    private long leaseTimeMs = -1;  // Watchdog 자동 갱신 모드 (Redisson 기본 30초 TTL)
+    private long leaseTimeMs = 15000;  // 고정 TTL (예상 실행시간 1.5초 × 10배)
     private int maxRetryAttempts = 4;
     private List<Long> retryDelaysMs = List.of(0L, 200L, 500L, 1000L);
 }
