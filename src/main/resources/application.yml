@@ -97,15 +97,14 @@ management:
         enabled: true
 
 # 분산락 설정
-# TTL 설정 근거 (고정 TTL 방식):
-# - 예상 트랜잭션 수행시간: ~1.5초 (DB 조회/저장 + 도메인 로직 + GC)
-# - TTL = 예상 시간 × 10 = 15초
-# - Watchdog 방식(-1) 대신 고정 TTL 사용 이유:
-#   네트워크 단절 시 Watchdog은 갱신 실패해도 앱은 락 보유 중으로 인식
-#   → 복구 후 다른 프로세스의 락을 잘못 해제할 위험
-# - 고정 TTL은 예측 가능하고 안전함
+# TTL 설정 근거 (긴 TTL + 모니터링 + 수동 해제 방식):
+# - 예상 트랜잭션 수행시간: ~1.5초
+# - TTL = 5분 (충분한 여유, 네트워크 지연/GC 대응)
+# - 알람 임계값 = 3초 (예상 시간 × 2)
+# - 문제 발생 시 모니터링으로 감지 → 관리자 API로 수동 해제
 distributed-lock:
   wait-time-ms: 3000        # 락 획득 최대 대기 시간 (ms)
-  lease-time-ms: 15000      # 락 자동 해제 시간 (ms) - 예상 실행시간의 10배
+  lease-time-ms: 300000     # 락 자동 해제 시간 (ms) - 5분
   max-retry-attempts: 4     # 최대 재시도 횟수
   retry-delays-ms: 0,200,500,1000  # 시도별 대기 시간 (ms)
+  hold-time-warn-threshold-ms: 3000  # 락 보유 시간 경고 임계값 (ms) - 초과 시 WARN 로그

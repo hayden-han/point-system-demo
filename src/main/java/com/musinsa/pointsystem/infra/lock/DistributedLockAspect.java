@@ -36,7 +36,9 @@ public class DistributedLockAspect {
     private final Counter lockSuccessCounter;
     private final Counter lockFailureCounter;
     private final Counter lockRetryCounter;
+    private final Counter lockHoldTimeExceededCounter;
     private final Timer lockAcquireTimer;
+    private final Timer lockHoldTimer;
 
     public DistributedLockAspect(RedissonClient redissonClient,
                                   DistributedLockProperties properties,
@@ -59,8 +61,16 @@ public class DistributedLockAspect {
                 .description("Number of lock acquisition retries")
                 .register(meterRegistry);
 
+        this.lockHoldTimeExceededCounter = Counter.builder("point.lock.hold.exceeded")
+                .description("Number of times lock hold time exceeded threshold")
+                .register(meterRegistry);
+
         this.lockAcquireTimer = Timer.builder("point.lock.acquire.duration")
                 .description("Time taken to acquire lock")
+                .register(meterRegistry);
+
+        this.lockHoldTimer = Timer.builder("point.lock.hold.duration")
+                .description("Time the lock was held")
                 .register(meterRegistry);
     }
 
@@ -106,9 +116,12 @@ public class DistributedLockAspect {
                 if (acquired) {
                     log.debug("락 획득 성공. lockKey={}, attempt={}", lockKey, attempt + 1);
                     lockSuccessCounter.increment();
+                    long holdStartTime = System.currentTimeMillis();
                     try {
                         return joinPoint.proceed();
                     } finally {
+                        long holdDuration = System.currentTimeMillis() - holdStartTime;
+                        recordHoldTime(lockKey, holdDuration);
                         releaseLock(lock, lockKey);
                     }
                 }
@@ -130,6 +143,19 @@ public class DistributedLockAspect {
         log.error("분산락 획득 최종 실패. lockKey={}, attempts={}", lockKey, maxAttempts);
         lockFailureCounter.increment();
         throw new LockAcquisitionFailedException("락 획득 실패: " + lockKey);
+    }
+
+    private void recordHoldTime(String lockKey, long holdDurationMs) {
+        // 메트릭 기록
+        lockHoldTimer.record(holdDurationMs, TimeUnit.MILLISECONDS);
+
+        // 임계값 초과 시 경고
+        long threshold = properties.getHoldTimeWarnThresholdMs();
+        if (holdDurationMs > threshold) {
+            lockHoldTimeExceededCounter.increment();
+            log.warn("락 보유 시간 임계값 초과! lockKey={}, holdTime={}ms, threshold={}ms",
+                    lockKey, holdDurationMs, threshold);
+        }
     }
 
     private void releaseLock(RLock lock, String lockKey) {
