@@ -74,6 +74,13 @@ public class MemberPointRepositoryImpl implements MemberPointRepository {
         return Optional.of(buildMemberPointWithEntries(memberId, ledgerEntities));
     }
 
+    @Override
+    public Optional<MemberPoint> findByMemberIdWithSpecificLedger(UUID memberId, UUID ledgerId) {
+        return pointLedgerJpaRepository.findById(ledgerId)
+                .filter(le -> le.getMemberId().equals(memberId))
+                .map(ledgerEntity -> buildMemberPointWithEntries(memberId, List.of(ledgerEntity)));
+    }
+
     private MemberPoint buildMemberPointWithEntries(UUID memberId, List<PointLedgerEntity> ledgerEntities) {
         List<UUID> ledgerIds = ledgerEntities.stream()
                 .map(PointLedgerEntity::getId)

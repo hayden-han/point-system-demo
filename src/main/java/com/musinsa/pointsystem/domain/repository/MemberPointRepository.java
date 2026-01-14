@@ -76,6 +76,12 @@ public interface MemberPointRepository {
      */
     Optional<MemberPoint> findByMemberIdWithLedgersForOrder(UUID memberId, String orderId);
 
+    /**
+     * 특정 Ledger + Entry 포함 조회 (v2)
+     * - 적립취소 시 사용 (해당 Ledger만 로드하여 최적화)
+     */
+    Optional<MemberPoint> findByMemberIdWithSpecificLedger(UUID memberId, UUID ledgerId);
+
     // =====================================================
     // 저장
     // =====================================================
