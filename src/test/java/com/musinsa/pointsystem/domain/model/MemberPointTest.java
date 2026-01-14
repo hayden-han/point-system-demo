@@ -379,6 +379,167 @@ class MemberPointTest {
     }
 
     @Nested
+    @DisplayName("경계값 테스트")
+    class BoundaryTest {
+
+        @Test
+        @DisplayName("경계: Ledger 없이 생성 후 잔액 0")
+        void boundary_emptyLedgers() {
+            UUID memberId = UuidGenerator.generate();
+            MemberPoint memberPoint = MemberPoint.create(memberId);
+            LocalDateTime now = LocalDateTime.now();
+
+            assertThat(memberPoint.ledgers()).isEmpty();
+            assertThat(memberPoint.getTotalBalance(now)).isEqualTo(PointAmount.ZERO);
+        }
+
+        @Test
+        @DisplayName("경계: 정확히 1원 사용")
+        void boundary_useOnePoint() {
+            UUID memberId = UuidGenerator.generate();
+            IdGenerator idGenerator = UuidGenerator::generate;
+            LocalDateTime now = LocalDateTime.now();
+
+            PointLedger ledger = PointLedger.create(
+                    UuidGenerator.generate(), memberId, PointAmount.of(1000L), EarnType.SYSTEM,
+                    now.plusDays(365), null, idGenerator, now
+            );
+            MemberPoint memberPoint = MemberPoint.of(memberId, List.of(ledger));
+
+            MemberPoint.UsageResult result = memberPoint.use(PointAmount.of(1L), "ORDER-001", idGenerator, now);
+
+            assertThat(result.memberPoint().getTotalBalance(now)).isEqualTo(PointAmount.of(999L));
+        }
+
+        @Test
+        @DisplayName("경계: 정확히 전액 사용")
+        void boundary_useFullBalance() {
+            UUID memberId = UuidGenerator.generate();
+            IdGenerator idGenerator = UuidGenerator::generate;
+            LocalDateTime now = LocalDateTime.now();
+
+            PointLedger ledger = PointLedger.create(
+                    UuidGenerator.generate(), memberId, PointAmount.of(1000L), EarnType.SYSTEM,
+                    now.plusDays(365), null, idGenerator, now
+            );
+            MemberPoint memberPoint = MemberPoint.of(memberId, List.of(ledger));
+
+            MemberPoint.UsageResult result = memberPoint.use(PointAmount.of(1000L), "ORDER-001", idGenerator, now);
+
+            assertThat(result.memberPoint().getTotalBalance(now)).isEqualTo(PointAmount.ZERO);
+        }
+
+        @Test
+        @DisplayName("경계: 잔액보다 1원 더 사용 시 예외")
+        void boundary_useOneMoreThanBalance() {
+            UUID memberId = UuidGenerator.generate();
+            IdGenerator idGenerator = UuidGenerator::generate;
+            LocalDateTime now = LocalDateTime.now();
+
+            PointLedger ledger = PointLedger.create(
+                    UuidGenerator.generate(), memberId, PointAmount.of(1000L), EarnType.SYSTEM,
+                    now.plusDays(365), null, idGenerator, now
+            );
+            MemberPoint memberPoint = MemberPoint.of(memberId, List.of(ledger));
+
+            assertThatThrownBy(() -> memberPoint.use(PointAmount.of(1001L), "ORDER-001", idGenerator, now))
+                    .isInstanceOf(InsufficientPointException.class);
+        }
+
+        @Test
+        @DisplayName("경계: 만료된 Ledger와 유효한 Ledger 혼재")
+        void boundary_mixedExpiredAndValid() {
+            UUID memberId = UuidGenerator.generate();
+            IdGenerator idGenerator = UuidGenerator::generate;
+            LocalDateTime past = LocalDateTime.now().minusDays(10);
+            LocalDateTime now = LocalDateTime.now();
+
+            PointLedger expiredLedger = PointLedger.create(
+                    UuidGenerator.generate(), memberId, PointAmount.of(500L), EarnType.SYSTEM,
+                    past.plusDays(5), null, idGenerator, past // 이미 만료
+            );
+            PointLedger validLedger = PointLedger.create(
+                    UuidGenerator.generate(), memberId, PointAmount.of(300L), EarnType.SYSTEM,
+                    now.plusDays(365), null, idGenerator, now
+            );
+
+            MemberPoint memberPoint = MemberPoint.of(memberId, List.of(expiredLedger, validLedger));
+
+            // 총 잔액은 유효한 것만
+            assertThat(memberPoint.getTotalBalance(now)).isEqualTo(PointAmount.of(300L));
+
+            // 유효 잔액만큼만 사용 가능
+            MemberPoint.UsageResult result = memberPoint.use(PointAmount.of(300L), "ORDER-001", idGenerator, now);
+            assertThat(result.memberPoint().getTotalBalance(now)).isEqualTo(PointAmount.ZERO);
+        }
+
+        @Test
+        @DisplayName("경계: 취소된 Ledger와 유효한 Ledger 혼재")
+        void boundary_mixedCanceledAndValid() {
+            UUID memberId = UuidGenerator.generate();
+            IdGenerator idGenerator = UuidGenerator::generate;
+            LocalDateTime now = LocalDateTime.now();
+
+            PointLedger canceledLedger = PointLedger.create(
+                    UuidGenerator.generate(), memberId, PointAmount.of(500L), EarnType.SYSTEM,
+                    now.plusDays(365), null, idGenerator, now
+            ).cancel(idGenerator, now).ledger();
+            PointLedger validLedger = PointLedger.create(
+                    UuidGenerator.generate(), memberId, PointAmount.of(300L), EarnType.SYSTEM,
+                    now.plusDays(365), null, idGenerator, now
+            );
+
+            MemberPoint memberPoint = MemberPoint.of(memberId, List.of(canceledLedger, validLedger));
+
+            assertThat(memberPoint.getTotalBalance(now)).isEqualTo(PointAmount.of(300L));
+        }
+
+        @Test
+        @DisplayName("경계: 여러 Ledger에 걸쳐 사용 (경계 금액)")
+        void boundary_useAcrossMultipleLedgers() {
+            UUID memberId = UuidGenerator.generate();
+            IdGenerator idGenerator = UuidGenerator::generate;
+            LocalDateTime now = LocalDateTime.now();
+
+            // 500, 300, 200 = 총 1000
+            PointLedger ledger1 = PointLedger.create(
+                    UuidGenerator.generate(), memberId, PointAmount.of(500L), EarnType.MANUAL,
+                    now.plusDays(30), null, idGenerator, now
+            );
+            PointLedger ledger2 = PointLedger.create(
+                    UuidGenerator.generate(), memberId, PointAmount.of(300L), EarnType.SYSTEM,
+                    now.plusDays(10), null, idGenerator, now
+            );
+            PointLedger ledger3 = PointLedger.create(
+                    UuidGenerator.generate(), memberId, PointAmount.of(200L), EarnType.SYSTEM,
+                    now.plusDays(365), null, idGenerator, now
+            );
+
+            MemberPoint memberPoint = MemberPoint.of(memberId, List.of(ledger1, ledger2, ledger3));
+
+            // 정확히 전액 사용
+            MemberPoint.UsageResult result = memberPoint.use(PointAmount.of(1000L), "ORDER-001", idGenerator, now);
+            assertThat(result.memberPoint().getTotalBalance(now)).isEqualTo(PointAmount.ZERO);
+            assertThat(result.usageDetails()).hasSize(3);
+        }
+
+        @Test
+        @DisplayName("경계: 최대 잔액 정확히 도달")
+        void boundary_exactMaxBalance() {
+            UUID memberId = UuidGenerator.generate();
+            LocalDateTime now = LocalDateTime.now();
+            PointAmount maxBalance = PointAmount.of(10000000L);
+
+            MemberPoint memberPoint = MemberPointFixture.createWithBalance(memberId, 9000000L);
+
+            // 정확히 최대 잔액까지 도달 가능
+            assertThat(memberPoint.canEarn(PointAmount.of(1000000L), maxBalance, now)).isTrue();
+            // 1원이라도 초과하면 불가
+            assertThat(memberPoint.canEarn(PointAmount.of(1000001L), maxBalance, now)).isFalse();
+        }
+    }
+
+    @Nested
     @DisplayName("v2: 사용 취소")
     class CancelUseTest {
 

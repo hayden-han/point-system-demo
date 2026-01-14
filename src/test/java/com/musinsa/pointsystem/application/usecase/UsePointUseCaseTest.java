@@ -265,4 +265,68 @@ class UsePointUseCaseTest extends IntegrationTestBase {
                     .hasMessageContaining("주문번호는 필수");
         }
     }
+
+    @Nested
+    @DisplayName("경계값 테스트")
+    @SqlGroup({
+            @Sql(scripts = "/sql/use-test-data.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD),
+            @Sql(scripts = "/sql/use-test-cleanup.sql", executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
+    })
+    class BoundaryTest {
+
+        @Test
+        @DisplayName("경계: 정확히 1원 사용")
+        void boundary_useOnePoint() {
+            UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000003001");
+            UsePointCommand command = UsePointCommand.builder()
+                    .memberId(memberId)
+                    .amount(1L)
+                    .orderId("ORDER-BOUNDARY-01")
+                    .build();
+
+            UsePointResult result = usePointUseCase.execute(command);
+
+            assertThat(result.usedAmount()).isEqualTo(1L);
+            assertThat(result.totalBalance()).isEqualTo(999L); // 1000 - 1
+        }
+
+        @Test
+        @DisplayName("경계: 잔액보다 1원 더 사용 시 실패")
+        void boundary_useOneMoreThanBalance() {
+            UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000003001");
+            UsePointCommand command = UsePointCommand.builder()
+                    .memberId(memberId)
+                    .amount(1001L) // 잔액 1000원보다 1원 더
+                    .orderId("ORDER-BOUNDARY-02")
+                    .build();
+
+            assertThatThrownBy(() -> usePointUseCase.execute(command))
+                    .isInstanceOf(InsufficientPointException.class);
+        }
+
+        @Test
+        @DisplayName("경계: 같은 주문으로 여러 번 사용 가능")
+        void boundary_sameOrderMultipleUse() {
+            UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000003001");
+
+            // 첫 번째 사용
+            UsePointCommand command1 = UsePointCommand.builder()
+                    .memberId(memberId)
+                    .amount(300L)
+                    .orderId("ORDER-SAME-01")
+                    .build();
+            UsePointResult result1 = usePointUseCase.execute(command1);
+            assertThat(result1.usedAmount()).isEqualTo(300L);
+
+            // 같은 주문번호로 두 번째 사용
+            UsePointCommand command2 = UsePointCommand.builder()
+                    .memberId(memberId)
+                    .amount(200L)
+                    .orderId("ORDER-SAME-01")
+                    .build();
+            UsePointResult result2 = usePointUseCase.execute(command2);
+            assertThat(result2.usedAmount()).isEqualTo(200L);
+            assertThat(result2.totalBalance()).isEqualTo(500L); // 1000 - 300 - 200
+        }
+    }
 }

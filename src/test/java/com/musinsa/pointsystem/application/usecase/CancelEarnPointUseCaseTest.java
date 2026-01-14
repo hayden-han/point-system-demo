@@ -127,5 +127,21 @@ class CancelEarnPointUseCaseTest extends IntegrationTestBase {
             assertThatThrownBy(() -> cancelEarnPointUseCase.execute(command))
                     .isInstanceOf(PointLedgerNotFoundException.class);
         }
+
+        @Test
+        @DisplayName("CE-T06: 다른 회원의 적립건 취소 실패")
+        void cancelOtherMemberEarn_shouldThrowException() {
+            // GIVEN - 다른 회원의 적립건 ID로 취소 시도
+            UUID wrongMemberId = UuidGenerator.generate(); // 존재하지 않는 회원
+            UUID ledgerId = UUID.fromString("00000000-0000-0000-0000-000000002001"); // 다른 회원의 적립건
+            CancelEarnPointCommand command = CancelEarnPointCommand.builder()
+                    .memberId(wrongMemberId)
+                    .ledgerId(ledgerId)
+                    .build();
+
+            // WHEN & THEN - memberId 불일치로 인해 PointLedgerNotFoundException
+            assertThatThrownBy(() -> cancelEarnPointUseCase.execute(command))
+                    .isInstanceOf(PointLedgerNotFoundException.class);
+        }
     }
 }

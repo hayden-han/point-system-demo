@@ -246,4 +246,128 @@ class PointAmountTest {
             assertThat(a).isNotEqualTo(b);
         }
     }
+
+    @Nested
+    @DisplayName("경계값 테스트")
+    class BoundaryTest {
+
+        @Test
+        @DisplayName("경계: 0 - 최소 유효값")
+        void boundary_zero() {
+            PointAmount amount = PointAmount.of(0L);
+            assertThat(amount.isZero()).isTrue();
+            assertThat(amount.isPositive()).isFalse();
+        }
+
+        @Test
+        @DisplayName("경계: 1 - 최소 양수값")
+        void boundary_one() {
+            PointAmount amount = PointAmount.of(1L);
+            assertThat(amount.isPositive()).isTrue();
+            assertThat(amount.isZero()).isFalse();
+        }
+
+        @Test
+        @DisplayName("경계: -1 - 최소 음수값 (예외)")
+        void boundary_negativeOne() {
+            assertThatThrownBy(() -> PointAmount.of(-1L))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("0 이상");
+        }
+
+        @Test
+        @DisplayName("경계: MAX_VALUE - 정확히 최대값")
+        void boundary_maxValue() {
+            PointAmount amount = PointAmount.of(PointAmount.MAX_VALUE);
+            assertThat(amount.value()).isEqualTo(100_000_000_000L);
+        }
+
+        @Test
+        @DisplayName("경계: MAX_VALUE - 1 - 최대값 바로 아래")
+        void boundary_maxValueMinusOne() {
+            PointAmount amount = PointAmount.of(PointAmount.MAX_VALUE - 1);
+            assertThat(amount.value()).isEqualTo(99_999_999_999L);
+        }
+
+        @Test
+        @DisplayName("경계: MAX_VALUE + 1 - 최대값 초과 (예외)")
+        void boundary_maxValuePlusOne() {
+            assertThatThrownBy(() -> PointAmount.of(PointAmount.MAX_VALUE + 1))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("시스템 최대값");
+        }
+
+        @Test
+        @DisplayName("경계: 덧셈으로 MAX_VALUE 정확히 도달")
+        void boundary_addToExactMax() {
+            PointAmount a = PointAmount.of(PointAmount.MAX_VALUE - 1);
+            PointAmount b = PointAmount.of(1L);
+
+            PointAmount result = a.add(b);
+
+            assertThat(result.value()).isEqualTo(PointAmount.MAX_VALUE);
+        }
+
+        @Test
+        @DisplayName("경계: 덧셈으로 MAX_VALUE 초과 (예외)")
+        void boundary_addExceedsMax() {
+            PointAmount a = PointAmount.of(PointAmount.MAX_VALUE);
+            PointAmount b = PointAmount.of(1L);
+
+            assertThatThrownBy(() -> a.add(b))
+                    .isInstanceOf(ArithmeticException.class)
+                    .hasMessageContaining("허용 범위를 벗어납니다");
+        }
+
+        @Test
+        @DisplayName("경계: 뺄셈으로 정확히 0 도달")
+        void boundary_subtractToZero() {
+            PointAmount a = PointAmount.of(100L);
+            PointAmount b = PointAmount.of(100L);
+
+            PointAmount result = a.subtract(b);
+
+            assertThat(result.isZero()).isTrue();
+        }
+
+        @Test
+        @DisplayName("경계: 뺄셈으로 음수 (예외)")
+        void boundary_subtractToNegative() {
+            PointAmount a = PointAmount.of(100L);
+            PointAmount b = PointAmount.of(101L);
+
+            assertThatThrownBy(() -> a.subtract(b))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        @DisplayName("경계: negate()는 음수 long 반환")
+        void boundary_negate() {
+            PointAmount amount = PointAmount.of(1000L);
+            assertThat(amount.negate()).isEqualTo(-1000L);
+        }
+
+        @Test
+        @DisplayName("경계: negate() - 0의 부호 반전")
+        void boundary_negateZero() {
+            assertThat(PointAmount.ZERO.negate()).isEqualTo(0L);
+        }
+
+        @Test
+        @DisplayName("경계: compareTo - 동일값")
+        void boundary_compareToEqual() {
+            PointAmount a = PointAmount.of(1000L);
+            PointAmount b = PointAmount.of(1000L);
+            assertThat(a.compareTo(b)).isZero();
+        }
+
+        @Test
+        @DisplayName("경계: compareTo - 최소차이 (1)")
+        void boundary_compareToMinDiff() {
+            PointAmount a = PointAmount.of(1000L);
+            PointAmount b = PointAmount.of(1001L);
+            assertThat(a.compareTo(b)).isNegative();
+            assertThat(b.compareTo(a)).isPositive();
+        }
+    }
 }

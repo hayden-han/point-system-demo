@@ -277,4 +277,81 @@ class CancelUsePointUseCaseTest extends IntegrationTestBase {
                     .isInstanceOf(InvalidCancelAmountException.class);
         }
     }
+
+    @Nested
+    @DisplayName("경계값 테스트")
+    @SqlGroup({
+            @Sql(scripts = "/sql/cancel-use-test-data.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD),
+            @Sql(scripts = "/sql/cancel-use-test-cleanup.sql", executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
+    })
+    class BoundaryTest {
+
+        @Test
+        @DisplayName("경계: 정확히 1원 취소")
+        void boundary_cancelOnePoint() {
+            UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000004001");
+            String orderId = "ORDER-CU-T01";
+            CancelUsePointCommand command = CancelUsePointCommand.builder()
+                    .memberId(memberId)
+                    .orderId(orderId)
+                    .cancelAmount(1L)
+                    .build();
+
+            CancelUsePointResult result = cancelUsePointUseCase.execute(command);
+
+            assertThat(result.canceledAmount()).isEqualTo(1L);
+            assertThat(result.totalBalance()).isEqualTo(1L); // 0 + 1
+        }
+
+        @Test
+        @DisplayName("경계: 사용금액보다 1원 더 취소 시 실패")
+        void boundary_cancelOneMoreThanUsed() {
+            UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000004007");
+            String orderId = "ORDER-CU-T07";
+            CancelUsePointCommand command = CancelUsePointCommand.builder()
+                    .memberId(memberId)
+                    .orderId(orderId)
+                    .cancelAmount(1001L) // 1000원 사용했는데 1001원 취소
+                    .build();
+
+            assertThatThrownBy(() -> cancelUsePointUseCase.execute(command))
+                    .isInstanceOf(InvalidCancelAmountException.class);
+        }
+
+        @Test
+        @DisplayName("경계: 연속 부분 취소")
+        void boundary_consecutivePartialCancel() {
+            UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000004002");
+            String orderId = "ORDER-CU-T02";
+
+            // 첫 번째 부분 취소 (500원)
+            CancelUsePointCommand command1 = CancelUsePointCommand.builder()
+                    .memberId(memberId)
+                    .orderId(orderId)
+                    .cancelAmount(500L)
+                    .build();
+            CancelUsePointResult result1 = cancelUsePointUseCase.execute(command1);
+            assertThat(result1.canceledAmount()).isEqualTo(500L);
+            assertThat(result1.totalBalance()).isEqualTo(500L);
+
+            // 두 번째 부분 취소 (나머지 500원)
+            CancelUsePointCommand command2 = CancelUsePointCommand.builder()
+                    .memberId(memberId)
+                    .orderId(orderId)
+                    .cancelAmount(500L)
+                    .build();
+            CancelUsePointResult result2 = cancelUsePointUseCase.execute(command2);
+            assertThat(result2.canceledAmount()).isEqualTo(500L);
+            assertThat(result2.totalBalance()).isEqualTo(1000L);
+
+            // 더 이상 취소할 금액 없음
+            CancelUsePointCommand command3 = CancelUsePointCommand.builder()
+                    .memberId(memberId)
+                    .orderId(orderId)
+                    .cancelAmount(1L)
+                    .build();
+            assertThatThrownBy(() -> cancelUsePointUseCase.execute(command3))
+                    .isInstanceOf(InvalidCancelAmountException.class);
+        }
+    }
 }

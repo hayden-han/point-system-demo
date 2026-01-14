@@ -696,4 +696,175 @@ class PointLedgerTest {
             assertThat(usedAmount).isEqualTo(PointAmount.of(300L)); // 500 - 200
         }
     }
+
+    @Nested
+    @DisplayName("경계값 테스트")
+    class BoundaryTest {
+
+        @Test
+        @DisplayName("경계: 최소 금액(1원) 적립건 생성")
+        void boundary_minAmount() {
+            UUID id = UuidGenerator.generate();
+            UUID memberId = UuidGenerator.generate();
+            IdGenerator idGenerator = UuidGenerator::generate;
+            LocalDateTime now = LocalDateTime.now();
+
+            PointLedger ledger = PointLedger.create(
+                    id, memberId, PointAmount.of(1L), EarnType.SYSTEM,
+                    now.plusDays(365), null, idGenerator, now
+            );
+
+            assertThat(ledger.earnedAmount()).isEqualTo(PointAmount.of(1L));
+            assertThat(ledger.availableAmount()).isEqualTo(PointAmount.of(1L));
+        }
+
+        @Test
+        @DisplayName("경계: 전액 사용 후 availableAmount = 0")
+        void boundary_useFullAmount() {
+            UUID id = UuidGenerator.generate();
+            UUID memberId = UuidGenerator.generate();
+            IdGenerator idGenerator = UuidGenerator::generate;
+            LocalDateTime now = LocalDateTime.now();
+
+            PointLedger ledger = PointLedger.create(
+                    id, memberId, PointAmount.of(1000L), EarnType.SYSTEM,
+                    now.plusDays(365), null, idGenerator, now
+            );
+
+            PointLedger.UseResult result = ledger.use(PointAmount.of(1000L), "ORDER-001", idGenerator, now);
+
+            assertThat(result.ledger().availableAmount()).isEqualTo(PointAmount.ZERO);
+            assertThat(result.ledger().usedAmount()).isEqualTo(PointAmount.of(1000L));
+            assertThat(result.ledger().isAvailable(now)).isFalse();
+        }
+
+        @Test
+        @DisplayName("경계: 1원만 사용 후 상태")
+        void boundary_useOnePoint() {
+            UUID id = UuidGenerator.generate();
+            UUID memberId = UuidGenerator.generate();
+            IdGenerator idGenerator = UuidGenerator::generate;
+            LocalDateTime now = LocalDateTime.now();
+
+            PointLedger ledger = PointLedger.create(
+                    id, memberId, PointAmount.of(1000L), EarnType.SYSTEM,
+                    now.plusDays(365), null, idGenerator, now
+            );
+
+            PointLedger.UseResult result = ledger.use(PointAmount.of(1L), "ORDER-001", idGenerator, now);
+
+            assertThat(result.usedAmount()).isEqualTo(PointAmount.of(1L));
+            assertThat(result.ledger().availableAmount()).isEqualTo(PointAmount.of(999L));
+            assertThat(result.ledger().canCancel()).isFalse(); // 1원이라도 사용시 취소 불가
+        }
+
+        @Test
+        @DisplayName("경계: 만료일 경계 - 정확히 만료 시점")
+        void boundary_exactExpirationTime() {
+            UUID id = UuidGenerator.generate();
+            UUID memberId = UuidGenerator.generate();
+            IdGenerator idGenerator = UuidGenerator::generate;
+            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime expiredAt = now.plusDays(1);
+
+            PointLedger ledger = PointLedger.create(
+                    id, memberId, PointAmount.of(1000L), EarnType.SYSTEM,
+                    expiredAt, null, idGenerator, now
+            );
+
+            // 만료 1초 전 - 유효
+            assertThat(ledger.isExpired(expiredAt.minusSeconds(1))).isFalse();
+            assertThat(ledger.isAvailable(expiredAt.minusSeconds(1))).isTrue();
+
+            // 정확히 만료 시점 - 아직 유효 (expiredAt.isBefore(now)가 false)
+            assertThat(ledger.isExpired(expiredAt)).isFalse();
+            assertThat(ledger.isAvailable(expiredAt)).isTrue();
+
+            // 만료 1 나노초 후 - 만료
+            assertThat(ledger.isExpired(expiredAt.plusNanos(1))).isTrue();
+            assertThat(ledger.isAvailable(expiredAt.plusNanos(1))).isFalse();
+        }
+
+        @Test
+        @DisplayName("경계: 사용 요청이 잔액보다 클 때 잔액만큼만 사용")
+        void boundary_useMoreThanAvailable() {
+            UUID id = UuidGenerator.generate();
+            UUID memberId = UuidGenerator.generate();
+            IdGenerator idGenerator = UuidGenerator::generate;
+            LocalDateTime now = LocalDateTime.now();
+
+            PointLedger ledger = PointLedger.create(
+                    id, memberId, PointAmount.of(500L), EarnType.SYSTEM,
+                    now.plusDays(365), null, idGenerator, now
+            );
+
+            PointLedger.UseResult result = ledger.use(PointAmount.of(1000L), "ORDER-001", idGenerator, now);
+
+            assertThat(result.usedAmount()).isEqualTo(PointAmount.of(500L));
+            assertThat(result.ledger().availableAmount()).isEqualTo(PointAmount.ZERO);
+        }
+
+        @Test
+        @DisplayName("경계: 전액 취소 후 원상복구")
+        void boundary_fullCancelRestore() {
+            UUID id = UuidGenerator.generate();
+            UUID memberId = UuidGenerator.generate();
+            IdGenerator idGenerator = UuidGenerator::generate;
+            LocalDateTime now = LocalDateTime.now();
+
+            PointLedger ledger = PointLedger.create(
+                    id, memberId, PointAmount.of(1000L), EarnType.SYSTEM,
+                    now.plusDays(365), null, idGenerator, now
+            );
+
+            PointLedger afterUse = ledger.use(PointAmount.of(1000L), "ORDER-001", idGenerator, now).ledger();
+            PointLedger.CancelUseResult result = afterUse.cancelUse("ORDER-001", PointAmount.of(1000L), now, idGenerator, 365);
+
+            assertThat(result.ledger().availableAmount()).isEqualTo(PointAmount.of(1000L));
+            assertThat(result.ledger().usedAmount()).isEqualTo(PointAmount.ZERO);
+        }
+
+        @Test
+        @DisplayName("경계: 1원 취소")
+        void boundary_cancelOnePoint() {
+            UUID id = UuidGenerator.generate();
+            UUID memberId = UuidGenerator.generate();
+            IdGenerator idGenerator = UuidGenerator::generate;
+            LocalDateTime now = LocalDateTime.now();
+
+            PointLedger ledger = PointLedger.create(
+                    id, memberId, PointAmount.of(1000L), EarnType.SYSTEM,
+                    now.plusDays(365), null, idGenerator, now
+            );
+
+            PointLedger afterUse = ledger.use(PointAmount.of(100L), "ORDER-001", idGenerator, now).ledger();
+            PointLedger.CancelUseResult result = afterUse.cancelUse("ORDER-001", PointAmount.of(1L), now, idGenerator, 365);
+
+            assertThat(result.canceledAmount()).isEqualTo(PointAmount.of(1L));
+            assertThat(result.ledger().availableAmount()).isEqualTo(PointAmount.of(901L)); // 900 + 1
+        }
+
+        @Test
+        @DisplayName("경계: 여러 주문에서 동시 사용")
+        void boundary_multipleOrders() {
+            UUID id = UuidGenerator.generate();
+            UUID memberId = UuidGenerator.generate();
+            IdGenerator idGenerator = UuidGenerator::generate;
+            LocalDateTime now = LocalDateTime.now();
+
+            PointLedger ledger = PointLedger.create(
+                    id, memberId, PointAmount.of(1000L), EarnType.SYSTEM,
+                    now.plusDays(365), null, idGenerator, now
+            );
+
+            PointLedger afterUse1 = ledger.use(PointAmount.of(300L), "ORDER-001", idGenerator, now).ledger();
+            PointLedger afterUse2 = afterUse1.use(PointAmount.of(400L), "ORDER-002", idGenerator, now).ledger();
+            PointLedger afterUse3 = afterUse2.use(PointAmount.of(300L), "ORDER-003", idGenerator, now).ledger();
+
+            assertThat(afterUse3.availableAmount()).isEqualTo(PointAmount.ZERO);
+            assertThat(afterUse3.getCancelableAmountByOrder("ORDER-001")).isEqualTo(PointAmount.of(300L));
+            assertThat(afterUse3.getCancelableAmountByOrder("ORDER-002")).isEqualTo(PointAmount.of(400L));
+            assertThat(afterUse3.getCancelableAmountByOrder("ORDER-003")).isEqualTo(PointAmount.of(300L));
+        }
+    }
 }

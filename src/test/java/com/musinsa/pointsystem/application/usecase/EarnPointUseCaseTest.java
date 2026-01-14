@@ -241,4 +241,78 @@ class EarnPointUseCaseTest extends IntegrationTestBase {
                     .hasMessageContaining("최대 만료일");
         }
     }
+
+    @Nested
+    @DisplayName("경계값 테스트")
+    class BoundaryTest {
+
+        @Test
+        @DisplayName("경계: 최소 만료일(1일) 성공")
+        void boundary_minExpirationDays() {
+            UUID memberId = UuidGenerator.generate();
+            EarnPointCommand command = EarnPointCommand.builder()
+                    .memberId(memberId)
+                    .amount(1000L)
+                    .earnType("SYSTEM")
+                    .expirationDays(1) // 최소 만료일
+                    .build();
+
+            EarnPointResult result = earnPointUseCase.execute(command);
+
+            assertThat(result.earnedAmount()).isEqualTo(1000L);
+            assertThat(result.expiredAt()).isAfter(LocalDateTime.now());
+        }
+
+        @Test
+        @DisplayName("경계: 최대 만료일(1824일 = 약 5년) 성공")
+        void boundary_maxExpirationDays() {
+            UUID memberId = UuidGenerator.generate();
+            EarnPointCommand command = EarnPointCommand.builder()
+                    .memberId(memberId)
+                    .amount(1000L)
+                    .earnType("SYSTEM")
+                    .expirationDays(1824) // 최대 만료일
+                    .build();
+
+            EarnPointResult result = earnPointUseCase.execute(command);
+
+            assertThat(result.earnedAmount()).isEqualTo(1000L);
+        }
+
+        @Test
+        @DisplayName("경계: 연속 적립으로 최대 잔액 도달")
+        void boundary_consecutiveEarnToMaxBalance() {
+            UUID memberId = UuidGenerator.generate();
+
+            // 여러 번 적립하여 최대 잔액에 근접
+            for (int i = 0; i < 99; i++) {
+                EarnPointCommand command = EarnPointCommand.builder()
+                        .memberId(memberId)
+                        .amount(100000L) // 1회 최대 적립금액
+                        .earnType("SYSTEM")
+                        .build();
+                earnPointUseCase.execute(command);
+            }
+
+            // 마지막 적립으로 정확히 최대 잔액 도달 (9,900,000 + 100,000 = 10,000,000)
+            EarnPointCommand finalCommand = EarnPointCommand.builder()
+                    .memberId(memberId)
+                    .amount(100000L)
+                    .earnType("SYSTEM")
+                    .build();
+
+            EarnPointResult result = earnPointUseCase.execute(finalCommand);
+            assertThat(result.totalBalance()).isEqualTo(10000000L);
+
+            // 이후 1원이라도 적립 시 실패
+            EarnPointCommand overflowCommand = EarnPointCommand.builder()
+                    .memberId(memberId)
+                    .amount(1L)
+                    .earnType("SYSTEM")
+                    .build();
+
+            assertThatThrownBy(() -> earnPointUseCase.execute(overflowCommand))
+                    .isInstanceOf(MaxBalanceExceededException.class);
+        }
+    }
 }
