@@ -1,0 +1,57 @@
+spring:
+  datasource:
+    primary:
+      driver-class-name: org.h2.Driver
+      # LOCK_MODE=1 - MySQL REPEATABLE_READ와 유사한 동작
+      url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;LOCK_MODE=1
+      username: sa
+      password:
+      hikari:
+        pool-name: PrimaryPool
+        maximum-pool-size: 5
+        minimum-idle: 1
+    replica:
+      driver-class-name: org.h2.Driver
+      url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;LOCK_MODE=1
+      username: sa
+      password:
+      hikari:
+        pool-name: ReplicaPool
+        maximum-pool-size: 5
+        minimum-idle: 1
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.H2Dialect
+        jdbc:
+          time_zone: UTC
+        # 프로덕션 MySQL과 동일한 Isolation Level 사용
+        connection:
+          isolation: 4  # TRANSACTION_REPEATABLE_READ
+
+  sql:
+    init:
+      mode: never
+
+  h2:
+    console:
+      enabled: false
+
+# SQL 초기화 설정 (DataSourceConfig에서 사용)
+datasource-init:
+  schema-location: classpath:schema.sql
+  data-location: classpath:test-data.sql
+
+server:
+  port: 0
+
+# Embedded Redis 설정 (테스트용)
+redis:
+  embedded:
+    enabled: true
+    port: 6371

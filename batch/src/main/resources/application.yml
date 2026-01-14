@@ -1,0 +1,82 @@
+spring:
+  profiles:
+    active: local
+
+  # Batch DataSource 설정
+  datasource:
+    primary:
+      driver-class-name: org.h2.Driver
+      url: jdbc:h2:mem:pointdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+      username: sa
+      password:
+      hikari:
+        pool-name: BatchPool
+        maximum-pool-size: 10
+        minimum-idle: 5
+        connection-timeout: 3000
+        validation-timeout: 1000
+
+    replica:
+      driver-class-name: org.h2.Driver
+      url: jdbc:h2:mem:pointdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+      username: sa
+      password:
+      hikari:
+        pool-name: ReplicaPool
+        maximum-pool-size: 10
+        minimum-idle: 5
+        connection-timeout: 3000
+        read-only: true
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.H2Dialect
+        jdbc:
+          time_zone: UTC
+          batch_size: 100
+        order_inserts: true
+        order_updates: true
+
+  sql:
+    init:
+      mode: never
+
+  # Spring Batch 설정
+  batch:
+    job:
+      enabled: false  # 자동 실행 비활성화 (CLI 인자로 실행)
+    jdbc:
+      initialize-schema: always  # Batch 메타 테이블 자동 생성
+
+datasource-init:
+  schema-location: classpath:schema.sql
+  data-location: classpath:data.sql
+
+# 배치 작업별 설정
+batch-job:
+  consistency-check:
+    chunk-size: 1000
+    page-size: 1000
+  archive:
+    retention-days: 90
+    chunk-size: 500
+
+# 분산락 설정 (배치에서도 락 필요 시)
+distributed-lock:
+  wait-time-ms: 5000
+  lease-time-ms: 600000  # 배치는 더 긴 TTL (10분)
+  max-retry-attempts: 3
+  retry-delays-ms: 0,500,1000
+  hold-time-warn-threshold-ms: 10000
+
+# 알림 설정
+notification:
+  slack:
+    webhook-url: ${SLACK_WEBHOOK_URL:}
+    enabled: ${SLACK_ENABLED:false}

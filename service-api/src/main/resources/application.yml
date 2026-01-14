@@ -1,0 +1,95 @@
+spring:
+  profiles:
+    active: local
+
+  # Read/Write 분리 DataSource 설정
+  datasource:
+    primary:
+      driver-class-name: org.h2.Driver
+      url: jdbc:h2:mem:pointdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+      username: sa
+      password:
+      hikari:
+        pool-name: PrimaryPool
+        maximum-pool-size: 40
+        minimum-idle: 20
+        connection-timeout: 3000
+        validation-timeout: 1000
+        idle-timeout: 300000
+        max-lifetime: 1800000
+        leak-detection-threshold: 30000
+
+    replica:
+      driver-class-name: org.h2.Driver
+      url: jdbc:h2:mem:pointdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+      username: sa
+      password:
+      hikari:
+        pool-name: ReplicaPool
+        maximum-pool-size: 30
+        minimum-idle: 10
+        connection-timeout: 3000
+        validation-timeout: 1000
+        idle-timeout: 300000
+        max-lifetime: 1800000
+        read-only: true
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.H2Dialect
+        jdbc:
+          time_zone: UTC
+          batch_size: 50
+        order_inserts: true
+        order_updates: true
+
+  sql:
+    init:
+      mode: never
+
+datasource-init:
+  schema-location: classpath:schema.sql
+  data-location: classpath:data.sql
+
+server:
+  port: 8083
+
+# Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+      base-path: /actuator
+    enabled-by-default: false
+  endpoint:
+    health:
+      enabled: true
+      show-details: never
+      probes:
+        enabled: true
+    prometheus:
+      enabled: true
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
+# 분산락 설정
+distributed-lock:
+  wait-time-ms: 3000
+  lease-time-ms: 300000
+  max-retry-attempts: 4
+  retry-delays-ms: 0,200,500,1000
+  hold-time-warn-threshold-ms: 3000

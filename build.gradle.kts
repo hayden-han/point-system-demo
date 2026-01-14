@@ -1,70 +1,51 @@
 plugins {
     id("java")
-    id("org.springframework.boot") version "3.5.0"
-    id("io.spring.dependency-management") version "1.1.7"
+    id("org.springframework.boot") version "3.5.0" apply false
+    id("io.spring.dependency-management") version "1.1.7" apply false
 }
 
-val querydslVersion = "5.1.0"
+allprojects {
+    group = "com.musinsa"
+    version = "1.0-SNAPSHOT"
 
-group = "com.musinsa"
-version = "1.0-SNAPSHOT"
-
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+    repositories {
+        mavenCentral()
     }
 }
 
-repositories {
-    mavenCentral()
-}
+subprojects {
+    apply(plugin = "java")
+    apply(plugin = "io.spring.dependency-management")
 
-dependencies {
-    // Spring Boot
-    implementation("org.springframework.boot:spring-boot-starter-web")
-    implementation("org.springframework.boot:spring-boot-starter-data-jpa")
-    implementation("org.springframework.boot:spring-boot-starter-validation")
-    implementation("org.springframework.boot:spring-boot-starter-aop")
-    implementation("org.springframework.boot:spring-boot-starter-actuator")
+    the<io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension>().apply {
+        imports {
+            mavenBom("org.springframework.boot:spring-boot-dependencies:3.5.0")
+        }
+    }
 
-    // Prometheus Metrics
-    runtimeOnly("io.micrometer:micrometer-registry-prometheus")
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(21)
+        }
+    }
 
-    // Cache (Redis 기반)
-    implementation("org.springframework.boot:spring-boot-starter-cache")
+    tasks.withType<JavaCompile> {
+        options.compilerArgs.add("-parameters")
+    }
 
-    // Database
-    runtimeOnly("com.h2database:h2")
+    dependencies {
+        // Lombok (모든 모듈 공통)
+        "compileOnly"("org.projectlombok:lombok")
+        "annotationProcessor"("org.projectlombok:lombok")
+        "testCompileOnly"("org.projectlombok:lombok")
+        "testAnnotationProcessor"("org.projectlombok:lombok")
 
-    // Redis (Redisson for distributed lock)
-    implementation("org.redisson:redisson-spring-boot-starter:3.40.2")
+        // Test
+        "testImplementation"("org.springframework.boot:spring-boot-starter-test")
+        "testRuntimeOnly"("org.junit.platform:junit-platform-launcher")
+    }
 
-    // Embedded Redis for testing
-    implementation("com.github.codemonstur:embedded-redis:1.4.3")
-
-    // UUID v7 Generator
-    implementation("com.fasterxml.uuid:java-uuid-generator:5.1.0")
-
-    // SpringDoc OpenAPI (Swagger UI)
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.4")
-
-    // Lombok
-    compileOnly("org.projectlombok:lombok")
-    annotationProcessor("org.projectlombok:lombok")
-
-    // QueryDSL
-    implementation("com.querydsl:querydsl-jpa:$querydslVersion:jakarta")
-    annotationProcessor("com.querydsl:querydsl-apt:$querydslVersion:jakarta")
-    annotationProcessor("jakarta.annotation:jakarta.annotation-api")
-    annotationProcessor("jakarta.persistence:jakarta.persistence-api")
-
-    // Test
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testCompileOnly("org.projectlombok:lombok")
-    testAnnotationProcessor("org.projectlombok:lombok")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-}
-
-tasks.test {
-    useJUnitPlatform()
+    tasks.withType<Test> {
+        useJUnitPlatform()
+    }
 }

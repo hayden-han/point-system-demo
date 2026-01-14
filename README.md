@@ -87,11 +87,11 @@ http://localhost:8080/api/v1
 }
 ```
 
-| 필드 | 타입 | 필수 | 설명 |
-|------|------|------|------|
-| amount | Long | O | 적립 금액 (1 ~ 100,000) |
-| earnType | String | O | 적립 타입 (SYSTEM: 시스템, MANUAL: 수기지급) |
-| expirationDays | Integer | X | 만료일 (기본: 365일, 1 ~ 1824일) |
+| 필드             | 타입      | 필수 | 설명                                |
+|----------------|---------|----|-----------------------------------|
+| amount         | Long    | O  | 적립 금액 (1 ~ 100,000)               |
+| earnType       | String  | O  | 적립 타입 (SYSTEM: 시스템, MANUAL: 수기지급) |
+| expirationDays | Integer | X  | 만료일 (기본: 365일, 1 ~ 1824일)         |
 
 **Response**
 ```json
