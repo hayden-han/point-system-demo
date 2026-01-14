@@ -4,14 +4,15 @@ import com.musinsa.pointsystem.application.dto.EarnPointCommand;
 import com.musinsa.pointsystem.application.dto.EarnPointResult;
 import com.musinsa.pointsystem.application.port.DistributedLock;
 import com.musinsa.pointsystem.common.time.TimeProvider;
+import com.musinsa.pointsystem.domain.factory.PointFactory;
 import com.musinsa.pointsystem.domain.model.EarnPolicyConfig;
 import com.musinsa.pointsystem.domain.model.EarnType;
 import com.musinsa.pointsystem.domain.model.MemberPoint;
 import com.musinsa.pointsystem.domain.model.PointAmount;
 import com.musinsa.pointsystem.domain.model.PointLedger;
-import com.musinsa.pointsystem.domain.repository.MemberPointRepository;
+import com.musinsa.pointsystem.domain.repository.PointLedgerRepository;
 import com.musinsa.pointsystem.domain.repository.PointPolicyRepository;
-import com.musinsa.pointsystem.domain.service.PointAccrualManager;
+import com.musinsa.pointsystem.domain.repository.PointQueryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -19,14 +20,21 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
+/**
+ * 포인트 적립 UseCase
+ *
+ * <p>최적화: 적립 시에는 기존 Ledger를 수정하지 않으므로,
+ * Aggregate 전체 로드 없이 잔액만 Query로 조회하여 검증.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class EarnPointUseCase {
 
-    private final MemberPointRepository memberPointRepository;
+    private final PointQueryRepository pointQueryRepository;
+    private final PointLedgerRepository pointLedgerRepository;
     private final PointPolicyRepository pointPolicyRepository;
-    private final PointAccrualManager pointAccrualManager;
+    private final PointFactory pointFactory;
     private final TimeProvider timeProvider;
 
     @DistributedLock(key = "'lock:point:member:' + #command.memberId")
@@ -44,34 +52,36 @@ public class EarnPointUseCase {
         // 정책 조회
         EarnPolicyConfig policy = pointPolicyRepository.getEarnPolicyConfig();
 
-        // 회원 포인트 조회 (Entry 포함)
-        MemberPoint memberPoint = memberPointRepository.getOrCreateWithAllLedgersAndEntries(command.memberId());
+        // 최적화: Aggregate 로드 없이 현재 잔액만 조회
+        PointAmount currentBalance = pointQueryRepository.getTotalBalance(command.memberId(), now);
 
-        // Domain Service를 통한 적립 처리 (EARN Entry 자동 생성)
-        MemberPoint.EarnResult earnResult = pointAccrualManager.earnWithExpirationValidationV2(
-                memberPoint,
+        // 도메인 검증 (MemberPoint의 static 메서드)
+        MemberPoint.validateEarnWithBalance(amount, currentBalance, command.expirationDays(), policy);
+
+        // 만료일 계산
+        LocalDateTime expiredAt = policy.calculateExpirationDate(command.expirationDays());
+
+        // Ledger 생성 (EARN Entry 자동 포함)
+        PointLedger ledger = pointFactory.createLedger(
+                command.memberId(),
                 amount,
                 earnType,
-                command.expirationDays(),
-                policy
+                expiredAt
         );
 
-        // 결과에서 새 객체 추출
-        MemberPoint updatedMemberPoint = earnResult.memberPoint();
-        PointLedger ledger = earnResult.ledger();
+        // 신규 Ledger 저장 (기존 Ledger 수정 없음)
+        pointLedgerRepository.save(ledger);
 
-        // MemberPoint + Ledgers + Entries 저장
-        memberPointRepository.saveWithEntries(updatedMemberPoint);
+        PointAmount newTotalBalance = currentBalance.add(amount);
 
         log.info("포인트 적립 완료. memberId={}, ledgerId={}, earnedAmount={}, totalBalance={}",
-                command.memberId(), ledger.id(), amount.getValue(),
-                updatedMemberPoint.getTotalBalance(now).getValue());
+                command.memberId(), ledger.id(), amount.getValue(), newTotalBalance.getValue());
 
         return EarnPointResult.builder()
                 .ledgerId(ledger.id())
                 .memberId(command.memberId())
                 .earnedAmount(amount.getValue())
-                .totalBalance(updatedMemberPoint.getTotalBalance(now).getValue())
+                .totalBalance(newTotalBalance.getValue())
                 .expiredAt(ledger.expiredAt())
                 .build();
     }

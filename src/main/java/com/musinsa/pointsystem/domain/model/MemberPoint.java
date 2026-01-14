@@ -70,6 +70,44 @@ public record MemberPoint(
     }
 
     /**
+     * 적립 검증 - 외부에서 조회한 잔액으로 검증 (성능 최적화용)
+     * <p>
+     * Ledger 로드 없이 DB에서 직접 조회한 잔액으로 검증할 때 사용.
+     * 적립 시에는 기존 Ledger를 수정하지 않으므로 이 방식이 효율적.
+     *
+     * @param amount 적립 금액
+     * @param currentBalance 현재 잔액 (외부에서 조회)
+     * @param expirationDays 만료일 (null이면 기본값 사용)
+     * @param policy 적립 정책
+     */
+    public static void validateEarnWithBalance(PointAmount amount, PointAmount currentBalance,
+                                                Integer expirationDays, EarnPolicyConfig policy) {
+        // 금액 검증
+        if (amount.isLessThan(policy.minAmount())) {
+            throw InvalidEarnAmountException.belowMinimum(amount.getValue(), policy.minAmount().getValue());
+        }
+        if (amount.isGreaterThan(policy.maxAmount())) {
+            throw InvalidEarnAmountException.aboveMaximum(amount.getValue(), policy.maxAmount().getValue());
+        }
+
+        // 만료일 검증
+        if (expirationDays != null) {
+            if (expirationDays < policy.minExpirationDays()) {
+                throw InvalidExpirationException.belowMinimum(expirationDays, policy.minExpirationDays());
+            }
+            if (expirationDays > policy.maxExpirationDays()) {
+                throw InvalidExpirationException.aboveMaximum(expirationDays, policy.maxExpirationDays());
+            }
+        }
+
+        // 최대 잔액 검증
+        if (currentBalance.add(amount).isGreaterThan(policy.maxBalance())) {
+            throw new MaxBalanceExceededException(
+                    currentBalance.getValue(), amount.getValue(), policy.maxBalance().getValue());
+        }
+    }
+
+    /**
      * Ledger 추가 (불변 - 새 객체 반환)
      */
     public MemberPoint addLedger(PointLedger ledger) {
