@@ -30,8 +30,10 @@ class PointBalanceControllerTest extends IntegrationTestBase {
     private MockMvc mockMvc;
 
     @Nested
-    @DisplayName("GET /api/v1/members/{memberId}/points - 잔액 조회")
+    @DisplayName("GET /api/v1/points - 잔액 조회")
     class GetBalance {
+
+        private static final String MEMBER_ID_HEADER = "X-Member-Id";
 
         @Test
         @DisplayName("회원의 포인트 잔액을 조회한다")
@@ -40,7 +42,8 @@ class PointBalanceControllerTest extends IntegrationTestBase {
             UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000008101");
 
             // WHEN & THEN
-            mockMvc.perform(get("/api/v1/members/{memberId}/points", memberId))
+            mockMvc.perform(get("/api/v1/points")
+                            .header(MEMBER_ID_HEADER, memberId.toString()))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.memberId").value(memberId.toString()))
                     .andExpect(jsonPath("$.totalBalance").value(5000));
@@ -53,7 +56,8 @@ class PointBalanceControllerTest extends IntegrationTestBase {
             UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000008102");
 
             // WHEN & THEN
-            mockMvc.perform(get("/api/v1/members/{memberId}/points", memberId))
+            mockMvc.perform(get("/api/v1/points")
+                            .header(MEMBER_ID_HEADER, memberId.toString()))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.memberId").value(memberId.toString()))
                     .andExpect(jsonPath("$.totalBalance").value(0));
@@ -66,7 +70,8 @@ class PointBalanceControllerTest extends IntegrationTestBase {
             UUID memberId = new UuidGenerator().generate();
 
             // WHEN & THEN
-            mockMvc.perform(get("/api/v1/members/{memberId}/points", memberId))
+            mockMvc.perform(get("/api/v1/points")
+                            .header(MEMBER_ID_HEADER, memberId.toString()))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.memberId").value(memberId.toString()))
                     .andExpect(jsonPath("$.totalBalance").value(0));
@@ -74,8 +79,10 @@ class PointBalanceControllerTest extends IntegrationTestBase {
     }
 
     @Nested
-    @DisplayName("GET /api/v1/members/{memberId}/points/history - 거래 내역 조회")
+    @DisplayName("GET /api/v1/points/history - 거래 내역 조회")
     class GetHistory {
+
+        private static final String MEMBER_ID_HEADER = "X-Member-Id";
 
         @Test
         @DisplayName("회원의 포인트 거래 내역을 조회한다")
@@ -84,7 +91,8 @@ class PointBalanceControllerTest extends IntegrationTestBase {
             UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000008101");
 
             // WHEN & THEN
-            mockMvc.perform(get("/api/v1/members/{memberId}/points/history", memberId))
+            mockMvc.perform(get("/api/v1/points/history")
+                            .header(MEMBER_ID_HEADER, memberId.toString()))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.content").isArray())
                     .andExpect(jsonPath("$.content.length()").value(1))
@@ -99,7 +107,8 @@ class PointBalanceControllerTest extends IntegrationTestBase {
             UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000008102");
 
             // WHEN & THEN
-            mockMvc.perform(get("/api/v1/members/{memberId}/points/history", memberId))
+            mockMvc.perform(get("/api/v1/points/history")
+                            .header(MEMBER_ID_HEADER, memberId.toString()))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.content").isArray())
                     .andExpect(jsonPath("$.content.length()").value(0));
@@ -112,7 +121,8 @@ class PointBalanceControllerTest extends IntegrationTestBase {
             UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000008105");
 
             // WHEN & THEN
-            mockMvc.perform(get("/api/v1/members/{memberId}/points/history", memberId))
+            mockMvc.perform(get("/api/v1/points/history")
+                            .header(MEMBER_ID_HEADER, memberId.toString()))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.content").isArray())
                     .andExpect(jsonPath("$.content.length()").value(2));

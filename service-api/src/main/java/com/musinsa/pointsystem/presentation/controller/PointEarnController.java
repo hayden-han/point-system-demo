@@ -27,10 +27,12 @@ import java.util.UUID;
 
 @Tag(name = "Point Earn", description = "포인트 적립 API")
 @RestController
-@RequestMapping("/api/v1/members/{memberId}/points/earn")
+@RequestMapping("/api/v1/points/earn")
 @RequiredArgsConstructor
 @Slf4j
 public class PointEarnController {
+
+    private static final String MEMBER_ID_HEADER = "X-Member-Id";
 
     private final EarnPointUseCase earnPointUseCase;
     private final CancelEarnPointUseCase cancelEarnPointUseCase;
@@ -53,8 +55,8 @@ public class PointEarnController {
     })
     @PostMapping
     public EarnPointResponse earn(
-            @Parameter(description = "회원 ID", required = true)
-            @PathVariable UUID memberId,
+            @Parameter(description = "회원 ID (Gateway에서 주입)", required = true)
+            @RequestHeader(MEMBER_ID_HEADER) UUID memberId,
             @Parameter(description = "멱등성 키 (중복 요청 방지용)")
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
             @Valid @RequestBody EarnPointRequest request) {
@@ -90,8 +92,8 @@ public class PointEarnController {
     })
     @PostMapping("/{ledgerId}/cancel")
     public CancelEarnPointResponse cancelEarn(
-            @Parameter(description = "회원 ID", required = true)
-            @PathVariable UUID memberId,
+            @Parameter(description = "회원 ID (Gateway에서 주입)", required = true)
+            @RequestHeader(MEMBER_ID_HEADER) UUID memberId,
             @Parameter(description = "취소할 적립건 ID", required = true)
             @PathVariable UUID ledgerId,
             @Parameter(description = "멱등성 키 (중복 요청 방지용)")

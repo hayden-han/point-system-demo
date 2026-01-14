@@ -23,9 +23,11 @@ import java.util.UUID;
 
 @Tag(name = "Point Balance", description = "포인트 잔액/이력 조회 API")
 @RestController
-@RequestMapping("/api/v1/members/{memberId}/points")
+@RequestMapping("/api/v1/points")
 @RequiredArgsConstructor
 public class PointBalanceController {
+
+    private static final String MEMBER_ID_HEADER = "X-Member-Id";
 
     private final GetPointBalanceUseCase getPointBalanceUseCase;
     private final GetPointHistoryUseCase getPointHistoryUseCase;
@@ -41,8 +43,8 @@ public class PointBalanceController {
     })
     @GetMapping
     public PointBalanceResponse getBalance(
-            @Parameter(description = "회원 ID", required = true)
-            @PathVariable UUID memberId) {
+            @Parameter(description = "회원 ID (Gateway에서 주입)", required = true)
+            @RequestHeader(MEMBER_ID_HEADER) UUID memberId) {
         PointBalanceResult result = getPointBalanceUseCase.execute(memberId);
         return PointBalanceResponse.from(result);
     }
@@ -61,8 +63,8 @@ public class PointBalanceController {
     })
     @GetMapping("/history")
     public PageResponse<PointHistoryResponse> getHistory(
-            @Parameter(description = "회원 ID", required = true)
-            @PathVariable UUID memberId,
+            @Parameter(description = "회원 ID (Gateway에서 주입)", required = true)
+            @RequestHeader(MEMBER_ID_HEADER) UUID memberId,
             @Parameter(description = "페이지 번호 (0부터 시작)", example = "0")
             @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "페이지 크기 (최대 100)", example = "20")

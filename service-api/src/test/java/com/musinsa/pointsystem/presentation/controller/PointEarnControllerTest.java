@@ -36,8 +36,10 @@ class PointEarnControllerTest extends IntegrationTestBase {
     private ObjectMapper objectMapper;
 
     @Nested
-    @DisplayName("POST /api/v1/members/{memberId}/points/earn - 포인트 적립")
+    @DisplayName("POST /api/v1/points/earn - 포인트 적립")
     class Earn {
+
+        private static final String MEMBER_ID_HEADER = "X-Member-Id";
 
         @Test
         @DisplayName("포인트를 적립한다")
@@ -51,7 +53,8 @@ class PointEarnControllerTest extends IntegrationTestBase {
                     .build();
 
             // WHEN & THEN
-            mockMvc.perform(post("/api/v1/members/{memberId}/points/earn", memberId)
+            mockMvc.perform(post("/api/v1/points/earn")
+                            .header(MEMBER_ID_HEADER, memberId.toString())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
@@ -72,7 +75,8 @@ class PointEarnControllerTest extends IntegrationTestBase {
                     .build();
 
             // WHEN & THEN
-            mockMvc.perform(post("/api/v1/members/{memberId}/points/earn", memberId)
+            mockMvc.perform(post("/api/v1/points/earn")
+                            .header(MEMBER_ID_HEADER, memberId.toString())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
@@ -92,7 +96,8 @@ class PointEarnControllerTest extends IntegrationTestBase {
                     .build();
 
             // WHEN & THEN
-            mockMvc.perform(post("/api/v1/members/{memberId}/points/earn", memberId)
+            mockMvc.perform(post("/api/v1/points/earn")
+                            .header(MEMBER_ID_HEADER, memberId.toString())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isBadRequest());
@@ -100,8 +105,10 @@ class PointEarnControllerTest extends IntegrationTestBase {
     }
 
     @Nested
-    @DisplayName("POST /api/v1/members/{memberId}/points/earn/{ledgerId}/cancel - 적립 취소")
+    @DisplayName("POST /api/v1/points/earn/{ledgerId}/cancel - 적립 취소")
     class CancelEarn {
+
+        private static final String MEMBER_ID_HEADER = "X-Member-Id";
 
         @Test
         @DisplayName("미사용 적립건을 취소한다")
@@ -111,7 +118,8 @@ class PointEarnControllerTest extends IntegrationTestBase {
             UUID ledgerId = UUID.fromString("00000000-0000-0000-0000-000000008202");
 
             // WHEN & THEN
-            mockMvc.perform(post("/api/v1/members/{memberId}/points/earn/{ledgerId}/cancel", memberId, ledgerId))
+            mockMvc.perform(post("/api/v1/points/earn/{ledgerId}/cancel", ledgerId)
+                            .header(MEMBER_ID_HEADER, memberId.toString()))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.memberId").value(memberId.toString()))
                     .andExpect(jsonPath("$.canceledAmount").value(1000));
@@ -125,7 +133,8 @@ class PointEarnControllerTest extends IntegrationTestBase {
             UUID ledgerId = new UuidGenerator().generate();
 
             // WHEN & THEN
-            mockMvc.perform(post("/api/v1/members/{memberId}/points/earn/{ledgerId}/cancel", memberId, ledgerId))
+            mockMvc.perform(post("/api/v1/points/earn/{ledgerId}/cancel", ledgerId)
+                            .header(MEMBER_ID_HEADER, memberId.toString()))
                     .andExpect(status().isNotFound());
         }
 
@@ -137,11 +146,13 @@ class PointEarnControllerTest extends IntegrationTestBase {
             UUID ledgerId = UUID.fromString("00000000-0000-0000-0000-000000008202");
 
             // 첫 번째 취소
-            mockMvc.perform(post("/api/v1/members/{memberId}/points/earn/{ledgerId}/cancel", memberId, ledgerId))
+            mockMvc.perform(post("/api/v1/points/earn/{ledgerId}/cancel", ledgerId)
+                            .header(MEMBER_ID_HEADER, memberId.toString()))
                     .andExpect(status().isOk());
 
             // WHEN & THEN - 동일 적립건 재취소 시도
-            mockMvc.perform(post("/api/v1/members/{memberId}/points/earn/{ledgerId}/cancel", memberId, ledgerId))
+            mockMvc.perform(post("/api/v1/points/earn/{ledgerId}/cancel", ledgerId)
+                            .header(MEMBER_ID_HEADER, memberId.toString()))
                     .andExpect(status().isBadRequest());
         }
     }

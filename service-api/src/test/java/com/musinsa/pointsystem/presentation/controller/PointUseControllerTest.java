@@ -36,8 +36,10 @@ class PointUseControllerTest extends IntegrationTestBase {
     private ObjectMapper objectMapper;
 
     @Nested
-    @DisplayName("POST /api/v1/members/{memberId}/points/use - 포인트 사용")
+    @DisplayName("POST /api/v1/points/use - 포인트 사용")
     class Use {
+
+        private static final String MEMBER_ID_HEADER = "X-Member-Id";
 
         @Test
         @DisplayName("포인트를 사용한다")
@@ -50,7 +52,8 @@ class PointUseControllerTest extends IntegrationTestBase {
                     .build();
 
             // WHEN & THEN
-            mockMvc.perform(post("/api/v1/members/{memberId}/points/use", memberId)
+            mockMvc.perform(post("/api/v1/points/use")
+                            .header(MEMBER_ID_HEADER, memberId.toString())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
@@ -70,7 +73,8 @@ class PointUseControllerTest extends IntegrationTestBase {
                     .build();
 
             // WHEN & THEN
-            mockMvc.perform(post("/api/v1/members/{memberId}/points/use", memberId)
+            mockMvc.perform(post("/api/v1/points/use")
+                            .header(MEMBER_ID_HEADER, memberId.toString())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
@@ -90,7 +94,8 @@ class PointUseControllerTest extends IntegrationTestBase {
                     .build();
 
             // WHEN & THEN
-            mockMvc.perform(post("/api/v1/members/{memberId}/points/use", memberId)
+            mockMvc.perform(post("/api/v1/points/use")
+                            .header(MEMBER_ID_HEADER, memberId.toString())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isBadRequest());
@@ -107,7 +112,8 @@ class PointUseControllerTest extends IntegrationTestBase {
                     .build();
 
             // WHEN & THEN
-            mockMvc.perform(post("/api/v1/members/{memberId}/points/use", memberId)
+            mockMvc.perform(post("/api/v1/points/use")
+                            .header(MEMBER_ID_HEADER, memberId.toString())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isBadRequest());
@@ -123,7 +129,8 @@ class PointUseControllerTest extends IntegrationTestBase {
                     .build();
 
             // WHEN & THEN
-            mockMvc.perform(post("/api/v1/members/{memberId}/points/use", memberId)
+            mockMvc.perform(post("/api/v1/points/use")
+                            .header(MEMBER_ID_HEADER, memberId.toString())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isBadRequest());
@@ -131,8 +138,10 @@ class PointUseControllerTest extends IntegrationTestBase {
     }
 
     @Nested
-    @DisplayName("POST /api/v1/members/{memberId}/points/use/cancel - 사용 취소")
+    @DisplayName("POST /api/v1/points/use/cancel - 사용 취소")
     class CancelUse {
+
+        private static final String MEMBER_ID_HEADER = "X-Member-Id";
 
         @Test
         @DisplayName("포인트 사용을 전액 취소한다")
@@ -145,7 +154,8 @@ class PointUseControllerTest extends IntegrationTestBase {
                     .build();
 
             // WHEN & THEN
-            mockMvc.perform(post("/api/v1/members/{memberId}/points/use/cancel", memberId)
+            mockMvc.perform(post("/api/v1/points/use/cancel")
+                            .header(MEMBER_ID_HEADER, memberId.toString())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
@@ -165,7 +175,8 @@ class PointUseControllerTest extends IntegrationTestBase {
                     .build();
 
             // WHEN & THEN
-            mockMvc.perform(post("/api/v1/members/{memberId}/points/use/cancel", memberId)
+            mockMvc.perform(post("/api/v1/points/use/cancel")
+                            .header(MEMBER_ID_HEADER, memberId.toString())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
@@ -186,7 +197,8 @@ class PointUseControllerTest extends IntegrationTestBase {
 
             // WHEN & THEN
             // 존재하지 않는 주문은 취소 가능 금액이 0이므로 InvalidCancelAmountException (400)
-            mockMvc.perform(post("/api/v1/members/{memberId}/points/use/cancel", memberId)
+            mockMvc.perform(post("/api/v1/points/use/cancel")
+                            .header(MEMBER_ID_HEADER, memberId.toString())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isBadRequest());
@@ -203,7 +215,8 @@ class PointUseControllerTest extends IntegrationTestBase {
                     .build();
 
             // WHEN & THEN
-            mockMvc.perform(post("/api/v1/members/{memberId}/points/use/cancel", memberId)
+            mockMvc.perform(post("/api/v1/points/use/cancel")
+                            .header(MEMBER_ID_HEADER, memberId.toString())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isBadRequest());

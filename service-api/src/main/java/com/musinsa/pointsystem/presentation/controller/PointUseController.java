@@ -27,9 +27,11 @@ import java.util.UUID;
 
 @Tag(name = "Point Use", description = "포인트 사용 API")
 @RestController
-@RequestMapping("/api/v1/members/{memberId}/points/use")
+@RequestMapping("/api/v1/points/use")
 @RequiredArgsConstructor
 public class PointUseController {
+
+    private static final String MEMBER_ID_HEADER = "X-Member-Id";
 
     private final UsePointUseCase usePointUseCase;
     private final CancelUsePointUseCase cancelUsePointUseCase;
@@ -52,8 +54,8 @@ public class PointUseController {
     })
     @PostMapping
     public UsePointResponse use(
-            @Parameter(description = "회원 ID", required = true)
-            @PathVariable UUID memberId,
+            @Parameter(description = "회원 ID (Gateway에서 주입)", required = true)
+            @RequestHeader(MEMBER_ID_HEADER) UUID memberId,
             @Parameter(description = "멱등성 키 (중복 요청 방지용)")
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
             @Valid @RequestBody UsePointRequest request) {
@@ -90,8 +92,8 @@ public class PointUseController {
     })
     @PostMapping("/cancel")
     public CancelUsePointResponse cancelUse(
-            @Parameter(description = "회원 ID", required = true)
-            @PathVariable UUID memberId,
+            @Parameter(description = "회원 ID (Gateway에서 주입)", required = true)
+            @RequestHeader(MEMBER_ID_HEADER) UUID memberId,
             @Parameter(description = "멱등성 키 (중복 요청 방지용)")
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
             @Valid @RequestBody CancelUsePointRequest request) {
