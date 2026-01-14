@@ -9,10 +9,8 @@ import com.musinsa.pointsystem.domain.model.EarnType;
 import com.musinsa.pointsystem.domain.model.MemberPoint;
 import com.musinsa.pointsystem.domain.model.PointAmount;
 import com.musinsa.pointsystem.domain.model.PointLedger;
-import com.musinsa.pointsystem.domain.model.PointTransaction;
 import com.musinsa.pointsystem.domain.repository.MemberPointRepository;
 import com.musinsa.pointsystem.domain.repository.PointPolicyRepository;
-import com.musinsa.pointsystem.domain.repository.PointTransactionRepository;
 import com.musinsa.pointsystem.domain.service.PointAccrualManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,7 +25,6 @@ import java.time.LocalDateTime;
 public class EarnPointUseCase {
 
     private final MemberPointRepository memberPointRepository;
-    private final PointTransactionRepository pointTransactionRepository;
     private final PointPolicyRepository pointPolicyRepository;
     private final PointAccrualManager pointAccrualManager;
     private final TimeProvider timeProvider;
@@ -47,10 +44,10 @@ public class EarnPointUseCase {
         // 정책 조회
         EarnPolicyConfig policy = pointPolicyRepository.getEarnPolicyConfig();
 
-        // 회원 포인트 조회 (v2: Entry 포함)
+        // 회원 포인트 조회 (Entry 포함)
         MemberPoint memberPoint = memberPointRepository.getOrCreateWithAllLedgersAndEntries(command.memberId());
 
-        // Domain Service를 통한 적립 처리 (v2)
+        // Domain Service를 통한 적립 처리 (EARN Entry 자동 생성)
         MemberPoint.EarnResult earnResult = pointAccrualManager.earnWithExpirationValidationV2(
                 memberPoint,
                 amount,
@@ -63,24 +60,15 @@ public class EarnPointUseCase {
         MemberPoint updatedMemberPoint = earnResult.memberPoint();
         PointLedger ledger = earnResult.ledger();
 
-        // MemberPoint + Ledgers + Entries 저장 (v2)
+        // MemberPoint + Ledgers + Entries 저장
         memberPointRepository.saveWithEntries(updatedMemberPoint);
 
-        // 트랜잭션 기록 (레거시 호환 - 향후 제거 예정)
-        PointTransaction transaction = pointAccrualManager.createEarnTransaction(
-                command.memberId(),
-                amount,
-                ledger.id()
-        );
-        PointTransaction savedTransaction = pointTransactionRepository.save(transaction);
-
-        log.info("포인트 적립 완료. memberId={}, ledgerId={}, transactionId={}, earnedAmount={}, totalBalance={}",
-                command.memberId(), ledger.id(), savedTransaction.id(), amount.getValue(),
+        log.info("포인트 적립 완료. memberId={}, ledgerId={}, earnedAmount={}, totalBalance={}",
+                command.memberId(), ledger.id(), amount.getValue(),
                 updatedMemberPoint.getTotalBalance(now).getValue());
 
         return EarnPointResult.builder()
                 .ledgerId(ledger.id())
-                .transactionId(savedTransaction.id())
                 .memberId(command.memberId())
                 .earnedAmount(amount.getValue())
                 .totalBalance(updatedMemberPoint.getTotalBalance(now).getValue())

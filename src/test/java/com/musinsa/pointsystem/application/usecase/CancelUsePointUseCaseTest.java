@@ -4,7 +4,6 @@ import com.musinsa.pointsystem.IntegrationTestBase;
 import com.musinsa.pointsystem.application.dto.CancelUsePointCommand;
 import com.musinsa.pointsystem.application.dto.CancelUsePointResult;
 import com.musinsa.pointsystem.domain.exception.InvalidCancelAmountException;
-import com.musinsa.pointsystem.domain.exception.PointTransactionNotFoundException;
 import com.musinsa.pointsystem.domain.model.PointLedger;
 import com.musinsa.pointsystem.domain.repository.PointLedgerRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -53,7 +52,7 @@ class CancelUsePointUseCaseTest extends IntegrationTestBase {
             CancelUsePointResult result = cancelUsePointUseCase.execute(command);
 
             // THEN
-            assertThat(result.transactionId()).isNotNull();
+            // transactionId 필드 제거됨 - 생략
             assertThat(result.canceledAmount()).isEqualTo(1000L);
             assertThat(result.totalBalance()).isEqualTo(1000L);
             assertThat(result.orderId()).isEqualTo("ORDER-CU-T01");
@@ -171,7 +170,7 @@ class CancelUsePointUseCaseTest extends IntegrationTestBase {
 
             // 신규 적립건 생성 확인 (원본 적립건은 만료 상태 유지)
             PointLedger originalLedger = pointLedgerRepository.findByIdWithEntries(expiredLedgerId).orElseThrow();
-            assertThat(originalLedger.isExpired()).isTrue();
+            assertThat(originalLedger.isExpired(java.time.LocalDateTime.now())).isTrue();
             assertThat(originalLedger.availableAmount().getValue()).isEqualTo(0L);
 
             // 신규 적립건이 생성되어 사용 가능
@@ -213,7 +212,7 @@ class CancelUsePointUseCaseTest extends IntegrationTestBase {
 
             // 만료 적립건은 복구되지 않고 그대로 (available 그대로 0)
             PointLedger expiredLedger = pointLedgerRepository.findByIdWithEntries(expiredLedgerId).orElseThrow();
-            assertThat(expiredLedger.isExpired()).isTrue();
+            assertThat(expiredLedger.isExpired(java.time.LocalDateTime.now())).isTrue();
             assertThat(expiredLedger.availableAmount().getValue()).isEqualTo(0L);
         }
     }
@@ -273,10 +272,9 @@ class CancelUsePointUseCaseTest extends IntegrationTestBase {
                     .cancelAmount(100L)
                     .build();
 
-            // WHEN & THEN
+            // WHEN & THEN - 주문 없으면 InvalidCancelAmountException (취소 가능 금액 0)
             assertThatThrownBy(() -> cancelUsePointUseCase.execute(command))
-                    .isInstanceOf(PointTransactionNotFoundException.class)
-                    .hasMessageContaining("트랜잭션 없음");
+                    .isInstanceOf(InvalidCancelAmountException.class);
         }
     }
 }

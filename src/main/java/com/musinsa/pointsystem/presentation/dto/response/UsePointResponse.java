@@ -10,9 +10,6 @@ import java.util.UUID;
 @Builder
 public record UsePointResponse(
 
-        @Schema(description = "사용 트랜잭션 ID")
-        UUID transactionId,
-
         @Schema(description = "회원 ID")
         UUID memberId,
 
@@ -27,7 +24,6 @@ public record UsePointResponse(
 ) {
     public static UsePointResponse from(UsePointResult result) {
         return UsePointResponse.builder()
-                .transactionId(result.transactionId())
                 .memberId(result.memberId())
                 .usedAmount(result.usedAmount())
                 .totalBalance(result.totalBalance())

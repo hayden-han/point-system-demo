@@ -3,12 +3,12 @@ package com.musinsa.pointsystem.presentation.controller;
 import com.musinsa.pointsystem.application.dto.PageQuery;
 import com.musinsa.pointsystem.application.dto.PagedResult;
 import com.musinsa.pointsystem.application.dto.PointBalanceResult;
-import com.musinsa.pointsystem.application.dto.PointTransactionResult;
+import com.musinsa.pointsystem.application.dto.PointHistoryResult;
 import com.musinsa.pointsystem.application.usecase.GetPointBalanceUseCase;
 import com.musinsa.pointsystem.application.usecase.GetPointHistoryUseCase;
 import com.musinsa.pointsystem.presentation.dto.response.PageResponse;
 import com.musinsa.pointsystem.presentation.dto.response.PointBalanceResponse;
-import com.musinsa.pointsystem.presentation.dto.response.PointTransactionResponse;
+import com.musinsa.pointsystem.presentation.dto.response.PointHistoryResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -48,19 +48,19 @@ public class PointBalanceController {
     }
 
     @Operation(
-            summary = "포인트 거래 이력 조회",
-            description = "회원의 포인트 거래 이력을 페이지네이션으로 조회합니다.\n\n" +
-                    "**거래 유형:**\n" +
-                    "- `EARN`: 적립\n" +
-                    "- `EARN_CANCEL`: 적립 취소\n" +
-                    "- `USE`: 사용\n" +
-                    "- `USE_CANCEL`: 사용 취소"
+            summary = "포인트 변동 이력 조회",
+            description = "회원의 포인트 변동 이력을 페이지네이션으로 조회합니다.\n\n" +
+                    "**변동 유형:**\n" +
+                    "- `EARN`: 적립 (양수)\n" +
+                    "- `EARN_CANCEL`: 적립 취소 (음수)\n" +
+                    "- `USE`: 사용 (음수)\n" +
+                    "- `USE_CANCEL`: 사용 취소 (양수)"
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "조회 성공")
     })
     @GetMapping("/history")
-    public PageResponse<PointTransactionResponse> getHistory(
+    public PageResponse<PointHistoryResponse> getHistory(
             @Parameter(description = "회원 ID", required = true)
             @PathVariable UUID memberId,
             @Parameter(description = "페이지 번호 (0부터 시작)", example = "0")
@@ -68,7 +68,7 @@ public class PointBalanceController {
             @Parameter(description = "페이지 크기 (최대 100)", example = "20")
             @RequestParam(defaultValue = "20") int size) {
         PageQuery pageQuery = PageQuery.of(page, size);
-        PagedResult<PointTransactionResult> transactions = getPointHistoryUseCase.execute(memberId, pageQuery);
-        return PageResponse.from(transactions, PointTransactionResponse::from);
+        PagedResult<PointHistoryResult> history = getPointHistoryUseCase.execute(memberId, pageQuery);
+        return PageResponse.from(history, PointHistoryResponse::from);
     }
 }

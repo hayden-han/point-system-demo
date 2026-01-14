@@ -35,7 +35,7 @@ public class PointLedgerMapper {
                 PointAmount.of(entity.getEarnedAmount()),
                 PointAmount.of(entity.getAvailableAmount()),
                 EarnType.valueOf(entity.getEarnType()),
-                entity.getSourceTransactionId(),  // v2에서는 sourceLedgerId로 사용
+                entity.getSourceLedgerId(),
                 entity.getExpiredAt(),
                 entity.getIsCanceled(),
                 entity.getEarnedAt(),
@@ -51,7 +51,7 @@ public class PointLedgerMapper {
                 .availableAmount(domain.availableAmount().value())
                 .usedAmount(domain.usedAmount().value())  // entries 기반 계산값
                 .earnType(domain.earnType().name())
-                .sourceTransactionId(domain.sourceLedgerId())  // v2에서는 sourceLedgerId 사용
+                .sourceLedgerId(domain.sourceLedgerId())
                 .expiredAt(domain.expiredAt())
                 .isCanceled(domain.canceled())
                 .earnedAt(domain.earnedAt())

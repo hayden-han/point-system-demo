@@ -13,9 +13,6 @@ public record CancelEarnPointResponse(
         @Schema(description = "취소된 적립건 ID")
         UUID ledgerId,
 
-        @Schema(description = "취소 트랜잭션 ID")
-        UUID transactionId,
-
         @Schema(description = "회원 ID")
         UUID memberId,
 
@@ -28,7 +25,6 @@ public record CancelEarnPointResponse(
     public static CancelEarnPointResponse from(CancelEarnPointResult result) {
         return CancelEarnPointResponse.builder()
                 .ledgerId(result.ledgerId())
-                .transactionId(result.transactionId())
                 .memberId(result.memberId())
                 .canceledAmount(result.canceledAmount())
                 .totalBalance(result.totalBalance())

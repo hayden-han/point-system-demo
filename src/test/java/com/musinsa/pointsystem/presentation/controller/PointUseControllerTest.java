@@ -175,8 +175,8 @@ class PointUseControllerTest extends IntegrationTestBase {
         }
 
         @Test
-        @DisplayName("존재하지 않는 주문 취소 시 404를 반환한다")
-        void shouldReturn404ForNonExistentOrder() throws Exception {
+        @DisplayName("존재하지 않는 주문 취소 시 400을 반환한다")
+        void shouldReturn400ForNonExistentOrder() throws Exception {
             // GIVEN
             UUID memberId = UUID.fromString("00000000-0000-0000-0000-000000008305");
             CancelUsePointRequest request = CancelUsePointRequest.builder()
@@ -185,10 +185,11 @@ class PointUseControllerTest extends IntegrationTestBase {
                     .build();
 
             // WHEN & THEN
+            // 존재하지 않는 주문은 취소 가능 금액이 0이므로 InvalidCancelAmountException (400)
             mockMvc.perform(post("/api/v1/members/{memberId}/points/use/cancel", memberId)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isNotFound());
+                    .andExpect(status().isBadRequest());
         }
 
         @Test

@@ -48,7 +48,6 @@ class CancelEarnPointUseCaseTest extends IntegrationTestBase {
 
             // THEN
             assertThat(result.ledgerId()).isEqualTo(ledgerId);
-            assertThat(result.transactionId()).isNotNull();
             assertThat(result.canceledAmount()).isEqualTo(1000L);
             assertThat(result.totalBalance()).isEqualTo(0L);
         }

@@ -88,7 +88,8 @@ class PointBalanceControllerTest extends IntegrationTestBase {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.content").isArray())
                     .andExpect(jsonPath("$.content.length()").value(1))
-                    .andExpect(jsonPath("$.content[0].memberId").value(memberId.toString()));
+                    .andExpect(jsonPath("$.content[0].type").value("EARN"))
+                    .andExpect(jsonPath("$.content[0].amount").value(5000));
         }
 
         @Test

@@ -6,7 +6,6 @@ import com.musinsa.pointsystem.domain.model.*;
 import com.musinsa.pointsystem.domain.port.IdGenerator;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 /**
  * 포인트 사용 도메인 매니저
@@ -26,11 +25,11 @@ public class PointUsageManager {
     }
 
     // =====================================================
-    // 사용 (Use) - v2
+    // 사용 (Use)
     // =====================================================
 
     /**
-     * 포인트 사용 (v2: orderId, LedgerEntry 자동 생성)
+     * 포인트 사용 (LedgerEntry 자동 생성)
      */
     public MemberPoint.UsageResult useV2(MemberPoint memberPoint, PointAmount amount, String orderId) {
         LocalDateTime now = timeProvider.now();
@@ -39,11 +38,11 @@ public class PointUsageManager {
     }
 
     // =====================================================
-    // 사용취소 (Cancel Use) - v2
+    // 사용취소 (Cancel Use)
     // =====================================================
 
     /**
-     * 사용 취소 (v2: LedgerEntry 기반)
+     * 사용 취소 (LedgerEntry 기반)
      * - orderId로 해당 주문의 사용 내역 추적
      */
     public MemberPoint.CancelUseResult cancelUseV2(MemberPoint memberPoint,
@@ -53,16 +52,5 @@ public class PointUsageManager {
         LocalDateTime now = timeProvider.now();
         IdGenerator idGenerator = pointFactory.getIdGenerator();
         return memberPoint.cancelUse(orderId, cancelAmount, now, idGenerator, defaultExpirationDays);
-    }
-
-    // =====================================================
-    // 트랜잭션 생성 (히스토리 API 호환용)
-    // =====================================================
-
-    /**
-     * 사용 트랜잭션 생성 (히스토리 API 호환용)
-     */
-    public PointTransaction createUseTransaction(UUID memberId, PointAmount amount, OrderId orderId) {
-        return pointFactory.createUseTransaction(memberId, amount, orderId);
     }
 }

@@ -123,14 +123,16 @@ class PointLedgerTest {
             // GIVEN
             UUID id = UuidGenerator.generate();
             UUID memberId = UuidGenerator.generate();
+            IdGenerator idGenerator = UuidGenerator::generate;
+            LocalDateTime now = LocalDateTime.now();
             PointLedger ledger = PointLedgerFixture.createSystem(id, memberId, 1000L);
 
             // WHEN
-            PointLedger canceledLedger = ledger.cancel();
+            PointLedger.CancelResult cancelResult = ledger.cancel(idGenerator, now);
 
             // THEN
-            assertThat(canceledLedger.canceled()).isTrue();
-            assertThat(canceledLedger.availableAmount().getValue()).isEqualTo(0L);
+            assertThat(cancelResult.ledger().canceled()).isTrue();
+            assertThat(cancelResult.ledger().availableAmount().getValue()).isEqualTo(0L);
             assertThat(ledger.canceled()).isFalse(); // 원본 불변
         }
 
@@ -140,10 +142,12 @@ class PointLedgerTest {
             // GIVEN
             UUID id = UuidGenerator.generate();
             UUID memberId = UuidGenerator.generate();
+            IdGenerator idGenerator = UuidGenerator::generate;
+            LocalDateTime now = LocalDateTime.now();
             PointLedger ledger = PointLedgerFixture.createPartiallyUsed(id, memberId, 1000L, 500L, EarnType.SYSTEM);
 
             // WHEN & THEN
-            assertThatThrownBy(ledger::cancel)
+            assertThatThrownBy(() -> ledger.cancel(idGenerator, now))
                     .isInstanceOf(PointLedgerAlreadyUsedException.class);
         }
     }
@@ -158,8 +162,9 @@ class PointLedgerTest {
             UUID id = UuidGenerator.generate();
             UUID memberId = UuidGenerator.generate();
             PointLedger ledger = PointLedgerFixture.createExpired(id, memberId, 1000L, EarnType.SYSTEM);
+            LocalDateTime now = LocalDateTime.now();
 
-            assertThat(ledger.isExpired()).isTrue();
+            assertThat(ledger.isExpired(now)).isTrue();
         }
 
         @Test
@@ -168,8 +173,9 @@ class PointLedgerTest {
             UUID id = UuidGenerator.generate();
             UUID memberId = UuidGenerator.generate();
             PointLedger ledger = PointLedgerFixture.createSystem(id, memberId, 1000L);
+            LocalDateTime now = LocalDateTime.now();
 
-            assertThat(ledger.isExpired()).isFalse();
+            assertThat(ledger.isExpired(now)).isFalse();
         }
     }
 
@@ -183,8 +189,9 @@ class PointLedgerTest {
             UUID id = UuidGenerator.generate();
             UUID memberId = UuidGenerator.generate();
             PointLedger ledger = PointLedgerFixture.createSystem(id, memberId, 1000L);
+            LocalDateTime now = LocalDateTime.now();
 
-            assertThat(ledger.isAvailable()).isTrue();
+            assertThat(ledger.isAvailable(now)).isTrue();
         }
 
         @Test
@@ -193,8 +200,9 @@ class PointLedgerTest {
             UUID id = UuidGenerator.generate();
             UUID memberId = UuidGenerator.generate();
             PointLedger ledger = PointLedgerFixture.createCanceled(id, memberId, 1000L, EarnType.SYSTEM);
+            LocalDateTime now = LocalDateTime.now();
 
-            assertThat(ledger.isAvailable()).isFalse();
+            assertThat(ledger.isAvailable(now)).isFalse();
         }
 
         @Test
@@ -203,8 +211,9 @@ class PointLedgerTest {
             UUID id = UuidGenerator.generate();
             UUID memberId = UuidGenerator.generate();
             PointLedger ledger = PointLedgerFixture.createExpired(id, memberId, 1000L, EarnType.SYSTEM);
+            LocalDateTime now = LocalDateTime.now();
 
-            assertThat(ledger.isAvailable()).isFalse();
+            assertThat(ledger.isAvailable(now)).isFalse();
         }
 
         @Test
@@ -213,8 +222,9 @@ class PointLedgerTest {
             UUID id = UuidGenerator.generate();
             UUID memberId = UuidGenerator.generate();
             PointLedger ledger = PointLedgerFixture.createFullyUsed(id, memberId, 1000L, EarnType.SYSTEM);
+            LocalDateTime now = LocalDateTime.now();
 
-            assertThat(ledger.isAvailable()).isFalse();
+            assertThat(ledger.isAvailable(now)).isFalse();
         }
     }
 
@@ -223,15 +233,17 @@ class PointLedgerTest {
     class UseTest {
 
         @Test
-        @DisplayName("요청 금액만큼 차감 - 새 객체 반환 (레거시)")
+        @DisplayName("요청 금액만큼 차감 - 새 객체 반환")
         void use_shouldReturnNewLedgerWithDeductedAmount() {
             // GIVEN
             UUID id = UuidGenerator.generate();
             UUID memberId = UuidGenerator.generate();
+            IdGenerator idGenerator = UuidGenerator::generate;
+            LocalDateTime now = LocalDateTime.now();
             PointLedger ledger = PointLedgerFixture.createSystem(id, memberId, 1000L);
 
             // WHEN
-            PointLedger.UseResult result = ledger.use(PointAmount.of(300L));
+            PointLedger.UseResult result = ledger.use(PointAmount.of(300L), "ORDER-001", idGenerator, now);
 
             // THEN
             assertThat(result.usedAmount().getValue()).isEqualTo(300L);
@@ -240,40 +252,21 @@ class PointLedgerTest {
         }
 
         @Test
-        @DisplayName("잔액보다 많이 요청하면 잔액만큼만 사용 (레거시)")
+        @DisplayName("잔액보다 많이 요청하면 잔액만큼만 사용")
         void useMoreThanAvailable_shouldUseOnlyAvailable() {
             // GIVEN
             UUID id = UuidGenerator.generate();
             UUID memberId = UuidGenerator.generate();
+            IdGenerator idGenerator = UuidGenerator::generate;
+            LocalDateTime now = LocalDateTime.now();
             PointLedger ledger = PointLedgerFixture.createSystem(id, memberId, 500L);
 
             // WHEN
-            PointLedger.UseResult result = ledger.use(PointAmount.of(800L));
+            PointLedger.UseResult result = ledger.use(PointAmount.of(800L), "ORDER-001", idGenerator, now);
 
             // THEN
             assertThat(result.usedAmount().getValue()).isEqualTo(500L);
             assertThat(result.ledger().availableAmount().getValue()).isEqualTo(0L);
-        }
-    }
-
-    @Nested
-    @DisplayName("포인트 복구")
-    class RestoreTest {
-
-        @Test
-        @DisplayName("사용된 금액 내에서 복구 성공 - 새 객체 반환 (레거시)")
-        void restore_shouldReturnNewLedgerWithRestoredAmount() {
-            // GIVEN
-            UUID id = UuidGenerator.generate();
-            UUID memberId = UuidGenerator.generate();
-            PointLedger ledger = PointLedgerFixture.createPartiallyUsed(id, memberId, 1000L, 500L, EarnType.SYSTEM);
-
-            // WHEN
-            PointLedger restoredLedger = ledger.restore(PointAmount.of(300L));
-
-            // THEN
-            assertThat(restoredLedger.availableAmount().getValue()).isEqualTo(800L);
-            assertThat(ledger.availableAmount().getValue()).isEqualTo(500L); // 원본 불변
         }
     }
 

@@ -10,9 +10,6 @@ import java.util.UUID;
 @Builder
 public record CancelUsePointResponse(
 
-        @Schema(description = "취소 트랜잭션 ID")
-        UUID transactionId,
-
         @Schema(description = "회원 ID")
         UUID memberId,
 
@@ -27,7 +24,6 @@ public record CancelUsePointResponse(
 ) {
     public static CancelUsePointResponse from(CancelUsePointResult result) {
         return CancelUsePointResponse.builder()
-                .transactionId(result.transactionId())
                 .memberId(result.memberId())
                 .canceledAmount(result.canceledAmount())
                 .totalBalance(result.totalBalance())

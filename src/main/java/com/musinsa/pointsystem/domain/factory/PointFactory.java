@@ -5,7 +5,6 @@ import com.musinsa.pointsystem.domain.model.*;
 import com.musinsa.pointsystem.domain.port.IdGenerator;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -24,10 +23,10 @@ public class PointFactory {
         this.timeProvider = timeProvider;
     }
 
-    // === PointLedger 생성 (v2) ===
+    // === PointLedger 생성 ===
 
     /**
-     * 포인트 적립건 생성 (v2: EARN Entry 포함)
+     * 포인트 적립건 생성 (EARN Entry 포함)
      */
     public PointLedger createLedger(UUID memberId, PointAmount amount, EarnType earnType, LocalDateTime expiredAt) {
         LocalDateTime now = timeProvider.now();
@@ -44,7 +43,7 @@ public class PointFactory {
     }
 
     /**
-     * 사용 취소로 인한 포인트 적립건 생성 (만료된 적립건 복원용, v2)
+     * 사용 취소로 인한 포인트 적립건 생성 (만료된 적립건 복원용)
      */
     public PointLedger createLedgerFromCancelUse(UUID memberId, PointAmount amount, EarnType earnType,
                                                   LocalDateTime expiredAt, UUID sourceLedgerId) {
@@ -58,97 +57,6 @@ public class PointFactory {
                 sourceLedgerId,
                 idGenerator,
                 now
-        );
-    }
-
-    /**
-     * @deprecated v2에서는 createLedger() 사용 권장
-     */
-    @Deprecated
-    public PointLedger createLedgerLegacy(UUID memberId, PointAmount amount, EarnType earnType, LocalDateTime expiredAt) {
-        return PointLedger.createLegacy(
-                idGenerator.generate(),
-                memberId,
-                amount,
-                earnType,
-                expiredAt,
-                null,
-                timeProvider.now()
-        );
-    }
-
-    // === PointTransaction 생성 (레거시 - 향후 제거 예정) ===
-
-    /**
-     * 적립 트랜잭션 생성
-     * @deprecated v2에서는 LedgerEntry로 대체
-     */
-    @Deprecated
-    public PointTransaction createEarnTransaction(UUID memberId, PointAmount amount, UUID ledgerId) {
-        return new PointTransaction(
-                idGenerator.generate(),
-                memberId,
-                TransactionType.EARN,
-                amount,
-                null,
-                null,
-                ledgerId,
-                timeProvider.now()
-        );
-    }
-
-    /**
-     * 적립 취소 트랜잭션 생성
-     * @deprecated v2에서는 LedgerEntry로 대체
-     */
-    @Deprecated
-    public PointTransaction createEarnCancelTransaction(UUID memberId, PointAmount amount, UUID ledgerId) {
-        return new PointTransaction(
-                idGenerator.generate(),
-                memberId,
-                TransactionType.EARN_CANCEL,
-                amount,
-                null,
-                null,
-                ledgerId,
-                timeProvider.now()
-        );
-    }
-
-    /**
-     * 사용 트랜잭션 생성
-     * @deprecated v2에서는 LedgerEntry로 대체
-     */
-    @Deprecated
-    public PointTransaction createUseTransaction(UUID memberId, PointAmount amount, OrderId orderId) {
-        return new PointTransaction(
-                idGenerator.generate(),
-                memberId,
-                TransactionType.USE,
-                amount,
-                orderId,
-                null,
-                null,
-                timeProvider.now()
-        );
-    }
-
-    /**
-     * 사용 취소 트랜잭션 생성
-     * @deprecated v2에서는 LedgerEntry로 대체
-     */
-    @Deprecated
-    public PointTransaction createUseCancelTransaction(UUID memberId, PointAmount amount,
-                                                        OrderId orderId, UUID relatedTransactionId) {
-        return new PointTransaction(
-                idGenerator.generate(),
-                memberId,
-                TransactionType.USE_CANCEL,
-                amount,
-                orderId,
-                relatedTransactionId,
-                null,
-                timeProvider.now()
         );
     }
 

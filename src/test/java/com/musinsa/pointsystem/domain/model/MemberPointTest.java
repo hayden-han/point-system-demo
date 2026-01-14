@@ -30,9 +30,10 @@ class MemberPointTest {
         void create_shouldHaveZeroBalance() {
             UUID memberId = UuidGenerator.generate();
             MemberPoint memberPoint = MemberPoint.create(memberId);
+            LocalDateTime now = LocalDateTime.now();
 
             assertThat(memberPoint.memberId()).isEqualTo(memberId);
-            assertThat(memberPoint.totalBalance().getValue()).isEqualTo(0L);
+            assertThat(memberPoint.getTotalBalance(now).getValue()).isEqualTo(0L);
         }
     }
 
@@ -45,16 +46,18 @@ class MemberPointTest {
         void use_shouldReturnNewMemberPoint() {
             // GIVEN
             UUID memberId = UuidGenerator.generate();
+            IdGenerator idGenerator = UuidGenerator::generate;
+            LocalDateTime now = LocalDateTime.now();
             PointLedger ledger = PointLedgerFixture.createSystem(UuidGenerator.generate(), memberId, 1000L);
             MemberPoint memberPoint = MemberPointFixture.createWithLedgers(memberId, 1000L, List.of(ledger));
 
             // WHEN
-            MemberPoint.UsageResult result = memberPoint.use(PointAmount.of(300L));
+            MemberPoint.UsageResult result = memberPoint.use(PointAmount.of(300L), "ORDER-001", idGenerator, now);
 
             // THEN
-            assertThat(result.memberPoint().totalBalance().getValue()).isEqualTo(700L);
+            assertThat(result.memberPoint().getTotalBalance(now).getValue()).isEqualTo(700L);
             assertThat(result.usageDetails()).hasSize(1);
-            assertThat(memberPoint.totalBalance().getValue()).isEqualTo(1000L); // 원본 불변
+            assertThat(memberPoint.getTotalBalance(now).getValue()).isEqualTo(1000L); // 원본 불변
         }
 
         @Test
@@ -62,11 +65,13 @@ class MemberPointTest {
         void useMoreThanBalance_shouldThrowException() {
             // GIVEN
             UUID memberId = UuidGenerator.generate();
+            IdGenerator idGenerator = UuidGenerator::generate;
+            LocalDateTime now = LocalDateTime.now();
             PointLedger ledger = PointLedgerFixture.createSystem(UuidGenerator.generate(), memberId, 500L);
             MemberPoint memberPoint = MemberPointFixture.createWithLedgers(memberId, 500L, List.of(ledger));
 
             // WHEN & THEN
-            assertThatThrownBy(() -> memberPoint.use(PointAmount.of(600L)))
+            assertThatThrownBy(() -> memberPoint.use(PointAmount.of(600L), "ORDER-001", idGenerator, now))
                     .isInstanceOf(InsufficientPointException.class);
         }
     }
@@ -80,8 +85,9 @@ class MemberPointTest {
         void withinMaxBalance_canEarn() {
             UUID memberId = UuidGenerator.generate();
             MemberPoint memberPoint = MemberPointFixture.createWithBalance(memberId, 5000000L);
+            LocalDateTime now = LocalDateTime.now();
 
-            assertThat(memberPoint.canEarn(PointAmount.of(4000000L), MAX_BALANCE)).isTrue();
+            assertThat(memberPoint.canEarn(PointAmount.of(4000000L), MAX_BALANCE, now)).isTrue();
         }
 
         @Test
@@ -89,8 +95,9 @@ class MemberPointTest {
         void exceedsMaxBalance_cannotEarn() {
             UUID memberId = UuidGenerator.generate();
             MemberPoint memberPoint = MemberPointFixture.createWithBalance(memberId, 9500000L);
+            LocalDateTime now = LocalDateTime.now();
 
-            assertThat(memberPoint.canEarn(PointAmount.of(600000L), MAX_BALANCE)).isFalse();
+            assertThat(memberPoint.canEarn(PointAmount.of(600000L), MAX_BALANCE, now)).isFalse();
         }
 
         @Test
@@ -98,8 +105,9 @@ class MemberPointTest {
         void exactlyMaxBalance_canEarn() {
             UUID memberId = UuidGenerator.generate();
             MemberPoint memberPoint = MemberPointFixture.createWithBalance(memberId, 9000000L);
+            LocalDateTime now = LocalDateTime.now();
 
-            assertThat(memberPoint.canEarn(PointAmount.of(1000000L), MAX_BALANCE)).isTrue();
+            assertThat(memberPoint.canEarn(PointAmount.of(1000000L), MAX_BALANCE, now)).isTrue();
         }
 
         @Test
@@ -107,8 +115,9 @@ class MemberPointTest {
         void alreadyMaxBalance_cannotEarn() {
             UUID memberId = UuidGenerator.generate();
             MemberPoint memberPoint = MemberPointFixture.createAtMaxBalance(memberId, MAX_BALANCE.getValue());
+            LocalDateTime now = LocalDateTime.now();
 
-            assertThat(memberPoint.canEarn(PointAmount.of(1L), MAX_BALANCE)).isFalse();
+            assertThat(memberPoint.canEarn(PointAmount.of(1L), MAX_BALANCE, now)).isFalse();
         }
     }
 
@@ -121,8 +130,9 @@ class MemberPointTest {
         void enoughBalance_returnsTrue() {
             UUID memberId = UuidGenerator.generate();
             MemberPoint memberPoint = MemberPointFixture.createWithBalance(memberId, 1000L);
+            LocalDateTime now = LocalDateTime.now();
 
-            assertThat(memberPoint.hasEnoughBalance(PointAmount.of(500L))).isTrue();
+            assertThat(memberPoint.hasEnoughBalance(PointAmount.of(500L), now)).isTrue();
         }
 
         @Test
@@ -130,8 +140,9 @@ class MemberPointTest {
         void exactBalance_returnsTrue() {
             UUID memberId = UuidGenerator.generate();
             MemberPoint memberPoint = MemberPointFixture.createWithBalance(memberId, 1000L);
+            LocalDateTime now = LocalDateTime.now();
 
-            assertThat(memberPoint.hasEnoughBalance(PointAmount.of(1000L))).isTrue();
+            assertThat(memberPoint.hasEnoughBalance(PointAmount.of(1000L), now)).isTrue();
         }
 
         @Test
@@ -139,8 +150,9 @@ class MemberPointTest {
         void insufficientBalance_returnsFalse() {
             UUID memberId = UuidGenerator.generate();
             MemberPoint memberPoint = MemberPointFixture.createWithBalance(memberId, 500L);
+            LocalDateTime now = LocalDateTime.now();
 
-            assertThat(memberPoint.hasEnoughBalance(PointAmount.of(1000L))).isFalse();
+            assertThat(memberPoint.hasEnoughBalance(PointAmount.of(1000L), now)).isFalse();
         }
 
         @Test
@@ -148,8 +160,9 @@ class MemberPointTest {
         void zeroBalance_returnsFalse() {
             UUID memberId = UuidGenerator.generate();
             MemberPoint memberPoint = MemberPointFixture.create(memberId);
+            LocalDateTime now = LocalDateTime.now();
 
-            assertThat(memberPoint.hasEnoughBalance(PointAmount.of(1L))).isFalse();
+            assertThat(memberPoint.hasEnoughBalance(PointAmount.of(1L), now)).isFalse();
         }
     }
 

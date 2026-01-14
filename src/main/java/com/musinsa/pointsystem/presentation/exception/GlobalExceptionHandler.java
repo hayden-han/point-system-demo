@@ -27,13 +27,6 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of("LEDGER_NOT_FOUND", e.getUserMessage()));
     }
 
-    @ExceptionHandler(PointTransactionNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handlePointTransactionNotFound(PointTransactionNotFoundException e) {
-        log.warn("트랜잭션을 찾을 수 없음: {}", e.getInternalMessage());
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(ErrorResponse.of("TRANSACTION_NOT_FOUND", e.getUserMessage()));
-    }
-
     @ExceptionHandler(MemberPointNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleMemberPointNotFound(MemberPointNotFoundException e) {
         log.warn("회원 포인트를 찾을 수 없음: {}", e.getInternalMessage());

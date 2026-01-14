@@ -100,7 +100,6 @@ class IntegrationScenarioTest extends IntegrationTestBase {
             // THEN
             assertThat(useResult.usedAmount()).isEqualTo(1200L);
             assertThat(useResult.totalBalance()).isEqualTo(300L);
-            UUID useTransactionId = useResult.transactionId();
 
             // 적립건 상태 확인 (Entry 포함 조회)
             PointLedger ledgerAAfterUse = pointLedgerRepository.findByIdWithEntries(ledgerIdA).orElseThrow();
@@ -119,7 +118,7 @@ class IntegrationScenarioTest extends IntegrationTestBase {
 
             // THEN - A가 만료되었는지 확인
             PointLedger ledgerAExpired = pointLedgerRepository.findByIdWithEntries(ledgerIdA).orElseThrow();
-            assertThat(ledgerAExpired.isExpired()).isTrue();
+            assertThat(ledgerAExpired.isExpired(LocalDateTime.now())).isTrue();
 
             // ===== STEP 5: 1100원 사용취소 -> 잔액 1400 =====
             // GIVEN

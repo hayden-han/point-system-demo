@@ -59,26 +59,6 @@ public record PointLedger(
         );
     }
 
-    /**
-     * 레거시 호환을 위한 생성자 (entries 없이 생성)
-     * @deprecated entries를 포함하는 create() 메서드 사용 권장
-     */
-    @Deprecated
-    public static PointLedger createLegacy(
-            UUID id,
-            UUID memberId,
-            PointAmount amount,
-            EarnType earnType,
-            LocalDateTime expiredAt,
-            UUID sourceLedgerId,
-            LocalDateTime earnedAt
-    ) {
-        return new PointLedger(
-                id, memberId, amount, amount, earnType, sourceLedgerId,
-                expiredAt, false, earnedAt, List.of()
-        );
-    }
-
     // =====================================================
     // 비즈니스 메서드
     // =====================================================
@@ -95,28 +75,10 @@ public record PointLedger(
     }
 
     /**
-     * 만료 여부 확인 (현재 시간 기준 - UTC)
-     * @deprecated TimeProvider를 통한 isExpired(LocalDateTime) 사용 권장
-     */
-    @Deprecated
-    public boolean isExpired() {
-        return expiredAt.isBefore(LocalDateTime.now(java.time.ZoneOffset.UTC));
-    }
-
-    /**
      * 사용 가능 여부 (주어진 시간 기준)
      */
     public boolean isAvailable(LocalDateTime now) {
         return !canceled && !isExpired(now) && availableAmount.isPositive();
-    }
-
-    /**
-     * 사용 가능 여부 (현재 시간 기준 - UTC)
-     * @deprecated TimeProvider를 통한 isAvailable(LocalDateTime) 사용 권장
-     */
-    @Deprecated
-    public boolean isAvailable() {
-        return !canceled && !isExpired() && availableAmount.isPositive();
     }
 
     public boolean isManual() {
@@ -278,51 +240,6 @@ public record PointLedger(
      * 사용취소 결과
      */
     public record CancelUseResult(PointLedger ledger, PointAmount canceledAmount, PointLedger newLedger) {}
-
-    // =====================================================
-    // 레거시 호환 메서드 (deprecated)
-    // =====================================================
-
-    /**
-     * @deprecated use(PointAmount, String, IdGenerator, LocalDateTime) 사용
-     */
-    @Deprecated
-    public UseResult use(PointAmount amount) {
-        PointAmount useAmount = amount.min(availableAmount);
-        PointLedger updated = new PointLedger(
-                id, memberId, earnedAmount, availableAmount.subtract(useAmount),
-                earnType, sourceLedgerId, expiredAt, canceled, earnedAt, entries
-        );
-        return new UseResult(updated, useAmount);
-    }
-
-    /**
-     * @deprecated cancel(IdGenerator, LocalDateTime) 사용
-     */
-    @Deprecated
-    public PointLedger cancel() {
-        if (canceled) {
-            throw new PointLedgerAlreadyCanceledException(id);
-        }
-        if (!earnedAmount.equals(availableAmount)) {
-            throw new PointLedgerAlreadyUsedException(id);
-        }
-        return new PointLedger(
-                id, memberId, earnedAmount, PointAmount.ZERO,
-                earnType, sourceLedgerId, expiredAt, true, earnedAt, entries
-        );
-    }
-
-    /**
-     * @deprecated cancelUse() 메서드 사용
-     */
-    @Deprecated
-    public PointLedger restore(PointAmount amount) {
-        return new PointLedger(
-                id, memberId, earnedAmount, availableAmount.add(amount),
-                earnType, sourceLedgerId, expiredAt, canceled, earnedAt, entries
-        );
-    }
 
     // =====================================================
     // 헬퍼 메서드

@@ -52,7 +52,6 @@ class UsePointUseCaseTest extends IntegrationTestBase {
             UsePointResult result = usePointUseCase.execute(command);
 
             // THEN
-            assertThat(result.transactionId()).isNotNull();
             assertThat(result.usedAmount()).isEqualTo(500L);
             assertThat(result.totalBalance()).isEqualTo(500L);
             assertThat(result.orderId()).isEqualTo("ORDER-U-T01");

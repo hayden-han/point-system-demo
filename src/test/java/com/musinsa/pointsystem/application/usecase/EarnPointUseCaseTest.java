@@ -45,7 +45,6 @@ class EarnPointUseCaseTest extends IntegrationTestBase {
 
             // THEN
             assertThat(result.ledgerId()).isNotNull();
-            assertThat(result.transactionId()).isNotNull();
             assertThat(result.memberId()).isEqualTo(memberId);
             assertThat(result.earnedAmount()).isEqualTo(1000L);
             assertThat(result.totalBalance()).isEqualTo(1000L);

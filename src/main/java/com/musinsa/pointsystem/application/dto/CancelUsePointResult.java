@@ -6,7 +6,6 @@ import java.util.UUID;
 
 @Builder
 public record CancelUsePointResult(
-        UUID transactionId,
         UUID memberId,
         Long canceledAmount,
         Long totalBalance,

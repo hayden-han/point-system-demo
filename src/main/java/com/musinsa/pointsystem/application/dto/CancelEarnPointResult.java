@@ -7,7 +7,6 @@ import java.util.UUID;
 @Builder
 public record CancelEarnPointResult(
         UUID ledgerId,
-        UUID transactionId,
         UUID memberId,
         Long canceledAmount,
         Long totalBalance

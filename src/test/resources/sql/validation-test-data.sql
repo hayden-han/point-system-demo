@@ -1,10 +1,7 @@
--- 정합성 검증 테스트용 데이터 (UUID 기반) - v2 구조
+-- 정합성 검증 테스트용 데이터 (v2 스키마)
 -- member_id: 7001 ~ 7010
 
--- V-T01: 잔액 정합성 (member_point.total_balance == SUM(valid ledger.available_amount))
-INSERT INTO member_point (member_id, total_balance, created_at, updated_at)
-VALUES (X'00000000000000000000000000007001', 1500, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
+-- V-T01: 잔액 정합성 (SUM(valid ledger.available_amount) == 총 잔액)
 -- 유효한 적립건 2개 (합계 1500)
 INSERT INTO point_ledger (id, member_id, earned_amount, available_amount, used_amount, earn_type, expired_at, is_canceled, earned_at, created_at, updated_at)
 VALUES (X'00000000000000000000000000007001', X'00000000000000000000000000007001', 1000, 800, 200, 'SYSTEM', DATEADD('DAY', 365, CURRENT_TIMESTAMP), false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
@@ -39,9 +36,6 @@ INSERT INTO ledger_entry (id, ledger_id, type, amount, order_id, created_at)
 VALUES (X'00000000000000000000000000070015', X'00000000000000000000000000007004', 'EARN_CANCEL', -300, NULL, CURRENT_TIMESTAMP);
 
 -- V-T02: 적립건 정합성 (earned_amount == available_amount + used_amount)
-INSERT INTO member_point (member_id, total_balance, created_at, updated_at)
-VALUES (X'00000000000000000000000000007002', 500, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
 INSERT INTO point_ledger (id, member_id, earned_amount, available_amount, used_amount, earn_type, expired_at, is_canceled, earned_at, created_at, updated_at)
 VALUES (X'00000000000000000000000000007005', X'00000000000000000000000000007002', 1000, 500, 500, 'SYSTEM', DATEADD('DAY', 365, CURRENT_TIMESTAMP), false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
@@ -52,9 +46,6 @@ INSERT INTO ledger_entry (id, ledger_id, type, amount, order_id, created_at)
 VALUES (X'00000000000000000000000000070021', X'00000000000000000000000000007005', 'USE', -500, 'ORDER-V-T02', CURRENT_TIMESTAMP);
 
 -- V-T03: 사용상세 정합성 (v2: Entry 기반 - 같은 orderId의 USE Entry 합계 == 사용 금액)
-INSERT INTO member_point (member_id, total_balance, created_at, updated_at)
-VALUES (X'00000000000000000000000000007003', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
 INSERT INTO point_ledger (id, member_id, earned_amount, available_amount, used_amount, earn_type, expired_at, is_canceled, earned_at, created_at, updated_at)
 VALUES (X'00000000000000000000000000007006', X'00000000000000000000000000007003', 500, 0, 500, 'SYSTEM', DATEADD('DAY', 365, CURRENT_TIMESTAMP), false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
@@ -74,9 +65,6 @@ INSERT INTO ledger_entry (id, ledger_id, type, amount, order_id, created_at)
 VALUES (X'00000000000000000000000000070033', X'00000000000000000000000000007007', 'USE', -500, 'ORDER-V-T03', CURRENT_TIMESTAMP);
 
 -- V-T04: 취소 정합성 (v2: Entry 기반 - USE_CANCEL 합계 <= USE 합계)
-INSERT INTO member_point (member_id, total_balance, created_at, updated_at)
-VALUES (X'00000000000000000000000000007004', 300, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
-
 INSERT INTO point_ledger (id, member_id, earned_amount, available_amount, used_amount, earn_type, expired_at, is_canceled, earned_at, created_at, updated_at)
 VALUES (X'00000000000000000000000000007008', X'00000000000000000000000000007004', 1000, 300, 700, 'SYSTEM', DATEADD('DAY', 365, CURRENT_TIMESTAMP), false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 

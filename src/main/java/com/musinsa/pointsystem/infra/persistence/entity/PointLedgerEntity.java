@@ -34,8 +34,8 @@ public class PointLedgerEntity extends BaseEntity {
     @Column(name = "earn_type", nullable = false, length = 20)
     private String earnType;
 
-    @Column(name = "source_transaction_id", columnDefinition = "BINARY(16)")
-    private UUID sourceTransactionId;
+    @Column(name = "source_ledger_id", columnDefinition = "BINARY(16)")
+    private UUID sourceLedgerId;
 
     @Column(name = "expired_at", nullable = false)
     private LocalDateTime expiredAt;
@@ -48,7 +48,7 @@ public class PointLedgerEntity extends BaseEntity {
 
     @Builder
     public PointLedgerEntity(UUID id, UUID memberId, Long earnedAmount, Long availableAmount,
-                             Long usedAmount, String earnType, UUID sourceTransactionId,
+                             Long usedAmount, String earnType, UUID sourceLedgerId,
                              LocalDateTime expiredAt, Boolean isCanceled, LocalDateTime earnedAt) {
         this.id = id;
         this.memberId = memberId;
@@ -56,7 +56,7 @@ public class PointLedgerEntity extends BaseEntity {
         this.availableAmount = availableAmount;
         this.usedAmount = usedAmount;
         this.earnType = earnType;
-        this.sourceTransactionId = sourceTransactionId;
+        this.sourceLedgerId = sourceLedgerId;
         this.expiredAt = expiredAt;
         this.isCanceled = isCanceled;
         this.earnedAt = earnedAt;

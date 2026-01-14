@@ -14,9 +14,6 @@ public record EarnPointResponse(
         @Schema(description = "적립건 ID")
         UUID ledgerId,
 
-        @Schema(description = "트랜잭션 ID")
-        UUID transactionId,
-
         @Schema(description = "회원 ID")
         UUID memberId,
 
@@ -32,7 +29,6 @@ public record EarnPointResponse(
     public static EarnPointResponse from(EarnPointResult result) {
         return EarnPointResponse.builder()
                 .ledgerId(result.ledgerId())
-                .transactionId(result.transactionId())
                 .memberId(result.memberId())
                 .earnedAmount(result.earnedAmount())
                 .totalBalance(result.totalBalance())

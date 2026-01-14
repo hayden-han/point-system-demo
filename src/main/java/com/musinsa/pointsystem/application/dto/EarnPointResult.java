@@ -8,7 +8,6 @@ import java.util.UUID;
 @Builder
 public record EarnPointResult(
         UUID ledgerId,
-        UUID transactionId,
         UUID memberId,
         Long earnedAmount,
         Long totalBalance,

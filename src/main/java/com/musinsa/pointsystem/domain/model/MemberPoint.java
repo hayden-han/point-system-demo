@@ -46,14 +46,6 @@ public record MemberPoint(
                 .reduce(PointAmount.ZERO, PointAmount::add);
     }
 
-    /**
-     * @deprecated getTotalBalance(LocalDateTime) 사용 권장
-     */
-    @Deprecated
-    public PointAmount totalBalance() {
-        return getTotalBalance(LocalDateTime.now(java.time.ZoneOffset.UTC));
-    }
-
     // =====================================================
     // 적립 (Earn)
     // =====================================================
@@ -75,22 +67,6 @@ public record MemberPoint(
         validateEarnAmount(amount, policy);
         validateExpirationDays(expirationDays, policy);
         validateMaxBalance(amount, policy, now);
-    }
-
-    /**
-     * @deprecated validateEarn(PointAmount, EarnPolicyConfig, LocalDateTime) 사용 권장
-     */
-    @Deprecated
-    public void validateEarn(PointAmount amount, EarnPolicyConfig policy) {
-        validateEarn(amount, policy, LocalDateTime.now(java.time.ZoneOffset.UTC));
-    }
-
-    /**
-     * @deprecated validateEarnWithExpiration(PointAmount, Integer, EarnPolicyConfig, LocalDateTime) 사용 권장
-     */
-    @Deprecated
-    public void validateEarnWithExpiration(PointAmount amount, Integer expirationDays, EarnPolicyConfig policy) {
-        validateEarnWithExpiration(amount, expirationDays, policy, LocalDateTime.now(java.time.ZoneOffset.UTC));
     }
 
     /**
@@ -121,23 +97,6 @@ public record MemberPoint(
 
         MemberPoint updated = new MemberPoint(memberId, newLedgers);
         return new CancelEarnResult(updated, cancelResult.canceledAmount());
-    }
-
-    /**
-     * @deprecated cancelEarn(UUID, IdGenerator, LocalDateTime) 사용 권장
-     */
-    @Deprecated
-    public CancelEarnResult cancelEarn(UUID ledgerId) {
-        PointLedger targetLedger = findLedgerById(ledgerId);
-        PointAmount canceledAmount = targetLedger.earnedAmount();
-        PointLedger canceledLedger = targetLedger.cancel();
-
-        List<PointLedger> newLedgers = ledgers.stream()
-                .map(l -> l.id().equals(ledgerId) ? canceledLedger : l)
-                .toList();
-
-        MemberPoint updated = new MemberPoint(memberId, newLedgers);
-        return new CancelEarnResult(updated, canceledAmount);
     }
 
     // =====================================================
@@ -171,31 +130,6 @@ public record MemberPoint(
         return new UsageResult(updated, deductResult.usageDetails());
     }
 
-    /**
-     * @deprecated use(PointAmount, String, IdGenerator, LocalDateTime) 사용 권장
-     */
-    @Deprecated
-    public UsageResult use(PointAmount amount) {
-        LocalDateTime now = LocalDateTime.now(java.time.ZoneOffset.UTC);
-        PointAmount balance = getTotalBalance(now);
-        if (balance.isLessThan(amount)) {
-            throw new InsufficientPointException(amount.getValue(), balance.getValue());
-        }
-
-        List<PointLedger> availableLedgers = getAvailableLedgersSorted(now);
-        DeductResultLegacy deductResult = deductFromLedgersLegacy(availableLedgers, amount);
-
-        Map<UUID, PointLedger> updatedLedgersMap = deductResult.updatedLedgers().stream()
-                .collect(Collectors.toMap(PointLedger::id, l -> l));
-
-        List<PointLedger> newLedgers = ledgers.stream()
-                .map(l -> updatedLedgersMap.getOrDefault(l.id(), l))
-                .toList();
-
-        MemberPoint updated = new MemberPoint(memberId, newLedgers);
-        return new UsageResult(updated, deductResult.usageDetails());
-    }
-
     private record DeductResult(List<PointLedger> updatedLedgers, List<UsageDetail> usageDetails) {}
 
     private DeductResult deductFromLedgers(List<PointLedger> availableLedgers, PointAmount amount,
@@ -216,29 +150,6 @@ public record MemberPoint(
         }
 
         return new DeductResult(updatedLedgers, usageDetails);
-    }
-
-    @Deprecated
-    private record DeductResultLegacy(List<PointLedger> updatedLedgers, List<UsageDetail> usageDetails) {}
-
-    @Deprecated
-    private DeductResultLegacy deductFromLedgersLegacy(List<PointLedger> availableLedgers, PointAmount amount) {
-        List<PointLedger> updatedLedgers = new ArrayList<>();
-        List<UsageDetail> usageDetails = new ArrayList<>();
-        PointAmount remainingAmount = amount;
-
-        for (PointLedger ledger : availableLedgers) {
-            if (remainingAmount.isZero()) {
-                break;
-            }
-
-            PointLedger.UseResult useResult = ledger.use(remainingAmount);
-            remainingAmount = remainingAmount.subtract(useResult.usedAmount());
-            updatedLedgers.add(useResult.ledger());
-            usageDetails.add(new UsageDetail(ledger.id(), useResult.usedAmount()));
-        }
-
-        return new DeductResultLegacy(updatedLedgers, usageDetails);
     }
 
     // =====================================================
@@ -331,11 +242,6 @@ public record MemberPoint(
                 .toList();
     }
 
-    @Deprecated
-    private List<PointLedger> getAvailableLedgersSorted() {
-        return getAvailableLedgersSorted(LocalDateTime.now(java.time.ZoneOffset.UTC));
-    }
-
     public PointLedger findLedgerById(UUID ledgerId) {
         return ledgers.stream()
                 .filter(l -> l.id().equals(ledgerId))
@@ -347,18 +253,8 @@ public record MemberPoint(
         return getTotalBalance(now).add(amount).isLessThanOrEqual(maxBalance);
     }
 
-    @Deprecated
-    public boolean canEarn(PointAmount amount, PointAmount maxBalance) {
-        return canEarn(amount, maxBalance, LocalDateTime.now(java.time.ZoneOffset.UTC));
-    }
-
     public boolean hasEnoughBalance(PointAmount amount, LocalDateTime now) {
         return getTotalBalance(now).isGreaterThanOrEqual(amount);
-    }
-
-    @Deprecated
-    public boolean hasEnoughBalance(PointAmount amount) {
-        return hasEnoughBalance(amount, LocalDateTime.now(java.time.ZoneOffset.UTC));
     }
 
     // =====================================================

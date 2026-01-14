@@ -2,12 +2,12 @@ package com.musinsa.pointsystem.application.usecase;
 
 import com.musinsa.pointsystem.application.dto.PageQuery;
 import com.musinsa.pointsystem.application.dto.PagedResult;
-import com.musinsa.pointsystem.application.dto.PointTransactionResult;
-import com.musinsa.pointsystem.domain.model.PageRequest;
-import com.musinsa.pointsystem.domain.model.PageResult;
-import com.musinsa.pointsystem.domain.model.PointTransaction;
-import com.musinsa.pointsystem.domain.repository.PointTransactionRepository;
+import com.musinsa.pointsystem.application.dto.PointHistoryResult;
+import com.musinsa.pointsystem.infra.persistence.entity.LedgerEntryEntity;
+import com.musinsa.pointsystem.infra.persistence.repository.LedgerEntryJpaRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,35 +18,33 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class GetPointHistoryUseCase {
 
-    private final PointTransactionRepository pointTransactionRepository;
+    private final LedgerEntryJpaRepository ledgerEntryJpaRepository;
 
     @Transactional(readOnly = true)
-    public PagedResult<PointTransactionResult> execute(UUID memberId, PageQuery pageQuery) {
+    public PagedResult<PointHistoryResult> execute(UUID memberId, PageQuery pageQuery) {
         PageRequest pageRequest = PageRequest.of(pageQuery.pageNumber(), pageQuery.pageSize());
-        PageResult<PointTransaction> pageResult = pointTransactionRepository.findByMemberId(memberId, pageRequest);
+        Page<LedgerEntryEntity> page = ledgerEntryJpaRepository.findByMemberIdOrderByCreatedAtDesc(memberId, pageRequest);
 
-        List<PointTransactionResult> results = pageResult.content().stream()
+        List<PointHistoryResult> results = page.getContent().stream()
                 .map(this::toResult)
                 .toList();
 
         return PagedResult.of(
                 results,
-                pageResult.pageNumber(),
-                pageResult.pageSize(),
-                pageResult.totalElements()
+                page.getNumber(),
+                page.getSize(),
+                page.getTotalElements()
         );
     }
 
-    private PointTransactionResult toResult(PointTransaction transaction) {
-        return PointTransactionResult.builder()
-                .transactionId(transaction.id())
-                .memberId(transaction.memberId())
-                .type(transaction.type().name())
-                .amount(transaction.amount().getValue())
-                .orderId(transaction.orderId() != null ? transaction.orderId().getValue() : null)
-                .relatedTransactionId(transaction.relatedTransactionId())
-                .ledgerId(transaction.ledgerId())
-                .transactedAt(transaction.transactedAt())
+    private PointHistoryResult toResult(LedgerEntryEntity entity) {
+        return PointHistoryResult.builder()
+                .entryId(entity.getId())
+                .ledgerId(entity.getLedgerId())
+                .type(entity.getType().name())
+                .amount(entity.getAmount())
+                .orderId(entity.getOrderId())
+                .createdAt(entity.getCreatedAt())
                 .build();
     }
 }

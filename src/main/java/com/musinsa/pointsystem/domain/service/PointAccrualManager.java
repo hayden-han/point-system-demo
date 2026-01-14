@@ -2,7 +2,11 @@ package com.musinsa.pointsystem.domain.service;
 
 import com.musinsa.pointsystem.common.time.TimeProvider;
 import com.musinsa.pointsystem.domain.factory.PointFactory;
-import com.musinsa.pointsystem.domain.model.*;
+import com.musinsa.pointsystem.domain.model.EarnPolicyConfig;
+import com.musinsa.pointsystem.domain.model.EarnType;
+import com.musinsa.pointsystem.domain.model.MemberPoint;
+import com.musinsa.pointsystem.domain.model.PointAmount;
+import com.musinsa.pointsystem.domain.model.PointLedger;
 import com.musinsa.pointsystem.domain.port.IdGenerator;
 
 import java.time.LocalDateTime;
@@ -99,81 +103,4 @@ public class PointAccrualManager {
         return memberPoint.cancelEarn(ledgerId, idGenerator, now);
     }
 
-    // =====================================================
-    // 레거시 메서드 (deprecated)
-    // =====================================================
-
-    /**
-     * @deprecated earnV2() 사용 권장
-     */
-    @Deprecated
-    public MemberPoint.EarnResult earn(MemberPoint memberPoint,
-                                        PointAmount amount,
-                                        EarnType earnType,
-                                        LocalDateTime expiredAt,
-                                        EarnPolicyConfig policy) {
-        memberPoint.validateEarn(amount, policy);
-
-        PointLedger ledger = pointFactory.createLedger(
-                memberPoint.memberId(),
-                amount,
-                earnType,
-                expiredAt
-        );
-
-        MemberPoint updated = memberPoint.addLedger(ledger);
-        return new MemberPoint.EarnResult(updated, ledger);
-    }
-
-    /**
-     * @deprecated earnWithExpirationValidationV2() 사용 권장
-     */
-    @Deprecated
-    public MemberPoint.EarnResult earnWithExpirationValidation(MemberPoint memberPoint,
-                                                                PointAmount amount,
-                                                                EarnType earnType,
-                                                                Integer expirationDays,
-                                                                EarnPolicyConfig policy) {
-        memberPoint.validateEarnWithExpiration(amount, expirationDays, policy);
-
-        LocalDateTime expiredAt = policy.calculateExpirationDate(expirationDays);
-
-        PointLedger ledger = pointFactory.createLedger(
-                memberPoint.memberId(),
-                amount,
-                earnType,
-                expiredAt
-        );
-
-        MemberPoint updated = memberPoint.addLedger(ledger);
-        return new MemberPoint.EarnResult(updated, ledger);
-    }
-
-    /**
-     * @deprecated cancelEarnV2() 사용 권장
-     */
-    @Deprecated
-    public MemberPoint.CancelEarnResult cancelEarn(MemberPoint memberPoint, UUID ledgerId) {
-        return memberPoint.cancelEarn(ledgerId);
-    }
-
-    // =====================================================
-    // 트랜잭션 생성 (레거시 - 향후 제거 예정)
-    // =====================================================
-
-    /**
-     * @deprecated v2에서는 LedgerEntry로 대체
-     */
-    @Deprecated
-    public PointTransaction createEarnTransaction(UUID memberId, PointAmount amount, UUID ledgerId) {
-        return pointFactory.createEarnTransaction(memberId, amount, ledgerId);
-    }
-
-    /**
-     * @deprecated v2에서는 LedgerEntry로 대체
-     */
-    @Deprecated
-    public PointTransaction createEarnCancelTransaction(UUID memberId, PointAmount amount, UUID ledgerId) {
-        return pointFactory.createEarnCancelTransaction(memberId, amount, ledgerId);
-    }
 }

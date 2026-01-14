@@ -1,6 +1,8 @@
 package com.musinsa.pointsystem.infra.persistence.repository;
 
 import com.musinsa.pointsystem.infra.persistence.entity.LedgerEntryEntity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -31,4 +33,16 @@ public interface LedgerEntryJpaRepository extends JpaRepository<LedgerEntryEntit
      */
     @Query("SELECT DISTINCT e.ledgerId FROM LedgerEntryEntity e WHERE e.orderId = :orderId")
     List<UUID> findDistinctLedgerIdsByOrderId(@Param("orderId") String orderId);
+
+    /**
+     * 회원 ID로 Entry 목록 페이징 조회 (히스토리 API용)
+     */
+    @Query("SELECT e FROM LedgerEntryEntity e " +
+           "JOIN PointLedgerEntity l ON e.ledgerId = l.id " +
+           "WHERE l.memberId = :memberId " +
+           "ORDER BY e.createdAt DESC")
+    Page<LedgerEntryEntity> findByMemberIdOrderByCreatedAtDesc(
+            @Param("memberId") UUID memberId,
+            Pageable pageable
+    );
 }
