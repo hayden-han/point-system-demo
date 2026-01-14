@@ -51,7 +51,7 @@ class MemberPointTest {
             IdGenerator idGenerator = UUID::randomUUID;
             LocalDateTime now = LocalDateTime.now();
             PointLedger ledger = PointLedgerFixture.createSystem(UUID.randomUUID(), memberId, 1000L);
-            MemberPoint memberPoint = MemberPointFixture.createWithLedgers(memberId, 1000L, List.of(ledger));
+            MemberPoint memberPoint = MemberPointFixture.createWithLedgers(memberId, List.of(ledger));
 
             // WHEN
             MemberPoint.UsageResult result = memberPoint.use(PointAmount.of(300L), "ORDER-001", idGenerator, now);
@@ -70,7 +70,7 @@ class MemberPointTest {
             IdGenerator idGenerator = UUID::randomUUID;
             LocalDateTime now = LocalDateTime.now();
             PointLedger ledger = PointLedgerFixture.createSystem(UUID.randomUUID(), memberId, 500L);
-            MemberPoint memberPoint = MemberPointFixture.createWithLedgers(memberId, 500L, List.of(ledger));
+            MemberPoint memberPoint = MemberPointFixture.createWithLedgers(memberId, List.of(ledger));
 
             // WHEN & THEN
             assertThatThrownBy(() -> memberPoint.use(PointAmount.of(600L), "ORDER-001", idGenerator, now))
@@ -179,7 +179,7 @@ class MemberPointTest {
             UUID memberId = UUID.randomUUID();
             UUID ledgerId = UUID.randomUUID();
             PointLedger ledger = PointLedgerFixture.createSystem(ledgerId, memberId, 1000L);
-            MemberPoint memberPoint = MemberPointFixture.createWithLedgers(memberId, 1000L, List.of(ledger));
+            MemberPoint memberPoint = MemberPointFixture.createWithLedgers(memberId, List.of(ledger));
 
             // WHEN
             PointLedger found = memberPoint.findLedgerById(ledgerId);

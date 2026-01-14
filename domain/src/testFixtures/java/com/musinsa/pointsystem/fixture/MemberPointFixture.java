@@ -27,14 +27,6 @@ public class MemberPointFixture {
         return MemberPoint.of(memberId, ledgers);
     }
 
-    /**
-     * @deprecated balance가 Ledger에서 계산되므로 createWithLedgers 사용
-     */
-    @Deprecated
-    public static MemberPoint createWithLedgers(UUID memberId, Long balance, List<PointLedger> ledgers) {
-        return MemberPoint.of(memberId, ledgers);
-    }
-
     public static MemberPoint createNearMaxBalance(UUID memberId, Long maxBalance) {
         PointLedger ledger = PointLedgerFixture.create(
                 UUID.randomUUID(), memberId, maxBalance - 1L,

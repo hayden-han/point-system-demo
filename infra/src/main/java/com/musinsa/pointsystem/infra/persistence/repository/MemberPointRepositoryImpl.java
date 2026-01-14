@@ -180,49 +180,4 @@ public class MemberPointRepositoryImpl implements MemberPointRepository {
         }
     }
 
-    // =====================================================
-    // Deprecated 메서드 (레거시 호환 - 제거 예정)
-    // =====================================================
-
-    @Override
-    @Deprecated
-    public Optional<MemberPoint> findByMemberId(UUID memberId) {
-        return findByMemberIdWithAllLedgersAndEntries(memberId);
-    }
-
-    @Override
-    @Deprecated
-    public Optional<MemberPoint> findByMemberIdWithAllLedgers(UUID memberId) {
-        return findByMemberIdWithAllLedgersAndEntries(memberId);
-    }
-
-    @Override
-    @Deprecated
-    public Optional<MemberPoint> findByMemberIdWithAvailableLedgersForUse(UUID memberId) {
-        return findByMemberIdWithAvailableLedgersAndEntries(memberId, LocalDateTime.now());
-    }
-
-    @Override
-    @Deprecated
-    public MemberPoint save(MemberPoint memberPoint) {
-        return saveWithEntries(memberPoint);
-    }
-
-    @Override
-    @Deprecated
-    public MemberPoint getOrCreate(UUID memberId) {
-        return getOrCreateWithAllLedgersAndEntries(memberId);
-    }
-
-    @Override
-    @Deprecated
-    public MemberPoint getOrCreateWithAllLedgers(UUID memberId) {
-        return getOrCreateWithAllLedgersAndEntries(memberId);
-    }
-
-    @Override
-    @Deprecated
-    public MemberPoint getOrCreateWithAvailableLedgersForUse(UUID memberId) {
-        return getOrCreateWithAvailableLedgersAndEntries(memberId, LocalDateTime.now());
-    }
 }
