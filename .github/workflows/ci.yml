@@ -34,8 +34,14 @@ jobs:
         with:
           name: test-results
           path: |
-            **/build/reports/tests/
-            **/build/test-results/
+            domain/build/reports/tests/
+            domain/build/test-results/
+            infra/build/reports/tests/
+            infra/build/test-results/
+            app/build/reports/tests/
+            app/build/test-results/
+            batch/build/reports/tests/
+            batch/build/test-results/
 
   build:
     name: Build
@@ -74,4 +80,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: batch-jar
-          path: batch/build/libs/*.jar
+          path: batch/build/libs/batch.jar
