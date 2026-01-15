@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS point_ledger (
     CONSTRAINT chk_available_range CHECK (available_amount >= 0 AND available_amount <= earned_amount)
 );
 
-CREATE INDEX IF NOT EXISTS idx_ledger_member_available ON point_ledger (member_id, is_canceled, expired_at, earn_type, available_amount);
+CREATE INDEX IF NOT EXISTS idx_ledger_member_expired ON point_ledger (member_id, expired_at);
 CREATE INDEX IF NOT EXISTS idx_ledger_source ON point_ledger (source_ledger_id);
 
 -- Ledger Entry (적립건 변동 이력)

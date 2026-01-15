@@ -13,7 +13,7 @@ import java.util.UUID;
  *
  * <h3>설계 원칙:</h3>
  * <ul>
- *   <li>Aggregate 로드 없이 DB 직접 조회 (성능 최적화)</li>
+ *   <li>DB 직접 조회 (성능 최적화)</li>
  *   <li>읽기 전용 - 상태 변경 메서드 없음</li>
  *   <li>조회/명령 Repository 분리를 통한 책임 분리</li>
  *   <li>Spring Data 의존성 없는 순수 도메인 인터페이스</li>
@@ -21,12 +21,10 @@ import java.util.UUID;
  *
  * <h3>사용 케이스:</h3>
  * <ul>
- *   <li>잔액 조회 API - Ledger 로드 없이 SUM 쿼리</li>
- *   <li>적립 시 최대 잔액 검증 - 기존 Ledger 수정 불필요</li>
+ *   <li>잔액 조회 API - SUM 쿼리</li>
+ *   <li>적립 시 최대 잔액 검증</li>
  *   <li>히스토리 조회 - 페이징된 Entry 목록</li>
  * </ul>
- *
- * @see MemberPointRepository Command용 Repository (Aggregate 로드/저장)
  */
 public interface PointQueryRepository {
 

@@ -1,5 +1,6 @@
 package com.musinsa.pointsystem.infra.persistence.repository;
 
+import com.musinsa.pointsystem.domain.model.EntryType;
 import com.musinsa.pointsystem.infra.persistence.entity.LedgerEntryEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -45,4 +46,9 @@ public interface LedgerEntryJpaRepository extends JpaRepository<LedgerEntryEntit
             @Param("memberId") UUID memberId,
             Pageable pageable
     );
+
+    /**
+     * 주문 ID와 Entry Type으로 조회
+     */
+    List<LedgerEntryEntity> findByOrderIdAndType(String orderId, EntryType type);
 }

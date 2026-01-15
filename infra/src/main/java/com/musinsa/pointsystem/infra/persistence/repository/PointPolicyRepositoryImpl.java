@@ -15,7 +15,6 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Repository
@@ -28,12 +27,6 @@ public class PointPolicyRepositoryImpl implements PointPolicyRepository {
     private final PolicyCacheRepository policyCacheRepository;
 
     private static final QPointPolicyEntity pointPolicy = QPointPolicyEntity.pointPolicyEntity;
-
-    @Override
-    public Optional<PointPolicy> findByPolicyKey(String policyKey) {
-        return jpaRepository.findByPolicyKey(policyKey)
-                .map(mapper::toDomain);
-    }
 
     @Override
     public Long getValueByKey(String policyKey) {

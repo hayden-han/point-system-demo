@@ -1,7 +1,7 @@
 package com.musinsa.pointsystem.infra.idempotency;
 
 import com.musinsa.pointsystem.IntegrationTestBase;
-import com.musinsa.pointsystem.infra.idempotency.IdempotencyKeyRepository.AcquireResult;
+import com.musinsa.pointsystem.domain.infrastructure.IdempotencyKeyPort.AcquireResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -94,15 +94,15 @@ class IdempotencyKeyRepositoryTest extends IntegrationTestBase {
         @Test
         @DisplayName("PROCESSING 상태가 결과로 교체됨")
         void saveResult_shouldReplaceProcessingState() {
-            // GIVEN
+            // GIVEN - PROCESSING 상태 (getResult는 empty 반환)
             repository.tryAcquire(testKey);
-            assertThat(repository.isProcessing(testKey)).isTrue();
+            assertThat(repository.getResult(testKey)).isEmpty();
 
             // WHEN
             repository.saveResult(testKey, "completed");
 
-            // THEN
-            assertThat(repository.isProcessing(testKey)).isFalse();
+            // THEN - 결과가 저장되어 조회 가능
+            assertThat(repository.getResult(testKey)).isPresent().hasValue("completed");
         }
     }
 

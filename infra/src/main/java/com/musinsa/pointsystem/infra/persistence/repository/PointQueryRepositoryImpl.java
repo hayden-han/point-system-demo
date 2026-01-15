@@ -5,6 +5,7 @@ import com.musinsa.pointsystem.domain.model.PageResult;
 import com.musinsa.pointsystem.domain.model.PointAmount;
 import com.musinsa.pointsystem.domain.model.PointHistory;
 import com.musinsa.pointsystem.domain.repository.PointQueryRepository;
+import com.musinsa.pointsystem.infra.cache.PointBalanceCacheService;
 import com.musinsa.pointsystem.infra.persistence.entity.LedgerEntryEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -18,6 +19,7 @@ import java.util.UUID;
  * PointQueryRepository 구현체
  *
  * <p>Aggregate 로드 없이 DB에서 직접 조회하여 성능 최적화.
+ * <p>잔액 조회는 Redis 캐시 적용.
  */
 @Repository
 @RequiredArgsConstructor
@@ -25,11 +27,11 @@ public class PointQueryRepositoryImpl implements PointQueryRepository {
 
     private final PointLedgerJpaRepository pointLedgerJpaRepository;
     private final LedgerEntryJpaRepository ledgerEntryJpaRepository;
+    private final PointBalanceCacheService balanceCacheService;
 
     @Override
     public PointAmount getTotalBalance(UUID memberId, LocalDateTime now) {
-        Long balance = pointLedgerJpaRepository.sumAvailableAmount(memberId, now);
-        return PointAmount.of(balance != null ? balance : 0L);
+        return balanceCacheService.getTotalBalance(memberId, now);
     }
 
     @Override

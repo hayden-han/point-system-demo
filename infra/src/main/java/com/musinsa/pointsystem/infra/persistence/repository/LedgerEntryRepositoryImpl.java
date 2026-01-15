@@ -1,5 +1,6 @@
 package com.musinsa.pointsystem.infra.persistence.repository;
 
+import com.musinsa.pointsystem.domain.model.EntryType;
 import com.musinsa.pointsystem.domain.model.LedgerEntry;
 import com.musinsa.pointsystem.domain.repository.LedgerEntryRepository;
 import com.musinsa.pointsystem.infra.persistence.entity.LedgerEntryEntity;
@@ -18,21 +19,21 @@ public class LedgerEntryRepositoryImpl implements LedgerEntryRepository {
     private final PointLedgerMapper mapper;
 
     @Override
-    public LedgerEntry save(LedgerEntry entry, UUID ledgerId) {
-        LedgerEntryEntity entity = mapper.toEntryEntity(entry, ledgerId);
+    public LedgerEntry save(LedgerEntry entry) {
+        LedgerEntryEntity entity = mapper.toEntryEntity(entry);
         LedgerEntryEntity saved = jpaRepository.save(entity);
         return mapper.toEntryDomain(saved);
     }
 
     @Override
-    public List<LedgerEntry> saveAll(List<LedgerEntry> entries, UUID ledgerId) {
+    public List<LedgerEntry> saveAll(List<LedgerEntry> entries) {
+        if (entries.isEmpty()) {
+            return List.of();
+        }
         List<LedgerEntryEntity> entities = entries.stream()
-                .map(e -> mapper.toEntryEntity(e, ledgerId))
+                .map(mapper::toEntryEntity)
                 .toList();
-
-        List<LedgerEntryEntity> saved = jpaRepository.saveAll(entities);
-
-        return saved.stream()
+        return jpaRepository.saveAll(entities).stream()
                 .map(mapper::toEntryDomain)
                 .toList();
     }
@@ -57,6 +58,18 @@ public class LedgerEntryRepositoryImpl implements LedgerEntryRepository {
     @Override
     public List<LedgerEntry> findByOrderId(String orderId) {
         return jpaRepository.findByOrderIdOrderByCreatedAtAsc(orderId).stream()
+                .map(mapper::toEntryDomain)
+                .toList();
+    }
+
+    @Override
+    public List<UUID> findLedgerIdsByOrderId(String orderId) {
+        return jpaRepository.findDistinctLedgerIdsByOrderId(orderId);
+    }
+
+    @Override
+    public List<LedgerEntry> findByOrderIdAndType(String orderId, EntryType type) {
+        return jpaRepository.findByOrderIdAndType(orderId, type).stream()
                 .map(mapper::toEntryDomain)
                 .toList();
     }

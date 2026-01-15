@@ -60,10 +60,11 @@ public record EarnPolicyConfig(
     /**
      * 만료일을 계산합니다.
      * @param requestedDays 요청된 만료일 (일 수), null이면 기본값 사용
+     * @param now 기준 시간
      * @return 계산된 만료 일시
      */
-    public LocalDateTime calculateExpirationDate(Integer requestedDays) {
+    public LocalDateTime calculateExpirationDate(Integer requestedDays, LocalDateTime now) {
         int days = getExpirationDays(requestedDays);
-        return LocalDateTime.now().plusDays(days);
+        return now.plusDays(days);
     }
 }

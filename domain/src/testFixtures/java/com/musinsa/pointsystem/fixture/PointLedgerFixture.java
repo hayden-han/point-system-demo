@@ -1,11 +1,9 @@
 package com.musinsa.pointsystem.fixture;
 
 import com.musinsa.pointsystem.domain.model.EarnType;
-import com.musinsa.pointsystem.domain.model.PointAmount;
 import com.musinsa.pointsystem.domain.model.PointLedger;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
 
 public class PointLedgerFixture {
@@ -14,65 +12,58 @@ public class PointLedgerFixture {
         return new PointLedger(
                 UUID.randomUUID(),
                 UUID.randomUUID(),
-                PointAmount.of(1000L),
-                PointAmount.of(1000L),
+                1000L,
+                1000L,
                 EarnType.SYSTEM,
                 null,
                 LocalDateTime.now().plusDays(365),
                 false,
-                LocalDateTime.now(),
-                List.of()
+                LocalDateTime.now()
         );
     }
 
     public static PointLedger create(UUID id, UUID memberId, Long amount, EarnType earnType) {
-        PointAmount pointAmount = PointAmount.of(amount);
         return new PointLedger(
                 id,
                 memberId,
-                pointAmount,
-                pointAmount,
+                amount,
+                amount,
                 earnType,
                 null,
                 LocalDateTime.now().plusDays(365),
                 false,
-                LocalDateTime.now(),
-                List.of()
+                LocalDateTime.now()
         );
     }
 
     public static PointLedger createWithExpiration(UUID id, UUID memberId, Long amount,
                                                     EarnType earnType, LocalDateTime expiredAt) {
-        PointAmount pointAmount = PointAmount.of(amount);
         return new PointLedger(
                 id,
                 memberId,
-                pointAmount,
-                pointAmount,
+                amount,
+                amount,
                 earnType,
                 null,
                 expiredAt,
                 false,
-                LocalDateTime.now(),
-                List.of()
+                LocalDateTime.now()
         );
     }
 
     public static PointLedger createWithExpiration(UUID id, UUID memberId, Long amount,
                                                     EarnType earnType, LocalDateTime expiredAt,
                                                     LocalDateTime earnedAt) {
-        PointAmount pointAmount = PointAmount.of(amount);
         return new PointLedger(
                 id,
                 memberId,
-                pointAmount,
-                pointAmount,
+                amount,
+                amount,
                 earnType,
                 null,
                 expiredAt,
                 false,
-                earnedAt,
-                List.of()
+                earnedAt
         );
     }
 
@@ -81,14 +72,13 @@ public class PointLedgerFixture {
         return new PointLedger(
                 id,
                 memberId,
-                PointAmount.of(earnedAmount),
-                PointAmount.of(earnedAmount - usedAmount),
+                earnedAmount,
+                earnedAmount - usedAmount,
                 earnType,
                 null,
                 LocalDateTime.now().plusDays(365),
                 false,
-                LocalDateTime.now(),
-                List.of()
+                LocalDateTime.now()
         );
     }
 
@@ -96,14 +86,13 @@ public class PointLedgerFixture {
         return new PointLedger(
                 id,
                 memberId,
-                PointAmount.of(amount),
-                PointAmount.ZERO,
+                amount,
+                0L,
                 earnType,
                 null,
                 LocalDateTime.now().plusDays(365),
                 false,
-                LocalDateTime.now(),
-                List.of()
+                LocalDateTime.now()
         );
     }
 
@@ -111,30 +100,27 @@ public class PointLedgerFixture {
         return new PointLedger(
                 id,
                 memberId,
-                PointAmount.of(amount),
-                PointAmount.ZERO,
+                amount,
+                0L,
                 earnType,
                 null,
                 LocalDateTime.now().plusDays(365),
                 true,
-                LocalDateTime.now(),
-                List.of()
+                LocalDateTime.now()
         );
     }
 
     public static PointLedger createExpired(UUID id, UUID memberId, Long amount, EarnType earnType) {
-        PointAmount pointAmount = PointAmount.of(amount);
         return new PointLedger(
                 id,
                 memberId,
-                pointAmount,
-                pointAmount,
+                amount,
+                amount,
                 earnType,
                 null,
                 LocalDateTime.now().minusDays(1),
                 false,
-                LocalDateTime.now().minusDays(366),
-                List.of()
+                LocalDateTime.now().minusDays(366)
         );
     }
 

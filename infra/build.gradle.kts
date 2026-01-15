@@ -11,10 +11,6 @@ dependencies {
     // =====================================================
     api(project(":domain"))
 
-    // =====================================================
-    // Core 모듈 의존성 (공통 유틸리티)
-    // =====================================================
-    api(project(":core"))
 
     // =====================================================
     // Spring Boot (인프라 구현용)
@@ -50,7 +46,6 @@ dependencies {
     // testFixtures 의존성 (다른 모듈에서 재사용 가능)
     // =====================================================
     testFixturesApi(project(":domain"))
-    testFixturesApi(project(":core"))
     testFixturesApi(testFixtures(project(":domain")))
     testFixturesApi("org.springframework.boot:spring-boot-starter-test")
     testFixturesApi("com.github.codemonstur:embedded-redis:1.4.3")

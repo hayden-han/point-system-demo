@@ -1,5 +1,6 @@
 package com.musinsa.pointsystem.infra.idempotency;
 
+import com.musinsa.pointsystem.domain.infrastructure.IdempotencyKeyPort;
 import org.redisson.api.RBucket;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Repository;
@@ -7,33 +8,25 @@ import org.springframework.stereotype.Repository;
 import java.time.Duration;
 import java.util.Optional;
 
+/**
+ * Redis 기반 멱등성 키 관리 구현체
+ */
 @Repository
-public class IdempotencyKeyRepository {
+public class IdempotencyKeyRepository implements IdempotencyKeyPort {
 
     private static final String KEY_PREFIX = "idempotency:";
-    private static final Duration DEFAULT_TTL = Duration.ofHours(24);
     private static final Duration PROCESSING_TTL = Duration.ofSeconds(30);  // PROCESSING 상태 최대 유지 시간
     private static final String PROCESSING = "PROCESSING";
 
     private final RedissonClient redissonClient;
+    private final IdempotencyProperties properties;
 
-    public IdempotencyKeyRepository(RedissonClient redissonClient) {
+    public IdempotencyKeyRepository(RedissonClient redissonClient, IdempotencyProperties properties) {
         this.redissonClient = redissonClient;
+        this.properties = properties;
     }
 
-    /**
-     * 멱등성 키 상태
-     */
-    public enum AcquireResult {
-        ACQUIRED,           // 새로 획득 (처리 가능)
-        ALREADY_COMPLETED,  // 이미 처리 완료
-        PROCESSING          // 다른 요청이 처리 중
-    }
-
-    /**
-     * 멱등성 키가 이미 존재하는지 확인하고, 없으면 저장
-     * @return AcquireResult 상태
-     */
+    @Override
     public AcquireResult tryAcquire(String idempotencyKey) {
         String key = KEY_PREFIX + idempotencyKey;
         RBucket<String> bucket = redissonClient.getBucket(key);
@@ -56,20 +49,14 @@ public class IdempotencyKeyRepository {
         return AcquireResult.ALREADY_COMPLETED;
     }
 
-    /**
-     * 처리 완료 후 결과 저장
-     * - PROCESSING 상태를 결과로 교체하고 TTL을 24시간으로 연장
-     */
+    @Override
     public void saveResult(String idempotencyKey, String result) {
         String key = KEY_PREFIX + idempotencyKey;
         RBucket<String> bucket = redissonClient.getBucket(key);
-        bucket.set(result, DEFAULT_TTL);
+        bucket.set(result, Duration.ofSeconds(properties.getTtlSeconds()));
     }
 
-    /**
-     * 저장된 결과 조회
-     * @return 처리 완료된 결과 (PROCESSING 상태면 empty)
-     */
+    @Override
     public Optional<String> getResult(String idempotencyKey) {
         String key = KEY_PREFIX + idempotencyKey;
         RBucket<String> bucket = redissonClient.getBucket(key);
@@ -80,18 +67,7 @@ public class IdempotencyKeyRepository {
         return Optional.of(value);
     }
 
-    /**
-     * 현재 상태 확인
-     */
-    public boolean isProcessing(String idempotencyKey) {
-        String key = KEY_PREFIX + idempotencyKey;
-        RBucket<String> bucket = redissonClient.getBucket(key);
-        return PROCESSING.equals(bucket.get());
-    }
-
-    /**
-     * 처리 실패 시 키 삭제 (재시도 허용)
-     */
+    @Override
     public void remove(String idempotencyKey) {
         String key = KEY_PREFIX + idempotencyKey;
         redissonClient.getBucket(key).delete();

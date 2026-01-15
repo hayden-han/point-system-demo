@@ -3,7 +3,6 @@ package com.musinsa.pointsystem.infra.persistence.mapper;
 import com.musinsa.pointsystem.domain.model.EarnType;
 import com.musinsa.pointsystem.domain.model.EntryType;
 import com.musinsa.pointsystem.domain.model.LedgerEntry;
-import com.musinsa.pointsystem.domain.model.PointAmount;
 import com.musinsa.pointsystem.domain.model.PointLedger;
 import com.musinsa.pointsystem.infra.persistence.entity.LedgerEntryEntity;
 import com.musinsa.pointsystem.infra.persistence.entity.PointLedgerEntity;
@@ -13,7 +12,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -60,53 +58,12 @@ class PointLedgerMapperTest {
             // then
             assertThat(domain.id()).isEqualTo(id);
             assertThat(domain.memberId()).isEqualTo(memberId);
-            assertThat(domain.earnedAmount()).isEqualTo(PointAmount.of(1000L));
-            assertThat(domain.availableAmount()).isEqualTo(PointAmount.of(800L));
+            assertThat(domain.earnedAmount()).isEqualTo(1000L);
+            assertThat(domain.availableAmount()).isEqualTo(800L);
             assertThat(domain.earnType()).isEqualTo(EarnType.MANUAL);
             assertThat(domain.expiredAt()).isEqualTo(expiredAt);
             assertThat(domain.canceled()).isFalse();
             assertThat(domain.earnedAt()).isEqualTo(earnedAt);
-            assertThat(domain.entries()).isEmpty();
-        }
-
-        @Test
-        @DisplayName("Entity를 Domain으로 변환 시 entries 포함")
-        void shouldConvertEntityToDomainWithEntries() {
-            // given
-            UUID ledgerId = UUID.randomUUID();
-            UUID memberId = UUID.randomUUID();
-            UUID entryId = UUID.randomUUID();
-            LocalDateTime now = LocalDateTime.now();
-
-            PointLedgerEntity ledgerEntity = PointLedgerEntity.builder()
-                    .id(ledgerId)
-                    .memberId(memberId)
-                    .earnedAmount(1000L)
-                    .availableAmount(1000L)
-                    .usedAmount(0L)
-                    .earnType("SYSTEM")
-                    .expiredAt(now.plusDays(365))
-                    .isCanceled(false)
-                    .earnedAt(now)
-                    .build();
-
-            LedgerEntryEntity entryEntity = LedgerEntryEntity.builder()
-                    .id(entryId)
-                    .ledgerId(ledgerId)
-                    .type(EntryType.EARN)
-                    .amount(1000L)
-                    .orderId(null)
-                    .createdAt(now)
-                    .build();
-
-            // when
-            PointLedger domain = mapper.toDomain(ledgerEntity, List.of(entryEntity));
-
-            // then
-            assertThat(domain.entries()).hasSize(1);
-            assertThat(domain.entries().get(0).id()).isEqualTo(entryId);
-            assertThat(domain.entries().get(0).type()).isEqualTo(EntryType.EARN);
-            assertThat(domain.entries().get(0).amount()).isEqualTo(1000L);
         }
 
         @Test
@@ -130,7 +87,7 @@ class PointLedgerMapperTest {
 
             // then
             assertThat(domain.canceled()).isTrue();
-            assertThat(domain.availableAmount()).isEqualTo(PointAmount.ZERO);
+            assertThat(domain.availableAmount()).isEqualTo(0L);
         }
 
         @Test
@@ -172,26 +129,16 @@ class PointLedgerMapperTest {
             LocalDateTime expiredAt = LocalDateTime.now().plusDays(365);
             LocalDateTime earnedAt = LocalDateTime.now();
 
-            // USE entry로 300원 사용
-            LedgerEntry useEntry = new LedgerEntry(
-                    UUID.randomUUID(),
-                    EntryType.USE,
-                    -300L,
-                    "ORDER-001",
-                    earnedAt
-            );
-
             PointLedger domain = new PointLedger(
                     id,
                     memberId,
-                    PointAmount.of(1000L),
-                    PointAmount.of(700L),
+                    1000L,
+                    700L,
                     EarnType.SYSTEM,
                     null,
                     expiredAt,
                     false,
-                    earnedAt,
-                    List.of(useEntry)
+                    earnedAt
             );
 
             // when
@@ -202,7 +149,7 @@ class PointLedgerMapperTest {
             assertThat(entity.getMemberId()).isEqualTo(memberId);
             assertThat(entity.getEarnedAmount()).isEqualTo(1000L);
             assertThat(entity.getAvailableAmount()).isEqualTo(700L);
-            assertThat(entity.getUsedAmount()).isEqualTo(300L);  // entries 기반 계산
+            assertThat(entity.getUsedAmount()).isEqualTo(300L);
             assertThat(entity.getEarnType()).isEqualTo("SYSTEM");
             assertThat(entity.getExpiredAt()).isEqualTo(expiredAt);
             assertThat(entity.getIsCanceled()).isFalse();
@@ -236,6 +183,7 @@ class PointLedgerMapperTest {
 
             // then
             assertThat(domain.id()).isEqualTo(entryId);
+            assertThat(domain.ledgerId()).isEqualTo(ledgerId);
             assertThat(domain.type()).isEqualTo(EntryType.USE);
             assertThat(domain.amount()).isEqualTo(-500L);
             assertThat(domain.orderId()).isEqualTo("ORDER-123");
@@ -252,6 +200,7 @@ class PointLedgerMapperTest {
 
             LedgerEntry domain = new LedgerEntry(
                     entryId,
+                    ledgerId,
                     EntryType.EARN,
                     1000L,
                     null,
@@ -259,7 +208,7 @@ class PointLedgerMapperTest {
             );
 
             // when
-            LedgerEntryEntity entity = mapper.toEntryEntity(domain, ledgerId);
+            LedgerEntryEntity entity = mapper.toEntryEntity(domain);
 
             // then
             assertThat(entity.getId()).isEqualTo(entryId);

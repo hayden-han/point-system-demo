@@ -2,7 +2,7 @@ package com.musinsa.pointsystem.infra.adapter;
 
 import com.fasterxml.uuid.Generators;
 import com.fasterxml.uuid.impl.TimeBasedEpochGenerator;
-import com.musinsa.pointsystem.domain.port.IdGenerator;
+import com.musinsa.pointsystem.domain.repository.IdGenerator;
 import org.springframework.stereotype.Component;
 
 import java.util.UUID;

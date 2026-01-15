@@ -1,7 +1,7 @@
 package com.musinsa.pointsystem.infra.lock;
 
-import com.musinsa.pointsystem.application.exception.LockAcquisitionFailedException;
-import com.musinsa.pointsystem.application.port.DistributedLock;
+import com.musinsa.pointsystem.domain.exception.LockAcquisitionFailedException;
+import com.musinsa.pointsystem.domain.model.DistributedLock;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -74,7 +74,7 @@ public class DistributedLockAspect {
                 .register(meterRegistry);
     }
 
-    @Around("@annotation(com.musinsa.pointsystem.application.port.DistributedLock)")
+    @Around("@annotation(com.musinsa.pointsystem.domain.port.DistributedLock)")
     public Object around(ProceedingJoinPoint joinPoint) throws Throwable {
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         DistributedLock distributedLock = signature.getMethod().getAnnotation(DistributedLock.class);
