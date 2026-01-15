@@ -74,7 +74,7 @@ public class DistributedLockAspect {
                 .register(meterRegistry);
     }
 
-    @Around("@annotation(com.musinsa.pointsystem.domain.port.DistributedLock)")
+    @Around("@annotation(com.musinsa.pointsystem.domain.model.DistributedLock)")
     public Object around(ProceedingJoinPoint joinPoint) throws Throwable {
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         DistributedLock distributedLock = signature.getMethod().getAnnotation(DistributedLock.class);
