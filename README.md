@@ -242,6 +242,56 @@ app/
 
 ---
 
+## 도메인 모델
+
+### PointLedger (적립건)
+
+포인트 적립의 기본 단위입니다. 각 적립 요청마다 하나의 Ledger가 생성됩니다.
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `id` | UUID | 적립건 ID (UUIDv7) |
+| `memberId` | UUID | 회원 ID |
+| `earnedAmount` | long | 최초 적립 금액 (불변) |
+| `availableAmount` | long | 현재 사용 가능 금액 |
+| `earnType` | EarnType | 적립 유형 |
+| `sourceLedgerId` | UUID | 원본 적립건 ID (USE_CANCEL 시 참조) |
+| `expiredAt` | LocalDateTime | 만료일시 |
+| `canceled` | boolean | 적립 취소 여부 |
+| `earnedAt` | LocalDateTime | 적립일시 |
+
+### LedgerEntry (변동 이력)
+
+적립건의 모든 변동을 추적하는 Append-only 이력입니다. Single Source of Truth로서 포인트 흐름을 추적합니다.
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `id` | UUID | 이력 ID (UUIDv7) |
+| `ledgerId` | UUID | 적립건 ID (PointLedger 참조) |
+| `type` | EntryType | 변동 유형 |
+| `amount` | long | 변동 금액 (+: 적립/복구, -: 사용/취소) |
+| `orderId` | String | 주문 ID (USE, USE_CANCEL 시) |
+| `createdAt` | LocalDateTime | 생성일시 |
+
+### EarnType (적립 유형)
+
+| 값 | 설명 |
+|----|------|
+| `MANUAL` | 수기 지급 (사용 우선순위 높음) |
+| `SYSTEM` | 시스템 자동 지급 |
+| `USE_CANCEL` | 사용취소로 인한 재적립 (만료된 적립건 복구 시) |
+
+### EntryType (변동 유형)
+
+| 값 | 부호 | 설명 |
+|----|------|------|
+| `EARN` | + | 적립 |
+| `EARN_CANCEL` | - | 적립 취소 |
+| `USE` | - | 사용 |
+| `USE_CANCEL` | + | 사용 취소 |
+
+---
+
 ## 시퀀스 다이어그램
 
 ### 포인트 적립 (Earn)
@@ -406,81 +456,33 @@ sequenceDiagram
 
 ---
 
-## 도메인 모델
-
-### 핵심 개념
-
-| 개념 | 설명 |
-|------|------|
-| **PointLedger** | 적립 원장. 각 적립건을 나타내는 핵심 엔티티 |
-| **LedgerEntry** | 변동 이력. 모든 포인트 변동을 1원 단위로 추적 |
-| **PointRules** | 비즈니스 규칙을 순수 함수로 정의 |
-
-### Entry 타입
-
-| 타입 | 설명 |
-|------|------|
-| `EARN` | 적립 |
-| `EARN_CANCEL` | 적립 취소 |
-| `USE` | 사용 |
-| `USE_CANCEL` | 사용 취소 |
-
-### 상태 다이어그램
-
-```mermaid
-stateDiagram-v2
-    [*] --> Active: 포인트 적립
-    Active --> Active: 포인트 사용
-    Active --> Active: 사용 취소
-    Active --> Canceled: 적립 취소
-    Active --> Expired: 만료일 경과
-    Canceled --> [*]
-    Expired --> [*]
-
-    note right of Active
-        available_amount > 0
-        is_canceled = false
-        expired_at > now
-    end note
-
-    note right of Canceled
-        is_canceled = true
-    end note
-
-    note right of Expired
-        expired_at <= now
-    end note
-```
-
----
-
-## 데이터베이스 스키마
-
-```
-┌─────────────────┐       ┌─────────────────┐       ┌─────────────────┐
-│  point_policy   │       │  point_ledger   │       │  ledger_entry   │
-├─────────────────┤       ├─────────────────┤       ├─────────────────┤
-│ id (PK)         │       │ id (PK)         │──────▶│ id (PK)         │
-│ policy_key (UK) │       │ member_id       │       │ ledger_id (FK)  │
-│ policy_value    │       │ earned_amount   │       │ type            │
-│ description     │       │ available_amount│       │ amount          │
-└─────────────────┘       │ earn_type       │       │ order_id        │
-                          │ expired_at      │       │ created_at      │
-                          │ is_canceled     │       └─────────────────┘
-                          │ source_ledger_id│
-                          │ created_at      │
-                          └─────────────────┘
-```
-
-| 테이블 | 설명 |
-|--------|------|
-| `point_policy` | 정책 설정 (적립 한도, 만료일 등) |
-| `point_ledger` | 적립 원장 (각 적립건) |
-| `ledger_entry` | 변동 이력 (모든 포인트 변동 추적) |
-
----
-
 ## 주요 설계 결정
+
+### UUID v7 기반 ID 설계
+
+모든 테이블의 Primary Key로 UUID v7 (BINARY(16))을 사용합니다.
+
+**분산 시스템 관점에서의 이점:**
+
+1. **DB 독립적 ID 생성**
+   - 애플리케이션에서 ID 생성 → DB 라운드트립 불필요
+   - AUTO_INCREMENT는 DB 의존적이라 분산 환경에서 병목 발생
+   - 여러 인스턴스가 동시에 ID 생성 가능
+
+2. **시간 기반 정렬 (UUIDv7 특성)**
+   - 앞 48비트가 Unix timestamp → 생성 순서대로 자연 정렬
+   - B-Tree 인덱스 성능 최적화 (순차 삽입)
+   - UUID v4 대비 인덱스 단편화 감소
+
+3. **수평 확장 대응**
+   - DB 샤딩 시에도 ID 충돌 없이 독립적 생성
+   - 마이크로서비스 전환 시 ID 체계 변경 불필요
+   - 데이터 마이그레이션/병합 시 충돌 방지
+
+4. **BINARY(16) 저장 형식**
+   - VARCHAR(36) 대비 저장 공간 56% 절약 (36바이트 → 16바이트)
+   - 인덱스 크기 감소로 메모리 효율 향상
+   - 비교 연산 성능 향상
 
 ### 동시성 제어
 
@@ -501,113 +503,52 @@ stateDiagram-v2
 - **이벤트 기반**: 도메인 이벤트 핸들러에서 캐시 무효화
 - **데이터 정합성**: 트랜잭션 롤백 시 캐시 유지
 
-### N+1 문제 방지
+### N+1 문제 방지 및 JPA 선택 이유
 
-- **JPA 연관관계 없음**: PointLedger와 LedgerEntry 간 명시적 조회
-- **배치 조회**: `findByLedgerIds()`로 여러 Ledger의 Entry 한 번에 조회
-- **Entity/Domain 분리**: JPA Entity와 도메인 모델 명확히 분리
+**JPA 연관관계를 사용하지 않은 이유:**
+- PointLedger와 LedgerEntry 간 `@OneToMany` 매핑 시 N+1 문제 발생 가능
+- 명시적 조회(`findByLedgerIds()`)로 필요한 데이터만 배치 조회
+
+**그럼에도 JPA를 선택한 이유:**
+- **QueryDSL 연동**: 타입 안전한 동적 쿼리 작성 (정렬, 필터링, 페이징)
+- **Dirty Checking**: 변경 감지로 명시적 UPDATE 쿼리 불필요
+- **트랜잭션 관리**: `@Transactional`과 자연스러운 통합
+- **Entity-Domain 매핑**: Mapper를 통한 명확한 계층 분리
+
+> JdbcTemplate은 단순 CRUD에 적합하나, QueryDSL 기반의 복잡한 조회와 변경 감지가 필요한 본 프로젝트에서는 JPA가 더 적합
 
 ---
 
 ## API 명세
 
-> **인증:** 모든 API는 `X-Member-Id` 헤더로 회원 ID를 전달받습니다.
+상세한 API 스펙은 Swagger UI에서 확인할 수 있습니다.
 
-### 1. 포인트 적립
-
-**POST** `/api/v1/points/earn`
-
-```bash
-curl -X POST http://localhost:8080/api/v1/points/earn \
-  -H "X-Member-Id: 550e8400-e29b-41d4-a716-446655440000" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "amount": 1000,
-    "earnType": "SYSTEM",
-    "expirationDays": 365
-  }'
+```
+http://localhost:8080/swagger-ui.html
 ```
 
-| 필드 | 타입 | 필수 | 설명 |
-|------|------|------|------|
-| amount | Long | O | 적립 금액 (1 ~ 100,000) |
-| earnType | String | O | SYSTEM(시스템) / MANUAL(수기지급) |
-| expirationDays | Integer | X | 만료일 (기본 365일, 최대 1824일) |
+### API 목록
 
-### 2. 포인트 적립취소
+| 메서드 | 엔드포인트 | 설명 |
+|--------|-----------|------|
+| POST | `/api/v1/points/earn` | 포인트 적립 |
+| POST | `/api/v1/points/earn/{ledgerId}/cancel` | 포인트 적립취소 |
+| POST | `/api/v1/points/use` | 포인트 사용 |
+| POST | `/api/v1/points/use/cancel` | 포인트 사용취소 |
+| GET | `/api/v1/points` | 잔액 조회 |
+| GET | `/api/v1/points/history` | 이력 조회 |
 
-**POST** `/api/v1/points/earn/{ledgerId}/cancel`
+### 공통 헤더
 
-```bash
-curl -X POST http://localhost:8080/api/v1/points/earn/{ledgerId}/cancel \
-  -H "X-Member-Id: 550e8400-e29b-41d4-a716-446655440000"
-```
+| 헤더 | 필수 | 설명 |
+|------|------|------|
+| `X-Member-Id` | O | 회원 ID (UUID) |
+| `Idempotency-Key` | △ | 멱등성 키 (POST 요청 시 권장) |
 
-- 미사용 적립건만 취소 가능
-- 전체 금액 취소만 가능 (부분 취소 불가)
+### 포인트 사용 우선순위
 
-### 3. 포인트 사용
-
-**POST** `/api/v1/points/use`
-
-```bash
-curl -X POST http://localhost:8080/api/v1/points/use \
-  -H "X-Member-Id: 550e8400-e29b-41d4-a716-446655440000" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "amount": 500,
-    "orderId": "ORDER-12345"
-  }'
-```
-
-| 필드 | 타입 | 필수 | 설명 |
-|------|------|------|------|
-| amount | Long | O | 사용 금액 |
-| orderId | String | O | 주문번호 |
-
-**사용 우선순위:**
 1. 수기 지급(MANUAL) 포인트 우선
 2. 만료일이 짧은 순서
-
-### 4. 포인트 사용취소
-
-**POST** `/api/v1/points/use/cancel`
-
-```bash
-curl -X POST http://localhost:8080/api/v1/points/use/cancel \
-  -H "X-Member-Id: 550e8400-e29b-41d4-a716-446655440000" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "orderId": "ORDER-12345",
-    "cancelAmount": 300
-  }'
-```
-
-| 필드 | 타입 | 필수 | 설명 |
-|------|------|------|------|
-| orderId | String | O | 원본 주문번호 |
-| cancelAmount | Long | O | 취소 금액 |
-
-- 전체 또는 부분 취소 가능
-- 만료된 적립건은 신규 적립으로 복구
-
-### 5. 잔액 조회
-
-**GET** `/api/v1/points`
-
-```bash
-curl http://localhost:8080/api/v1/points \
-  -H "X-Member-Id: 550e8400-e29b-41d4-a716-446655440000"
-```
-
-### 6. 이력 조회
-
-**GET** `/api/v1/points/history?page=0&size=20`
-
-```bash
-curl "http://localhost:8080/api/v1/points/history?page=0&size=20" \
-  -H "X-Member-Id: 550e8400-e29b-41d4-a716-446655440000"
-```
 
 ---
 
