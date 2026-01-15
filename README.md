@@ -302,9 +302,11 @@ sequenceDiagram
     participant Controller
     participant IdempotencySupport
     participant UseCase as EarnPointUseCase
-    participant Lock as DistributedLock
-    participant Repository
-    participant EventPublisher
+    participant Lock as @DistributedLock
+    participant PolicyRepo as PolicyRepository
+    participant QueryRepo as QueryRepository
+    participant LedgerRepo as LedgerRepository
+    participant EntryRepo as EntryRepository
     participant EventHandler
 
     Client->>Controller: POST /points/earn
@@ -314,21 +316,19 @@ sequenceDiagram
         IdempotencySupport-->>Controller: 캐시된 응답 반환
     else 새 요청
         IdempotencySupport->>UseCase: execute(command)
-
         UseCase->>Lock: 분산락 획득 (memberId)
-        Lock-->>UseCase: 락 획득 성공
 
-        UseCase->>Repository: 현재 잔액 조회
+        UseCase->>PolicyRepo: getEarnPolicyConfig()
+        UseCase->>QueryRepo: getTotalBalance()
         UseCase->>UseCase: PointRules.validateEarn()
-        UseCase->>Repository: Ledger 저장
-        UseCase->>Repository: Entry 저장
-        UseCase->>EventPublisher: PointEarnedEvent 발행
+        UseCase->>LedgerRepo: save(ledger)
+        UseCase->>EntryRepo: save(earnEntry)
+        UseCase->>UseCase: eventPublisher.publish()
 
         UseCase->>Lock: 락 해제
         UseCase-->>IdempotencySupport: EarnPointResult
 
-        Note over EventHandler: 트랜잭션 커밋 후
-        EventPublisher->>EventHandler: handlePointEarned()
+        Note over EventHandler: @TransactionalEventListener(AFTER_COMMIT)
         EventHandler->>EventHandler: 캐시 무효화
 
         IdempotencySupport-->>Controller: EarnPointResponse
@@ -344,32 +344,33 @@ sequenceDiagram
     participant Client
     participant Controller
     participant UseCase as UsePointUseCase
-    participant Lock as DistributedLock
-    participant Repository
+    participant Lock as @DistributedLock
+    participant LedgerRepo as LedgerRepository
+    participant EntryRepo as EntryRepository
     participant EventHandler
 
     Client->>Controller: POST /points/use
     Controller->>UseCase: execute(command)
-
     UseCase->>Lock: 분산락 획득 (memberId)
-    Lock-->>UseCase: 락 획득 성공
 
-    UseCase->>Repository: 사용 가능한 Ledger 조회
+    UseCase->>LedgerRepo: findAvailableByMemberId()
+    UseCase->>UseCase: PointRules.calculateAvailableBalance()
     UseCase->>UseCase: PointRules.validateSufficientBalance()
     UseCase->>UseCase: PointRules.getAvailableLedgersSorted()
 
     Note over UseCase: MANUAL 우선, 만료일 짧은 순
 
     loop 각 Ledger에서 차감
-        UseCase->>UseCase: 차감 금액 계산
-        UseCase->>Repository: Ledger 업데이트
-        UseCase->>Repository: USE Entry 저장
+        UseCase->>UseCase: ledger.withAvailableAmount()
+        UseCase->>UseCase: LedgerEntry.createUse()
     end
 
-    UseCase->>UseCase: PointUsedEvent 발행
+    UseCase->>LedgerRepo: saveAll(updatedLedgers)
+    UseCase->>EntryRepo: saveAll(useEntries)
+    UseCase->>UseCase: eventPublisher.publish()
     UseCase->>Lock: 락 해제
 
-    Note over EventHandler: 트랜잭션 커밋 후
+    Note over EventHandler: @TransactionalEventListener(AFTER_COMMIT)
     EventHandler->>EventHandler: 캐시 무효화
 
     UseCase-->>Controller: UsePointResult
@@ -383,40 +384,45 @@ sequenceDiagram
     participant Client
     participant Controller
     participant UseCase as CancelUsePointUseCase
+    participant Lock as @DistributedLock
+    participant EntryRepo as EntryRepository
+    participant LedgerRepo as LedgerRepository
+    participant PolicyRepo as PolicyRepository
     participant Processor as UseCancelProcessor
-    participant Repository
     participant EventHandler
 
     Client->>Controller: POST /points/use/cancel
     Controller->>UseCase: execute(command)
+    UseCase->>Lock: 분산락 획득 (memberId)
 
-    UseCase->>UseCase: 분산락 획득 (memberId)
-    UseCase->>Repository: orderId로 관련 Ledger 조회
-    UseCase->>Repository: 관련 Entry 조회
+    Note over UseCase: loadCancelContext()
+    UseCase->>EntryRepo: findLedgerIdsByOrderId()
+    UseCase->>LedgerRepo: findAllByIds()
+    UseCase->>EntryRepo: findByLedgerIds()
 
     UseCase->>Processor: calculateCancelableAmount()
-    Processor-->>UseCase: 취소 가능 금액
-
     UseCase->>UseCase: PointRules.validateCancelAmount()
 
+    UseCase->>PolicyRepo: getExpirationPolicyConfig()
     UseCase->>Processor: process()
 
     loop 각 Ledger 처리
         alt Ledger가 만료됨
-            Processor->>Processor: 신규 Ledger 생성
-            Processor->>Processor: EARN Entry 생성
+            Processor->>Processor: 신규 Ledger 생성 (sourceLedgerId 설정)
+            Processor->>Processor: LedgerEntry.createEarn()
         else Ledger가 유효함
-            Processor->>Processor: Ledger.availableAmount 복구
+            Processor->>Processor: ledger.withAvailableAmount() 복구
         end
-        Processor->>Processor: USE_CANCEL Entry 생성
+        Processor->>Processor: LedgerEntry.createUseCancel()
     end
 
     Processor-->>UseCase: CancelResult
+    UseCase->>LedgerRepo: saveAll()
+    UseCase->>EntryRepo: saveAll()
+    UseCase->>UseCase: eventPublisher.publish()
+    UseCase->>Lock: 락 해제
 
-    UseCase->>Repository: 변경사항 저장
-    UseCase->>UseCase: PointUseCanceledEvent 발행
-
-    Note over EventHandler: 트랜잭션 커밋 후
+    Note over EventHandler: @TransactionalEventListener(AFTER_COMMIT)
     EventHandler->>EventHandler: 캐시 무효화
 
     UseCase-->>Controller: CancelUsePointResult
@@ -430,24 +436,30 @@ sequenceDiagram
     participant Client
     participant Controller
     participant UseCase as CancelEarnPointUseCase
-    participant Repository
+    participant Lock as @DistributedLock
+    participant LedgerRepo as LedgerRepository
+    participant EntryRepo as EntryRepository
+    participant QueryRepo as QueryRepository
     participant EventHandler
 
     Client->>Controller: POST /points/earn/{ledgerId}/cancel
     Controller->>UseCase: execute(command)
+    UseCase->>Lock: 분산락 획득 (memberId)
 
-    UseCase->>UseCase: 분산락 획득 (memberId)
-    UseCase->>Repository: Ledger 조회
-
+    UseCase->>LedgerRepo: findById()
     UseCase->>UseCase: PointRules.validateCancelEarn()
-    Note over UseCase: 전액 사용 가능한 경우만 취소 가능
+    Note over UseCase: earnedAmount == availableAmount 검증
 
     UseCase->>UseCase: ledger.withCanceled()
-    UseCase->>Repository: Ledger 저장 (is_canceled=true)
-    UseCase->>Repository: EARN_CANCEL Entry 저장
-    UseCase->>UseCase: PointEarnCanceledEvent 발행
+    UseCase->>LedgerRepo: save(canceledLedger)
+    UseCase->>UseCase: LedgerEntry.createEarnCancel()
+    UseCase->>EntryRepo: save(cancelEntry)
+    UseCase->>UseCase: eventPublisher.publish()
 
-    Note over EventHandler: 트랜잭션 커밋 후
+    UseCase->>QueryRepo: getTotalBalance()
+    UseCase->>Lock: 락 해제
+
+    Note over EventHandler: @TransactionalEventListener(AFTER_COMMIT)
     EventHandler->>EventHandler: 캐시 무효화
 
     UseCase-->>Controller: CancelEarnPointResult
