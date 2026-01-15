@@ -15,7 +15,6 @@ import java.util.Optional;
 public class IdempotencyKeyRepository implements IdempotencyKeyPort {
 
     private static final String KEY_PREFIX = "idempotency:";
-    private static final Duration PROCESSING_TTL = Duration.ofSeconds(30);  // PROCESSING 상태 최대 유지 시간
     private static final String PROCESSING = "PROCESSING";
 
     private final RedissonClient redissonClient;
@@ -32,7 +31,8 @@ public class IdempotencyKeyRepository implements IdempotencyKeyPort {
         RBucket<String> bucket = redissonClient.getBucket(key);
 
         // PROCESSING 상태로 설정 시도 (짧은 TTL로 설정하여 처리 실패 시 자동 만료)
-        boolean acquired = bucket.setIfAbsent(PROCESSING, PROCESSING_TTL);
+        Duration processingTtl = Duration.ofSeconds(properties.getProcessingTtlSeconds());
+        boolean acquired = bucket.setIfAbsent(PROCESSING, processingTtl);
         if (acquired) {
             return AcquireResult.ACQUIRED;
         }

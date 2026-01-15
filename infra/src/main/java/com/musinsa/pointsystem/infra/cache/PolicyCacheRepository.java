@@ -12,7 +12,7 @@ import java.util.Optional;
 
 /**
  * Redis 기반 정책 캐시 Repository
- * - 정책은 자주 변경되지 않으므로 5분 TTL 적용
+ * - 정책은 자주 변경되지 않으므로 긴 TTL 적용
  * - 정책 변경 시 evict 메서드로 캐시 무효화 가능
  */
 @Repository
@@ -21,9 +21,9 @@ public class PolicyCacheRepository {
 
     private static final String EARN_POLICY_KEY = "cache:policy:earn";
     private static final String EXPIRATION_POLICY_KEY = "cache:policy:expiration";
-    private static final Duration CACHE_TTL = Duration.ofMinutes(5);
 
     private final RedissonClient redissonClient;
+    private final CacheProperties cacheProperties;
 
     public Optional<EarnPolicyConfig> getEarnPolicyConfig() {
         RBucket<EarnPolicyConfig> bucket = redissonClient.getBucket(EARN_POLICY_KEY);
@@ -32,7 +32,7 @@ public class PolicyCacheRepository {
 
     public void putEarnPolicyConfig(EarnPolicyConfig config) {
         RBucket<EarnPolicyConfig> bucket = redissonClient.getBucket(EARN_POLICY_KEY);
-        bucket.set(config, CACHE_TTL);
+        bucket.set(config, Duration.ofSeconds(cacheProperties.getPolicyTtlSeconds()));
     }
 
     public Optional<ExpirationPolicyConfig> getExpirationPolicyConfig() {
@@ -42,7 +42,7 @@ public class PolicyCacheRepository {
 
     public void putExpirationPolicyConfig(ExpirationPolicyConfig config) {
         RBucket<ExpirationPolicyConfig> bucket = redissonClient.getBucket(EXPIRATION_POLICY_KEY);
-        bucket.set(config, CACHE_TTL);
+        bucket.set(config, Duration.ofSeconds(cacheProperties.getPolicyTtlSeconds()));
     }
 
     /**
